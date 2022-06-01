@@ -22,7 +22,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 namespace {
 const uint32_t EVENT_ID = 0;

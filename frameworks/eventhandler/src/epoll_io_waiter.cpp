@@ -27,7 +27,7 @@
 DEFINE_HILOG_LABEL("EpollIoWaiter");
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 namespace {
 const size_t MAX_EPOLL_EVENTS_SIZE = 8;
 
@@ -272,5 +272,5 @@ void EpollIoWaiter::SetFileDescriptorEventCallback(const IoWaiter::FileDescripto
 {
     callback_ = callback;
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

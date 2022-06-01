@@ -17,7 +17,7 @@
 #define BASE_EVENTHANDLER_INTERFACES_INNER_API_LOGGER_H
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 class Logger {
 public:
     /**
@@ -26,7 +26,7 @@ public:
      */
     virtual void Log(const std::string &line) = 0;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // BASE_EVENTHANDLER_INTERFACES_INNER_API_LOGGER_H

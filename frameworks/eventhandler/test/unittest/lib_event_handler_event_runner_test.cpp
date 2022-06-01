@@ -26,7 +26,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 static const uint32_t HAS_EVENT_ID = 100;
 static const int64_t HAS_EVENT_PARAM = 1000;

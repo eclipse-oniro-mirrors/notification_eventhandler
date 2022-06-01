@@ -16,7 +16,7 @@
 #include "event_handler_test_common.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 std::atomic<bool> CommonUtils::eventRun_ {false};
 std::atomic<bool> CommonUtils::taskCalled_ {false};
 std::atomic<uint32_t> CommonUtils::eventRunTimes_ {0};
@@ -39,5 +39,5 @@ void MyEventHandler::ProcessEvent(const InnerEvent::Pointer &event)
         CommonUtils::EventRunCountIncrement();
     }
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

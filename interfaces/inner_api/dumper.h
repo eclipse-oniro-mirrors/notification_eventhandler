@@ -17,7 +17,7 @@
 #define BASE_EVENTHANDLER_INTERFACES_INNER_API_DUMPER_H
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 class Dumper {
 public:
     /**
@@ -33,7 +33,7 @@ public:
      */
     virtual std::string GetTag() = 0;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // BASE_EVENTHANDLER_INTERFACES_INNER_API_DUMPER_H

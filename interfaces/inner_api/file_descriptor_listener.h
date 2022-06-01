@@ -22,7 +22,7 @@
 #include "nocopyable.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 // Listen input or output events
 const uint32_t FILE_DESCRIPTOR_INPUT_EVENT = 1;
 const uint32_t FILE_DESCRIPTOR_OUTPUT_EVENT = 2;
@@ -92,7 +92,7 @@ protected:
 private:
     std::weak_ptr<EventHandler> owner_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_FILE_DESCRIPTOR_LISTENER_H

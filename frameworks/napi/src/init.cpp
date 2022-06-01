@@ -17,7 +17,7 @@
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports)
 {
@@ -40,5 +40,5 @@ extern "C" __attribute__((constructor)) void RegisterModule(void)
 {
     napi_module_register(&_module);
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

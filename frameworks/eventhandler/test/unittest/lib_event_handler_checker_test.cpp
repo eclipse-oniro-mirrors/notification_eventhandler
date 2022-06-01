@@ -26,7 +26,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 using namespace OHOS::HiviewDFX;
 
 bool isSetLogger = false;

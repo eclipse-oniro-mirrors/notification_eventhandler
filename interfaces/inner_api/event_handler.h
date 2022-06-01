@@ -20,7 +20,7 @@
 #include "dumper.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 enum class EventType {
     SYNC_EVENT = 0,
     DELAY_EVENT = 1,
@@ -921,7 +921,8 @@ private:
 
     static ThreadLocalData<std::weak_ptr<EventHandler>> currentEventHandler;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
+namespace EventHandling = AppExecFwk;
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_HANDLER_H

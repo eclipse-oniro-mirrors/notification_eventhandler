@@ -24,7 +24,7 @@ DEFINE_HILOG_LABEL("EventHandler");
 
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 static constexpr int DATETIME_STRING_LENGTH = 80;
 
 ThreadLocalData<std::weak_ptr<EventHandler>> EventHandler::currentEventHandler;
@@ -400,5 +400,5 @@ bool EventHandler::IsIdle()
 
 void EventHandler::ProcessEvent(const InnerEvent::Pointer &)
 {}
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

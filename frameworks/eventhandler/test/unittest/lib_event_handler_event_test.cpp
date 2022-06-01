@@ -22,7 +22,7 @@
 #include "inner_event.h"
 
 using namespace testing::ext;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 namespace {
 const size_t MAX_POOL_SIZE = 64;
 }

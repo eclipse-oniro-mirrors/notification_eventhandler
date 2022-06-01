@@ -31,7 +31,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 namespace {
 const size_t MAX_PRIORITY_NUM = 4;

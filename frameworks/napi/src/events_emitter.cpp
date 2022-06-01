@@ -28,7 +28,7 @@ static constexpr OHOS::HiviewDFX::HiLogLabel LOG_LABEL = { LOG_CORE, LOG_DOMAIN,
 DEFINE_HILOG_LABEL("events_emitter");
 using namespace std;
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
     static map<uint32_t, CallbackInfos> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
@@ -474,5 +474,5 @@ namespace EventHandling {
         eventHandler = EventHandlerInstance::GetInstance();
         return exports;
     }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

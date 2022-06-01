@@ -22,7 +22,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 namespace {
 bool g_isDump = false;

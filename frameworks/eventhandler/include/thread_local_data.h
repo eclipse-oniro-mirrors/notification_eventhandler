@@ -23,7 +23,7 @@
 #include "nocopyable.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 /*
  * Tool class, used to save thread local data.
  */
@@ -87,7 +87,7 @@ private:
     mutable std::mutex mapLock_;
     std::unordered_map<std::thread::id, T> dataMap_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_THREAD_LOCAL_DATA_H

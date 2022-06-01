@@ -19,8 +19,8 @@
 #include "event_runner.h"
 
 using OHOS::ErrCode;
-using OHOS::EventHandling::EventHandler;
-using OHOS::EventHandling::EventRunner;
+using OHOS::AppExecFwk::EventHandler;
+using OHOS::AppExecFwk::EventRunner;
 
 typedef void (*FileFDCallback)(int32_t filedescriptor);
 

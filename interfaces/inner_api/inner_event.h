@@ -30,7 +30,7 @@ namespace HiviewDFX {
 class HiTraceId;
 }
 
-namespace EventHandling {
+namespace AppExecFwk {
 using HiTraceId = OHOS::HiviewDFX::HiTraceId;
 
 class EventHandler;
@@ -524,7 +524,7 @@ private:
     // use to store hitrace Id
     std::shared_ptr<HiTraceId> hiTraceId_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_INNER_EVENT_H
