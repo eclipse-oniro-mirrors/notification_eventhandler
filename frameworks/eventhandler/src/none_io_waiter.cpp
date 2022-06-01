@@ -22,7 +22,7 @@
 DEFINE_HILOG_LABEL("NoneIoWaiter");
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 namespace {
 const int32_t HOURS_PER_DAY = 24;
 const int32_t DAYS_PER_YEAR = 365;
@@ -86,5 +86,5 @@ void NoneIoWaiter::SetFileDescriptorEventCallback(const IoWaiter::FileDescriptor
 {
     HILOGW("SetFileDescriptorEventCallback: Function is not supported !!!");
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

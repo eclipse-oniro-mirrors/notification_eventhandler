@@ -30,7 +30,7 @@
 #include "napi/native_node_api.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 using Priority = EventQueue::Priority;
 static const int32_t ARGC_NUM = 2;
 static const int32_t NAPI_VALUE_STRING_LEN = 10240;
@@ -83,7 +83,7 @@ napi_value JS_On(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Off(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Once(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Emit(napi_env env, napi_callback_info cbinfo);
-} // namespace EventHandling
+} // namespace AppExecFwk
 } // namespace OHOS
 
 #endif  // BASE_EVENTHANDLER_FRAMEWORKS_NAPI_INCLUDE_JS_EMITTER_H

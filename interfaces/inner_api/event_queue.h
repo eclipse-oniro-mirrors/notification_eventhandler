@@ -28,7 +28,7 @@
 #include "logger.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 class IoWaiter;
 
 class EventQueue final {
@@ -255,7 +255,7 @@ private:
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_QUEUE_H

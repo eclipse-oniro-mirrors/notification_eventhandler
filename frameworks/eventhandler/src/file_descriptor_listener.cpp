@@ -16,7 +16,7 @@
 #include "file_descriptor_listener.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 void FileDescriptorListener::OnReadable(int32_t)
 {}
 
@@ -28,5 +28,5 @@ void FileDescriptorListener::OnShutdown(int32_t)
 
 void FileDescriptorListener::OnException(int32_t)
 {}
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

@@ -24,7 +24,7 @@ struct FileDescriptorCallbacks {
     const FileFDCallback exceptionCallback_;
 };
 
-class NativeFileDescriptorListener : public OHOS::EventHandling::FileDescriptorListener {
+class NativeFileDescriptorListener : public OHOS::AppExecFwk::FileDescriptorListener {
 public:
     explicit NativeFileDescriptorListener(const struct FileDescriptorCallbacks *fileDescriptorCallbacks)
     {
@@ -134,7 +134,7 @@ ErrCode EventRunnerNativeImplement::RunEventRunnerNativeObj() const
     if (eventRunner_ != nullptr) {
         return eventRunner_->Run();
     }
-    return OHOS::EventHandling::EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
+    return OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
 }
 
 ErrCode EventRunnerNativeImplement::StopEventRunnerNativeObj() const
@@ -142,7 +142,7 @@ ErrCode EventRunnerNativeImplement::StopEventRunnerNativeObj() const
     if (eventRunner_ != nullptr) {
         return eventRunner_->Stop();
     }
-    return OHOS::EventHandling::EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
+    return OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
 }
 
 ErrCode EventRunnerNativeImplement::AddFileDescriptorListener(

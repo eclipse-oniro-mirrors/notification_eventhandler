@@ -23,7 +23,7 @@
 #include "logger.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 class EventInnerRunner;
 
 class EventRunner final {
@@ -216,7 +216,8 @@ private:
     std::shared_ptr<EventInnerRunner> innerRunner_;
     static std::shared_ptr<EventRunner> mainRunner_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
+namespace EventHandling = AppExecFwk;
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_RUNNER_H

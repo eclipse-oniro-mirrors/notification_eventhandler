@@ -33,7 +33,7 @@
 #define HILOGD(...) OHOS::HiviewDFX::HiLog::Debug(LOG_LABEL, ##__VA_ARGS__)
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 inline const int64_t NANOSECONDS_PER_ONE_MILLISECOND = 1000000;
 inline const int64_t NANOSECONDS_PER_ONE_SECOND = 1000000000;
 inline const int32_t INFINITE_TIMEOUT = -1;
@@ -95,7 +95,7 @@ static inline void GetLastErr(char *errmsg, size_t size = MAX_ERRORMSG_LEN)
     size = size > MAX_ERRORMSG_LEN ? MAX_ERRORMSG_LEN : size;
     strerror_r(errno, errmsg, size);
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EVENT_HANDLER_UTILS_H

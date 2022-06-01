@@ -23,7 +23,7 @@
 #include "nocopyable.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 // Use epoll to listen file descriptor.
 class EpollIoWaiter final : public IoWaiter {
 public:
@@ -61,7 +61,7 @@ private:
     FileDescriptorEventCallback callback_;
     std::atomic<uint32_t> waitingCount_{0};
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EPOLL_IO_WAITER_H
