@@ -1,9 +1,9 @@
-# eventhandler
+# Eventhandler
 
-#### 简介
+## 简介
 ​        EventHandler提供了OpenHarmony线程间通信的基本能力，可以通过EventRunner创建新线程，将耗时的操作抛到新线程上执行，从而实现在不阻塞原来的线程的基础上合理地处理耗时任务。
 
-​        EventHandler主要包括如下核心模块：
+​        EventHandler主要包括如下核心模类：
 
 | 类           | 功能介绍                                                     |
 | ------------ | ------------------------------------------------------------ |
@@ -14,10 +14,10 @@
 
 
 
-#### 整体架构
+## 整体架构
 ![evenhandler](figures/evenhandler.png)
 
-#### 目录结构
+## 目录结构
 
 
 
@@ -36,7 +36,20 @@ base/notification/eventhandler
 
 
 
-#### 使用说明
+## 编译构建
+
+ ./build.sh --product-name xxxx --build-target eventhandler
+
+
+
+## 接口说明
 
 详见[API接口说明文档](https://gitee.com/openharmony/docs/blob/master/zh-cn/application-dev/reference/apis/js-apis-emitter.md )。
 
+
+
+## 相关仓
+
+[HiTrace组件](https://gitee.com/openharmony/hiviewdfx_hitrace/blob/master/README_zh.md)
+
+[HiChecker组件](https://gitee.com/openharmony/hiviewdfx_hichecker/blob/master/README_zh.md)
