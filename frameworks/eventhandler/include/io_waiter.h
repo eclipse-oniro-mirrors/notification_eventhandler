@@ -24,7 +24,7 @@
 #include "nocopyable.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 // Interface of IO waiter
 class IoWaiter {
 public:
@@ -83,7 +83,7 @@ public:
      */
     virtual void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) = 0;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_IO_WAITER_H

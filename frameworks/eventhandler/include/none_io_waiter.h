@@ -23,7 +23,7 @@
 #include "nocopyable.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 // Io waiter which does not support listening file descriptor.
 class NoneIoWaiter final : public IoWaiter {
 public:
@@ -47,7 +47,7 @@ private:
     std::condition_variable condition_;
     uint32_t waitingCount_{0};
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_NONE_IO_WAITER_H

@@ -25,7 +25,7 @@
 DEFINE_HILOG_LABEL("InnerEvent");
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 namespace {
 class WaiterImp final : public InnerEvent::Waiter {
 public:
@@ -270,5 +270,5 @@ std::string InnerEvent::Dump()
 
     return content;
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

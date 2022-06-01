@@ -23,7 +23,7 @@
 #include "event_runner.h"
 
 using namespace testing::ext;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 using namespace OHOS::HiviewDFX;
 
 using WaitFunc = std::function<bool()>;

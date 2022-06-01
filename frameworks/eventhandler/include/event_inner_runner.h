@@ -23,7 +23,7 @@
 #include "thread_local_data.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 class EventInnerRunner {
 public:
     explicit EventInnerRunner(const std::shared_ptr<EventRunner> &runner);
@@ -63,7 +63,7 @@ protected:
     std::string threadName_;
     std::thread::id threadId_;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EVENT_INNER_RUNNER_H

@@ -42,7 +42,7 @@ extern "C" {
 #endif
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 struct EventRunnerNativeImplement;
 using EventRunnerNativeImplement = struct EventRunnerNativeImplement;
 
@@ -155,7 +155,7 @@ int EventRunnerAddFileDescriptorListener(const EventRunnerNativeImplement *nativ
  * @version 2.0
  */
 void EventRunnerRemoveFileDescriptorListener(const EventRunnerNativeImplement *nativeObj, int fileDescriptor);
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #ifdef __cplusplus

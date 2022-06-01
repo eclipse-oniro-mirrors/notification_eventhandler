@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 
 using namespace testing::ext;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 namespace {
 const uint32_t MAX_RETRY_COUNT = 2000;

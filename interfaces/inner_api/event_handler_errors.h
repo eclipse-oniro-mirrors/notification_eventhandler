@@ -19,7 +19,7 @@
 #include "errors.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 // Module id of event handler is assigned in "appexecfwk_errors.h"
 const uint32_t APPEXECFWK_MODULE_EVENT_HANDLER = 0x10;
 constexpr ErrCode EVENT_HANDLER_ERR_OFFSET = ErrCodeOffset(SUBSYS_APPEXECFWK, APPEXECFWK_MODULE_EVENT_HANDLER);
@@ -40,7 +40,7 @@ enum {
     // Event runner is already running.
     EVENT_HANDLER_ERR_RUNNER_ALREADY,
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 
 #endif  // BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_HANDLER_ERRORS_H

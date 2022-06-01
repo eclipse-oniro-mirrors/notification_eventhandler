@@ -25,7 +25,7 @@
 DEFINE_HILOG_LABEL("EventQueue");
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 namespace {
 // Help to insert events into the event queue sorted by handle time.
 inline void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event)
@@ -572,5 +572,5 @@ bool EventQueue::IsQueueEmpty()
 
     return idleEvents_.size() == 0;
 }
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS

@@ -23,7 +23,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 namespace {
 std::mutex g_mtx;

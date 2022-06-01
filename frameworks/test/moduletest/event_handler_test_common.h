@@ -24,7 +24,7 @@
 #include "event_runner.h"
 
 namespace OHOS {
-namespace EventHandling {
+namespace AppExecFwk {
 const uint32_t STOP_EVENT_ID = 0;
 const uint32_t RUN_EVENT_ID = 10;
 
@@ -127,6 +127,6 @@ public:
      */
     void ProcessEvent(const InnerEvent::Pointer &event) override;
 };
-}  // namespace EventHandling
+}  // namespace AppExecFwk
 }  // namespace OHOS
 #endif  // #ifndef FOUNDATION_APPEXECFWK_LIBS_TEST_MODULETEST_COMMON_EVENT_HANDLER_EVENT_HANDLER_TEST_COMMON_H

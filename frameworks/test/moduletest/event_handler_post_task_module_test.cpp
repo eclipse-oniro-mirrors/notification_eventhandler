@@ -18,7 +18,7 @@
 #include <gtest/gtest.h>
 
 using namespace testing::ext;
-using namespace OHOS::EventHandling;
+using namespace OHOS::AppExecFwk;
 
 class EventHandlerPostTaskModuleTest : public testing::Test {
 public:

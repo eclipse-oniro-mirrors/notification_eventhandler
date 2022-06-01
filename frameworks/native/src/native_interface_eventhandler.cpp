@@ -41,7 +41,7 @@ int EventRunnerRun(const EventRunnerNativeImplement *nativeObj)
 {
     if (nativeObj == nullptr) {
         HiLog::Error(LABEL, "Input nkd object is null");
-        return OHOS::EventHandling::EVENT_HANDLER_ERR_INVALID_PARAM;
+        return OHOS::AppExecFwk::EVENT_HANDLER_ERR_INVALID_PARAM;
     }
     return nativeObj->RunEventRunnerNativeObj();
 }
@@ -50,7 +50,7 @@ int EventRunnerStop(const EventRunnerNativeImplement *nativeObj)
 {
     if (nativeObj == nullptr) {
         HiLog::Error(LABEL, "Input nkd object is null");
-        return OHOS::EventHandling::EVENT_HANDLER_ERR_INVALID_PARAM;
+        return OHOS::AppExecFwk::EVENT_HANDLER_ERR_INVALID_PARAM;
     }
     return nativeObj->StopEventRunnerNativeObj();
 }
@@ -60,7 +60,7 @@ int EventRunnerAddFileDescriptorListener(const EventRunnerNativeImplement *nativ
 {
     if (nativeObj == nullptr) {
         HiLog::Error(LABEL, "Input nkd object is null");
-        return OHOS::EventHandling::EVENT_HANDLER_ERR_INVALID_PARAM;
+        return OHOS::AppExecFwk::EVENT_HANDLER_ERR_INVALID_PARAM;
     }
     return nativeObj->AddFileDescriptorListener(fileDescriptor, events, fileDescriptorCallbacks);
 }
