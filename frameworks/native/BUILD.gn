@@ -36,12 +36,3 @@ ohos_shared_library("eventhandler_native") {
   subsystem_name = "notification"
   part_name = "eventhandler"
 }
-
-group("eventhandler_native_target") {
-  deps = [ ":eventhandler_native" ]
-}
-
-group("eventhandler_native_test") {
-  testonly = true
-  deps = []
-}

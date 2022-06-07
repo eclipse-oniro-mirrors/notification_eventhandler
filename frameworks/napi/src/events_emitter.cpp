@@ -313,7 +313,7 @@ namespace AppExecFwk {
     {
         napi_valuetype dataType;
         napi_typeof(env, argv, &dataType);
-        NAPI_ASSERT(env, dataType == napi_object, "type mismatch for parameter 2");
+        NAPI_ASSERT_BASE(env, dataType == napi_object, "type mismatch for parameter 2", false);
 
         bool hasData = false;
         napi_has_named_property(env, argv, "data", &hasData);
@@ -323,8 +323,16 @@ namespace AppExecFwk {
 
             napi_value keyArr = nullptr;
             napi_status status = napi_get_property_names(env, data, &keyArr);
+            if (status != napi_ok) {
+                HILOGI("can not get property names");
+                return false;
+            }
             uint32_t len = 0;
             status = napi_get_array_length(env, keyArr, &len);
+            if (status != napi_ok) {
+                HILOGI("can not get array length");
+                return false;
+            }
 
             EventData eventData;
             bool hasEventData = false;

@@ -29,8 +29,8 @@
         "build": {
             "sub_component": [
                 "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
-                "//base/notification/eventhandler/frameworks/native:eventhandler_native_target",
-                "//base/notification/eventhandler/frameworks/napi:napi_packages"
+                "//base/notification/eventhandler/frameworks:eventhandler_native_target",
+                "//base/notification/eventhandler/frameworks:napi_packages"
             ],
             "inner_kits": [
                 {
