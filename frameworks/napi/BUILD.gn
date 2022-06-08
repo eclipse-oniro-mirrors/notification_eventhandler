@@ -43,10 +43,3 @@ ohos_shared_library("emitter") {
   subsystem_name = "notification"
   part_name = "eventhandler"
 }
-
-group("napi_packages") {
-  deps = []
-  if (support_jsapi) {
-    deps += [ ":emitter" ]
-  }
-}
