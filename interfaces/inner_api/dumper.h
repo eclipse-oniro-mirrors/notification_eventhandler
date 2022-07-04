@@ -20,6 +20,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class Dumper {
 public:
+    virtual ~Dumper() = default;
     /**
      * Processes the content of a specified string.
      * @param message the content of a specified string.
