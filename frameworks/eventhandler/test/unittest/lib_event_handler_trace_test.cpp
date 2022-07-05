@@ -166,6 +166,7 @@ HWTEST_F(LibEventHandlerTraceTest, EventTrace001, TestSize.Level0)
     uint32_t eventId = 0;
     int64_t eventParam = 0;
     auto event = InnerEvent::Get(eventId, eventParam);
+    EXPECT_NE(event, nullptr);
 
     /**
      * @tc.steps: step1. get trace id from event and check wheather the trace id is valid.
@@ -173,8 +174,8 @@ HWTEST_F(LibEventHandlerTraceTest, EventTrace001, TestSize.Level0)
      */
     auto traceId = event->GetOrCreateTraceId();
     auto eventTraceId = event->GetTraceId();
-    EXPECT_FALSE(traceId->IsValid());
-    EXPECT_FALSE(eventTraceId->IsValid());
+    EXPECT_EQ(traceId, nullptr);
+    EXPECT_EQ(eventTraceId, nullptr);
 }
 
 /**
