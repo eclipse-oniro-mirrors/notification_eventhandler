@@ -14,3 +14,10 @@
 frameworks_path = "//base/notification/eventhandler/frameworks"
 inner_api_path = "//base/notification/eventhandler/interfaces/inner_api"
 kits_path = "//base/notification/eventhandler/interfaces/kits"
+
+if (!defined(global_parts_info) ||
+    defined(global_parts_info.hiviewdfx_hichecker_native)) {
+  has_hichecker_native_part = true
+} else {
+  has_hichecker_native_part = false
+}

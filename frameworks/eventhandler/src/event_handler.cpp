@@ -17,7 +17,9 @@
 
 #include <unistd.h>
 #include "event_handler_utils.h"
+#ifdef HAS_HICHECKER_NATIVE_PART
 #include "hichecker.h"
+#endif // HAS_HICHECKER_NATIVE_PART
 #include "thread_local_data.h"
 
 DEFINE_HILOG_LABEL("EventHandler");
@@ -240,6 +242,7 @@ void EventHandler::SetEventRunner(const std::shared_ptr<EventRunner> &runner)
 
 void EventHandler::DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart)
 {
+#ifdef HAS_HICHECKER_NATIVE_PART
     if (!HiChecker::NeedCheckSlowEvent()) {
         return;
     }
@@ -262,10 +265,12 @@ void EventHandler::DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEve
             }
         }
     }
+#endif // HAS_HICHECKER_NATIVE_PART
 }
 
 void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart)
 {
+#ifdef HAS_HICHECKER_NATIVE_PART
     if (!HiChecker::NeedCheckSlowEvent()) {
         return;
     }
@@ -289,6 +294,7 @@ void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerE
             }
         }
     }
+#endif // HAS_HICHECKER_NATIVE_PART
 }
 
 void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)

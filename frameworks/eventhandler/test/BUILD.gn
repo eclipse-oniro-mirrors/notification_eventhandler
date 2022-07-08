@@ -34,10 +34,13 @@ ohos_unittest("LibEventHandlerCheckTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hichecker_native:libhichecker",
     "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
   ]
+
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker_native:libhichecker" ]
+  }
 }
 
 ohos_unittest("LibEventHandlerEventQueueTest") {
@@ -52,10 +55,13 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hichecker_native:libhichecker",
     "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
   ]
+
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker_native:libhichecker" ]
+  }
 }
 
 ohos_unittest("LibEventHandlerEventTest") {
@@ -70,10 +76,12 @@ ohos_unittest("LibEventHandlerEventTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hichecker_native:libhichecker",
     "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
   ]
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker_native:libhichecker" ]
+  }
 }
 
 ohos_unittest("LibEventHandlerEventRunnerTest") {
@@ -88,10 +96,13 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hichecker_native:libhichecker",
     "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
   ]
+
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker_native:libhichecker" ]
+  }
 }
 
 ohos_unittest("LibEventHandlerTraceTest") {
@@ -106,10 +117,13 @@ ohos_unittest("LibEventHandlerTraceTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hichecker_native:libhichecker",
     "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
   ]
+
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker_native:libhichecker" ]
+  }
 }
 
 group("unittest") {
