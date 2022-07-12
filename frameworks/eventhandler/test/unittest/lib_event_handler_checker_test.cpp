@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef HAS_HICHECKER_NATIVE_PART
 #include <atomic>
 #include <cerrno>
 #include <thread>
@@ -215,3 +216,4 @@ HWTEST_F(LibEventHandlerCheckTest, EventTimeout003, TestSize.Level1)
     EXPECT_EQ(false, deliveryTimeout_);
     EXPECT_EQ(true, distributeTimeout_);
 }
+#endif // HAS_HICHECKER_NATIVE_PART
