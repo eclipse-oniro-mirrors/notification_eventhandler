@@ -12,10 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "hilog/log.h"
+
 #include "events_emitter.h"
 
 #include <uv.h>
+
+#include "hilog/log.h"
 
 #define DEFINE_HILOG_LABEL(name) \
 static constexpr OHOS::HiviewDFX::HiLogLabel LOG_LABEL = { LOG_CORE, LOG_DOMAIN, name }

@@ -14,10 +14,13 @@
  */
 
 #include "native_interface_eventhandler.h"
-#include "hilog/log.h"
 #include "native_implement_eventhandler.h"
 
 #include <cstdint>
+
+#include "hilog/log.h"
+#include "errors.h"                         // for ErrCode
+#include "event_handler_errors.h"           // for EVENT_HANDLER_ERR_INVALID...
 
 using OHOS::ErrCode;
 using OHOS::HiviewDFX::HiLog;
