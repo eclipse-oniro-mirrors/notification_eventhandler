@@ -123,13 +123,18 @@ namespace AppExecFwk {
         for (auto iter = callbackInfos.asyncCallbackInfo.begin(); iter != callbackInfos.asyncCallbackInfo.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
             HILOGI("Prepare to process callbackInfo %{public}p", callbackInfo);
-            EventDataWorker* eventDataWorker = new EventDataWorker();
+            EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
+            if (!eventDataWorker) {
+                HILOGE("new object failed");
+                continue;
+            }
+            
             eventDataWorker->data = eventData;
             eventDataWorker->callbackInfo = callbackInfo;
 
             uv_loop_s *loop = nullptr;
             napi_get_uv_event_loop(callbackInfo->env, &loop);
-            uv_work_t *work = new uv_work_t;
+            uv_work_t *work = new (std::nothrow) uv_work_t;
             if (work == nullptr) {
                 HILOGI("uv_work_t instance is nullptr");
                 delete eventDataWorker;
@@ -228,7 +233,11 @@ namespace AppExecFwk {
         HILOGI("OnOrOnce eventIdValue:%{public}d", eventIdValue);
 
         if (!IsExistSameCallback(env, eventIdValue, argv[1], once)) {
-            AsyncCallbackInfo* callbackInfo = new AsyncCallbackInfo();
+            AsyncCallbackInfo* callbackInfo = new (std::nothrow) AsyncCallbackInfo();
+            if (!callbackInfo) {
+                HILOGE("new object failed");
+                return nullptr;
+            }
             callbackInfo->env = env;
             callbackInfo->once = once;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
@@ -340,14 +349,21 @@ namespace AppExecFwk {
                 napi_value key = nullptr;
                 napi_get_element(env, keyArr, i, &key);
                 char keyChars[NAPI_VALUE_STRING_LEN] = {0};
-                Val* val = new Val();
+                Val* val = new (std::nothrow) Val();
+                if (!val) {
+                    HILOGE("new object failed");
+                    return false;
+                }
+                
                 if (!ParseEventData(env, key, data, val, keyChars)) {
                     delete val;
+                    val = nullptr;
                     continue;
                 }
                 eventData.data.insert(make_pair(keyChars, *val));
                 hasEventData = true;
                 delete val;
+                val = nullptr;
             }
 
             if (hasEventData) {
