@@ -14,7 +14,14 @@
  */
 
 #include "native_implement_eventhandler.h"
+
+#include <cstdint>                         // for int32_t, uint32_t
+#include <memory>                           // for shared_ptr, operator!=
+
 #include "event_runner.h"
+#include "errors.h"                         // for ErrCode
+#include "event_handler_errors.h"           // for EVENT_HANDLER_ERR_NO_EVEN...
+#include "event_queue.h"                    // for EventQueue
 #include "file_descriptor_listener.h"
 
 struct FileDescriptorCallbacks {
