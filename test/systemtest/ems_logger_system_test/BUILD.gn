@@ -22,8 +22,8 @@ ohos_systemtest("EmsLoggerSystemTest") {
 
   deps = [ "//third_party/googletest:gtest_main" ]
   external_deps = [
+    "c_utils:utils",
     "eventhandler:libeventhandler",
-    "utils_base:utils",
   ]
 }
 

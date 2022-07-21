@@ -19,19 +19,19 @@ ohos_shared_library("eventhandler_native") {
 
   include_dirs = [
     "${kits_path}/native",
-    "//utils/native/base/include",
+    "//commonlibrary/c_utils/base/include",
     "//base/hiviewdfx/interfaces/innerkits/libhilog/include",
     "//base/hiviewdfx/interfaces/innerkits/libhitrace/include",
   ]
 
   cflags = [ "-Wno-error=inconsistent-missing-override" ]
 
-  deps = [
-    "${frameworks_path}/eventhandler:libeventhandler",
-    "//utils/native/base:utils",
-  ]
+  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
-  external_deps = [ "hiviewdfx_hilog_native:libhilog" ]
+  external_deps = [
+    "c_utils:utils",
+    "hiviewdfx_hilog_native:libhilog",
+  ]
 
   subsystem_name = "notification"
   part_name = "eventhandler"
