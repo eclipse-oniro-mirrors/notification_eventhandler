@@ -27,11 +27,19 @@
             "third_party": []
         },
         "build": {
-            "sub_component": [
-                "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
-                "//base/notification/eventhandler/frameworks:eventhandler_native_target",
-                "//base/notification/eventhandler/frameworks:napi_packages"
-            ],
+            "group_type": {
+                "base_group": [
+
+                ],
+                "fwk_group": [
+                    "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
+                    "//base/notification/eventhandler/frameworks:eventhandler_native_target",
+                    "//base/notification/eventhandler/frameworks:napi_packages"
+                ],
+                "service_group": [
+
+                ]
+            },
             "inner_kits": [
                 {
                     "header": {
