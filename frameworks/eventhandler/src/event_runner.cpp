@@ -320,8 +320,6 @@ public:
             // Make sure owner of the event exists.
             if (handler) {
                 std::shared_ptr<Logger> logging = logger_;
-                std::stringstream address;
-                address << handler.get();
                 if (logging != nullptr) {
                     if (!event->HasTask()) {
                         logging->Log("Dispatching to handler event id = " + std::to_string(event->GetInnerEventId()));
@@ -330,10 +328,6 @@ public:
                     }
                 }
                 handler->DistributeEvent(event);
-
-                if (logging != nullptr) {
-                    logging->Log("Finished to handler(0x" + address.str() + ")");
-                }
             }
             // Release event manually, otherwise event will be released until next event coming.
             event.reset();
