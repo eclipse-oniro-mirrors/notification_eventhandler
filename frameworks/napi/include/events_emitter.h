@@ -58,10 +58,6 @@ struct Val {
     } value;
 };
 
-struct EventData {
-    std::map<std::string, Val> data;
-};
-
 struct AsyncCallbackInfo {
     napi_env env;
     bool once = false;
@@ -69,9 +65,8 @@ struct AsyncCallbackInfo {
     napi_ref callback = 0;
 };
 
-struct CallbackInfos {
-    std::vector<AsyncCallbackInfo *> asyncCallbackInfo;
-};
+using EventData = std::map<std::string, Val>;
+using CallbackInfos = std::vector<AsyncCallbackInfo *>;
 
 struct EventDataWorker {
     EventData data;
