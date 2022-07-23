@@ -54,7 +54,7 @@ namespace AppExecFwk {
     {
         napi_value data = nullptr;
         napi_create_object(env, &data);
-        for (map<string, Val>::iterator it = eventData.data.begin(); it != eventData.data.end(); it++) {
+        for (map<string, Val>::iterator it = eventData.begin(); it != eventData.end(); it++) {
             string key = it->first;
             Val val = it->second;
             napi_value napiValue = nullptr;
@@ -118,9 +118,9 @@ namespace AppExecFwk {
         }
 
         CallbackInfos& callbackInfos = subscribe->second;
-        HILOGI("ProcessEvent, size = %{public}zu", callbackInfos.asyncCallbackInfo.size());
+        HILOGI("ProcessEvent, size = %{public}zu", callbackInfos.size());
         EventData eventData = *(event->GetUniqueObject<EventData>());
-        for (auto iter = callbackInfos.asyncCallbackInfo.begin(); iter != callbackInfos.asyncCallbackInfo.end();) {
+        for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
             HILOGI("Prepare to process callbackInfo %{public}p", callbackInfo);
             EventDataWorker* eventDataWorker = new EventDataWorker();
@@ -148,8 +148,8 @@ namespace AppExecFwk {
             });
             if (callbackInfo->once || callbackInfo->isDeleted) {
                 HILOGI("ProcessEvent once callback or isDeleted callback");
-                iter = callbackInfos.asyncCallbackInfo.erase(iter);
-                if (callbackInfos.asyncCallbackInfo.begin() == callbackInfos.asyncCallbackInfo.end()) {
+                iter = callbackInfos.erase(iter);
+                if (callbackInfos.begin() == callbackInfos.end()) {
                     emitterInstances.erase(eventId);
                     HILOGI("ProcessEvent delete the last callback");
                     break;
@@ -167,7 +167,7 @@ namespace AppExecFwk {
         if (subscribe == emitterInstances.end()) {
             return false;
         }
-        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second.asyncCallbackInfo;
+        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second;
         size_t callbackSize = callbackInfo.size();
         napi_value callback = nullptr;
         for (size_t i = 0; i < callbackSize; i++) {
@@ -232,7 +232,7 @@ namespace AppExecFwk {
             callbackInfo->env = env;
             callbackInfo->once = once;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
-            emitterInstances[eventIdValue].asyncCallbackInfo.push_back(callbackInfo);
+            emitterInstances[eventIdValue].push_back(callbackInfo);
             HILOGI("OnOrOnce callbackInfo = %{public}p", callbackInfo);
         }
         return nullptr;
@@ -261,7 +261,7 @@ namespace AppExecFwk {
         napi_get_value_uint32(env, argv[0], &eventId);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
-            for (auto callbackInfo : subscribe->second.asyncCallbackInfo) {
+            for (auto callbackInfo : subscribe->second) {
                 HILOGI("JS_Off callbackInfo = %{public}p", callbackInfo);
                 callbackInfo->isDeleted = true;
             }
@@ -345,7 +345,7 @@ namespace AppExecFwk {
                     delete val;
                     continue;
                 }
-                eventData.data.insert(make_pair(keyChars, *val));
+                eventData.insert(make_pair(keyChars, *val));
                 hasEventData = true;
                 delete val;
             }
@@ -367,7 +367,7 @@ namespace AppExecFwk {
             HILOGW("JS_Emit has no callback");
             return false;
         }
-        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second.asyncCallbackInfo;
+        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second;
         size_t callbackSize = callbackInfo.size();
         for (size_t i = 0; i < callbackSize; i++) {
             if (!callbackInfo[i]->isDeleted) {
