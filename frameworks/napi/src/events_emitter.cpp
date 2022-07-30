@@ -90,7 +90,9 @@ namespace AppExecFwk {
         HILOGI("Prepare to process callbackInner %{public}p", callbackInner);
         if (callbackInner->isDeleted) {
             HILOGI("ProcessEvent isDeleted callbackInfo = %{public}p", callbackInner);
-            napi_delete_reference(callbackInner->env, callbackInner->callback);
+            if (callbackInner->callback != nullptr) {
+                napi_delete_reference(callbackInner->env, callbackInner->callback);
+            }
         } else {
             napi_value resultData = nullptr;
             napi_create_object(callbackInner->env, &resultData);
@@ -102,7 +104,9 @@ namespace AppExecFwk {
             napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
             if (callbackInner->once) {
                 HILOGI("ProcessEvent delete once callback callbackInfo = %{public}p", callbackInner);
+                callbackInner->isDeleted = true;
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
+                callbackInner->callback = nullptr;
             }
         }
     }
