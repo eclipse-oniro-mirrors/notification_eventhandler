@@ -25,7 +25,8 @@
 #include "hitrace/trace.h"
 #include "inner_event.h"
 
-#define DEFINE_HILOG_LABEL(name) static constexpr OHOS::HiviewDFX::HiLogLabel LOG_LABEL = {LOG_CORE, LOG_DOMAIN, name}
+#define DEFINE_HILOG_LABEL(name) \
+static constexpr OHOS::HiviewDFX::HiLogLabel LOG_LABEL = {LOG_CORE, LOG_DOMAIN, name}
 
 #define HILOGE(...) OHOS::HiviewDFX::HiLog::Error(LOG_LABEL, ##__VA_ARGS__)
 #define HILOGW(...) OHOS::HiviewDFX::HiLog::Warn(LOG_LABEL, ##__VA_ARGS__)
