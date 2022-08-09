@@ -93,7 +93,9 @@ public:
     void ProcessEvent(const InnerEvent::Pointer& event) override
     {
         auto eventTraceId = event->GetOrCreateTraceId();
-        EXPECT_FALSE(eventTraceId->IsValid());
+        if (eventTraceId) {
+            EXPECT_FALSE(eventTraceId->IsValid());
+        }
         g_eventProcess.store(true);
     }
 };
