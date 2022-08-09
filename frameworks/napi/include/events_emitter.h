@@ -66,8 +66,6 @@ struct AsyncCallbackInfo {
 };
 
 using EventData = std::map<std::string, Val>;
-using CallbackInfos = std::vector<AsyncCallbackInfo *>;
-
 struct EventDataWorker {
     EventData data;
     AsyncCallbackInfo* callbackInfo;
