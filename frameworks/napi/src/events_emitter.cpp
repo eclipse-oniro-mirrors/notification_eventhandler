@@ -29,7 +29,8 @@ DEFINE_HILOG_LABEL("events_emitter");
 using namespace std;
 namespace OHOS {
 namespace AppExecFwk {
-    static map<uint32_t, CallbackInfos> emitterInstances;
+    static std::mutex emitterInsMutex;
+    static map<uint32_t, std::vector<AsyncCallbackInfo *>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
     {
@@ -90,6 +91,7 @@ namespace AppExecFwk {
         HILOGI("Prepare to process callbackInner %{public}p", callbackInner);
         if (callbackInner->isDeleted) {
             HILOGI("ProcessEvent isDeleted callbackInfo = %{public}p", callbackInner);
+            std::lock_guard<std::mutex> lock(emitterInsMutex);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
             }
@@ -104,6 +106,7 @@ namespace AppExecFwk {
             napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
             if (callbackInner->once) {
                 HILOGI("ProcessEvent delete once callback callbackInfo = %{public}p", callbackInner);
+                std::lock_guard<std::mutex> lock(emitterInsMutex);
                 callbackInner->isDeleted = true;
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
                 callbackInner->callback = nullptr;
@@ -115,13 +118,14 @@ namespace AppExecFwk {
     {
         uint32_t eventId = event->GetInnerEventId();
         HILOGI("ProcessEvent, eventId = %{public}d", eventId);
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
             HILOGW("ProcessEvent has no callback");
             return;
         }
 
-        CallbackInfos& callbackInfos = subscribe->second;
+        auto& callbackInfos = subscribe->second;
         HILOGI("ProcessEvent, size = %{public}zu", callbackInfos.size());
         EventData eventData = *(event->GetUniqueObject<EventData>());
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
@@ -235,7 +239,7 @@ namespace AppExecFwk {
         uint32_t eventIdValue;
         napi_get_value_uint32(env, eventId, &eventIdValue);
         HILOGI("OnOrOnce eventIdValue:%{public}d", eventIdValue);
-
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
         if (!IsExistSameCallback(env, eventIdValue, argv[1], once)) {
             AsyncCallbackInfo* callbackInfo = new (std::nothrow) AsyncCallbackInfo();
             if (!callbackInfo) {
@@ -254,8 +258,13 @@ namespace AppExecFwk {
     napi_value JS_On(napi_env env, napi_callback_info cbinfo)
     {
         HILOGI("JS_On start");
-        OnOrOnce(env, cbinfo, false);
-        return nullptr;
+        return OnOrOnce(env, cbinfo, false);
+    }
+
+    napi_value JS_Once(napi_env env, napi_callback_info cbinfo)
+    {
+        HILOGI("JS_Once start");
+        return OnOrOnce(env, cbinfo, true);
     }
 
     napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
@@ -272,6 +281,7 @@ namespace AppExecFwk {
 
         uint32_t eventId;
         napi_get_value_uint32(env, argv[0], &eventId);
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
             for (auto callbackInfo : subscribe->second) {
@@ -279,13 +289,6 @@ namespace AppExecFwk {
                 callbackInfo->isDeleted = true;
             }
         }
-        return nullptr;
-    }
-
-    napi_value JS_Once(napi_env env, napi_callback_info cbinfo)
-    {
-        HILOGI("JS_Once start");
-        OnOrOnce(env, cbinfo, true);
         return nullptr;
     }
 
@@ -382,6 +385,7 @@ namespace AppExecFwk {
 
     bool IsExistValidCallback(napi_env env, uint32_t eventId)
     {
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
             HILOGW("JS_Emit has no callback");
