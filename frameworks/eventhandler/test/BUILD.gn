@@ -23,6 +23,8 @@ config("libeventhandler_test_private_config") {
 module_output_path = "notification/eventhandler"
 
 ohos_unittest("LibEventHandlerCheckTest") {
+  cflags_cc = []
+
   module_out_path = module_output_path
 
   sources = inner_api_sources
@@ -39,6 +41,7 @@ ohos_unittest("LibEventHandlerCheckTest") {
   ]
 
   if (has_hichecker_native_part) {
+    cflags_cc += [ "-DHAS_HICHECKER_NATIVE_PART" ]
     external_deps += [ "hichecker_native:libhichecker" ]
   }
 }

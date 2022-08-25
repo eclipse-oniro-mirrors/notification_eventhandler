@@ -215,5 +215,11 @@ HWTEST_F(LibEventHandlerCheckTest, EventTimeout003, TestSize.Level1)
     usleep(100 * 1000);
     EXPECT_EQ(false, deliveryTimeout_);
     EXPECT_EQ(true, distributeTimeout_);
+
+    int64_t deliveryTimeoutValue = runner->GetDeliveryTimeout();
+    int64_t distributeTimeoutValue = runner->GetDistributeTimeout();
+
+    EXPECT_EQ(4, deliveryTimeoutValue);
+    EXPECT_EQ(6, distributeTimeoutValue);
 }
 #endif // HAS_HICHECKER_NATIVE_PART
