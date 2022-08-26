@@ -164,8 +164,10 @@ InnerEvent::Pointer InnerEvent::Get()
 InnerEvent::Pointer InnerEvent::Get(uint32_t innerEventId, int64_t param)
 {
     auto event = InnerEventPool::GetInstance().Get();
-    event->innerEventId_ = innerEventId;
-    event->param_ = param;
+    if (event != nullptr) {
+        event->innerEventId_ = innerEventId;
+        event->param_ = param;
+    }
     return event;
 }
 
@@ -178,8 +180,10 @@ InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string 
     }
 
     auto event = InnerEventPool::GetInstance().Get();
-    event->taskCallback_ = callback;
-    event->taskName_ = name;
+    if (event != nullptr) {
+        event->taskCallback_ = callback;
+        event->taskName_ = name;
+    }
     return event;
 }
 
