@@ -94,6 +94,12 @@ EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
     }
 }
 
+EventQueue::~EventQueue()
+{
+    std::lock_guard<std::mutex> lock(queueLock_);
+    usable_.store(false);
+}
+
 void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
 {
     if (!event) {
@@ -102,6 +108,9 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     bool needNotify = false;
     switch (priority) {
         case Priority::IMMEDIATE:
@@ -141,6 +150,9 @@ void EventQueue::RemoveOrphan()
     };
 
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter);
 }
 
@@ -202,6 +214,9 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::s
 void EventQueue::Remove(const RemoveFilter &filter)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
     }
@@ -235,6 +250,9 @@ bool EventQueue::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64
 bool EventQueue::HasInnerEvent(const HasFilter &filter)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return false;
+    }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         std::list<InnerEvent::Pointer>::iterator iter =
             std::find_if(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
@@ -348,6 +366,9 @@ ErrCode EventQueue::AddFileDescriptorListener(
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
+    }
     auto it = listeners_.find(fileDescriptor);
     if (it != listeners_.end()) {
         HILOGE("AddFileDescriptorListener: File descriptor %{public}d is already in listening", fileDescriptor);
@@ -382,6 +403,9 @@ void EventQueue::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler
     };
 
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter);
 }
 
@@ -393,6 +417,9 @@ void EventQueue::RemoveFileDescriptorListener(int32_t fileDescriptor)
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     if (listeners_.erase(fileDescriptor) > 0) {
         ioWaiter_->RemoveFileDescriptor(fileDescriptor);
     }
@@ -401,12 +428,18 @@ void EventQueue::RemoveFileDescriptorListener(int32_t fileDescriptor)
 void EventQueue::Prepare()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     finished_ = false;
 }
 
 void EventQueue::Finish()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     finished_ = true;
     ioWaiter_->NotifyAll();
 }
@@ -428,6 +461,9 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
 
     {
         std::lock_guard<std::mutex> lock(queueLock_);
+        if (!usable_.load()) {
+            return;
+        }
         auto it = listeners_.find(fileDescriptor);
         if (it == listeners_.end()) {
             HILOGW("HandleFileDescriptorEvent: Can not found listener, maybe it is removed");
@@ -500,6 +536,9 @@ bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
 void EventQueue::Dump(Dumper &dumper)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     std::string priority[] = {"Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -529,6 +568,9 @@ void EventQueue::Dump(Dumper &dumper)
 void EventQueue::DumpQueueInfo(std::string& queueInfo)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
     std::string priority[] = {"Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -563,6 +605,9 @@ bool EventQueue::IsIdle()
 bool EventQueue::IsQueueEmpty()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return false;
+    }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t queueSize = subEventQueues_[i].queue.size();
         if (queueSize != 0) {
