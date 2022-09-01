@@ -47,7 +47,7 @@ public:
 
     EventQueue();
     explicit EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter);
-    ~EventQueue() = default;
+    ~EventQueue();
     DISALLOW_COPY_AND_MOVE(EventQueue);
 
     /**
@@ -232,6 +232,8 @@ private:
 
     std::mutex queueLock_;
 
+    std::atomic_bool usable_ {true};
+
     // Sub event queues for different priority.
     std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> subEventQueues_;
 
@@ -244,10 +246,10 @@ private:
     // Mark if in idle mode, and record the start time of idle.
     InnerEvent::TimePoint idleTimeStamp_ { InnerEvent::Clock::now() };
 
-    bool isIdle_{true};
+    bool isIdle_ {true};
 
     // Mark if the event queue is finished.
-    bool finished_{true};
+    bool finished_ {true};
 
     // IO waiter used to block if no events while calling 'GetEvent'.
     std::shared_ptr<IoWaiter> ioWaiter_;
