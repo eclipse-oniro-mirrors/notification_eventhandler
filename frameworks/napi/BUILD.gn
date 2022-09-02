@@ -31,7 +31,7 @@ ohos_shared_library("emitter") {
 
   deps = [
     "${frameworks_path}/eventhandler:libeventhandler",
-    "//third_party/libuv:uv_static",
+    "//third_party/libuv:uv",
   ]
 
   external_deps = [
