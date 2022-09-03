@@ -37,7 +37,7 @@ bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanosecon
 {
     ++waitingCount_;
     if (nanoseconds < 0) {
-        condition_.wait(lock);
+        condition_.wait(lock, [this] { return this->pred_; });
     } else {
         /*
          * Fix a problem in some versions of STL.
@@ -46,15 +46,17 @@ bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanosecon
          */
         static const auto oneYear = std::chrono::hours(HOURS_PER_YEAR);
         auto duration = std::chrono::nanoseconds(nanoseconds);
-        (void)condition_.wait_for(lock, (duration > oneYear) ? oneYear : duration);
+        (void)condition_.wait_for(lock, (duration > oneYear) ? oneYear : duration, [this] { return this->pred_; });
     }
     --waitingCount_;
+    pred_ = false;
     return true;
 }
 
 void NoneIoWaiter::NotifyOne()
 {
     if (waitingCount_ > 0) {
+        pred_ = true;
         condition_.notify_one();
     }
 }
@@ -62,6 +64,7 @@ void NoneIoWaiter::NotifyOne()
 void NoneIoWaiter::NotifyAll()
 {
     if (waitingCount_ > 0) {
+        pred_ = true;
         condition_.notify_all();
     }
 }
