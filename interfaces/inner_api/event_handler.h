@@ -919,7 +919,7 @@ private:
     CallbackTimeout deliveryTimeoutCallback_;
     CallbackTimeout distributeTimeoutCallback_;
 
-    static ThreadLocalData<std::weak_ptr<EventHandler>> currentEventHandler;
+    static thread_local std::shared_ptr<EventHandler> currentEventHandler;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

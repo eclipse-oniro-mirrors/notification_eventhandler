@@ -29,12 +29,11 @@ namespace OHOS {
 namespace AppExecFwk {
 static constexpr int DATETIME_STRING_LENGTH = 80;
 
-ThreadLocalData<std::weak_ptr<EventHandler>> EventHandler::currentEventHandler;
+thread_local std::shared_ptr<EventHandler> EventHandler::currentEventHandler = nullptr;
 
 std::shared_ptr<EventHandler> EventHandler::Current()
 {
-    const std::weak_ptr<EventHandler> &wp = currentEventHandler;
-    return wp.lock();
+    return currentEventHandler;
 }
 
 EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRunner_(runner)
@@ -304,9 +303,6 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
         return;
     }
 
-    // Save old event handler.
-    std::weak_ptr<EventHandler> oldHandler = currentEventHandler;
-    // Save current event handler into thread local data.
     currentEventHandler = shared_from_this();
 
     auto spanId = event->GetTraceId();
@@ -336,13 +332,6 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
         if (traceId.IsValid()) {
             HiTrace::SetId(traceId);
         }
-    }
-
-    // Restore current event handler.
-    if (oldHandler.expired()) {
-        currentEventHandler = nullptr;
-    } else {
-        currentEventHandler = oldHandler;
     }
 }
 
