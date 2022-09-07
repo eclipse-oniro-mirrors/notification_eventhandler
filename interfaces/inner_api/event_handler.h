@@ -27,6 +27,25 @@ enum class EventType {
     TIMING_EVENT = 2,
 };
 
+struct Caller {
+    std::string file_;
+    int         line_;
+    std::string func_;
+
+    Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(), std::string func = __builtin_FUNCTION()):
+           file_(file), line_(line), func_(func) {
+    }
+
+    std::string ToString() {
+        size_t split = file_.find_last_of("/\\");
+        if (split == std::string::npos) {
+            split = 0;
+        }
+        std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) + ")]");
+        return caller;
+    }
+};
+
 template<typename T>
 class ThreadLocalData;
 
@@ -380,9 +399,9 @@ public:
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostTask(const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0,
-        Priority priority = Priority::LOW)
+        Priority priority = Priority::LOW, Caller caller = {})
     {
-        return SendEvent(InnerEvent::Get(callback, name), delayTime, priority);
+        return SendEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), delayTime, priority);
     }
 
     /**
@@ -412,9 +431,9 @@ public:
      * @param priority Priority of the event queue for this event.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostTask(const Callback &callback, Priority priority)
+    inline bool PostTask(const Callback &callback, Priority priority, Caller caller = {})
     {
-        return PostTask(callback, std::string(), 0, priority);
+        return PostTask(callback, caller.ToString(), 0, priority);
     }
 
     /**
@@ -425,9 +444,10 @@ public:
      * @param priority Priority of the event queue for this event.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostTask(const Callback &callback, int64_t delayTime, Priority priority = Priority::LOW)
+    inline bool PostTask(const Callback &callback, int64_t delayTime, Priority priority = Priority::LOW,
+                         Caller caller = {})
     {
-        return PostTask(callback, std::string(), delayTime, priority);
+        return PostTask(callback, caller.ToString(), delayTime, priority);
     }
 
     /**
@@ -437,9 +457,10 @@ public:
      * @param name Remove events by name of the task.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostImmediateTask(const Callback &callback, const std::string &name = std::string())
+    inline bool PostImmediateTask(const Callback &callback, const std::string &name = std::string(),
+                                  Caller caller = {})
     {
-        return SendEvent(InnerEvent::Get(callback, name), 0, Priority::IMMEDIATE);
+        return SendEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), 0, Priority::IMMEDIATE);
     }
 
     /**
@@ -450,10 +471,10 @@ public:
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostHighPriorityTask(
-        const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0)
+    inline bool PostHighPriorityTask(const Callback &callback, const std::string &name = std::string(),
+                                     int64_t delayTime = 0, Caller caller = {})
     {
-        return PostTask(callback, name, delayTime, Priority::HIGH);
+        return PostTask(callback, name.empty() ? caller.ToString() : name, delayTime, Priority::HIGH);
     }
 
     /**
@@ -463,9 +484,9 @@ public:
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostHighPriorityTask(const Callback &callback, int64_t delayTime)
+    inline bool PostHighPriorityTask(const Callback &callback, int64_t delayTime, Caller caller = {})
     {
-        return PostHighPriorityTask(callback, std::string(), delayTime);
+        return PostHighPriorityTask(callback, caller.ToString(), delayTime);
     }
 
     /**
@@ -476,9 +497,10 @@ public:
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostIdleTask(const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0)
+    inline bool PostIdleTask(const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0,
+                             Caller caller = {})
     {
-        return PostTask(callback, name, delayTime, Priority::IDLE);
+        return PostTask(callback, name.empty() ? caller.ToString() : name, delayTime, Priority::IDLE);
     }
 
     /**
@@ -488,9 +510,9 @@ public:
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostIdleTask(const Callback &callback, int64_t delayTime)
+    inline bool PostIdleTask(const Callback &callback, int64_t delayTime, Caller caller = {})
     {
-        return PostIdleTask(callback, std::string(), delayTime);
+        return PostIdleTask(callback, caller.ToString(), delayTime);
     }
 
     /**
@@ -605,9 +627,10 @@ public:
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostSyncTask(const Callback &callback, const std::string &name, Priority priority = Priority::LOW)
+    inline bool PostSyncTask(const Callback &callback, const std::string &name, Priority priority = Priority::LOW,
+                             Caller caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(callback, name), priority);
+        return SendSyncEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), priority);
     }
 
     /**
@@ -617,9 +640,9 @@ public:
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostSyncTask(const Callback &callback, Priority priority = Priority::LOW)
+    inline bool PostSyncTask(const Callback &callback, Priority priority = Priority::LOW, Caller caller = {})
     {
-        return PostSyncTask(callback, std::string(), priority);
+        return PostSyncTask(callback, caller.ToString(), priority);
     }
 
     /**
@@ -760,9 +783,9 @@ public:
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostTimingTask(const Callback &callback, int64_t taskTime, const std::string &name = std::string(),
-        Priority priority = Priority::LOW)
+        Priority priority = Priority::LOW, Caller caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(callback, name), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), taskTime, priority);
     }
 
     /**
@@ -773,9 +796,10 @@ public:
      * @param priority Priority of the event queue for this event.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostTimingTask(const Callback &callback, int64_t taskTime, Priority priority = Priority::LOW)
+    inline bool PostTimingTask(const Callback &callback, int64_t taskTime, Priority priority = Priority::LOW,
+                               Caller caller = {})
     {
-        return PostTimingTask(callback, taskTime, std::string(), priority);
+        return PostTimingTask(callback, taskTime, caller.ToString(), priority);
     }
 
     /**
