@@ -19,7 +19,10 @@
 #include <vector>
 
 #include "event_handler.h"
+#include "event_queue.h"
+#include "event_runner.h"
 #include "inner_event.h"
+#include "native_implement_eventhandler.h"
 
 using namespace testing::ext;
 using namespace OHOS::AppExecFwk;
@@ -433,4 +436,51 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
      * @tc.expected: step3. the two event addresses are the same.
      */
     EXPECT_EQ(firstAddr, secondAddr);
+}
+
+/*
+ * @tc.name: Dump001
+ * @tc.desc: Invoke Dump and GetCurrentEventQueue interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, Dump001, TestSize.Level1)
+{
+    uint32_t eventId = 0;
+    int64_t eventParam = 0;
+    std::string runnerInfo = "aa";
+    auto runner = EventRunner::Create(true);
+    runner->DumpRunnerInfo(runnerInfo);
+    EventQueue queue;
+    queue.DumpQueueInfo(runnerInfo);
+    auto event = InnerEvent::Get(eventId, eventParam);
+    std::string result = event->Dump();
+    EXPECT_EQ("No handler }\n", result);
+    EXPECT_EQ(runner->GetCurrentEventQueue(), nullptr);
+}
+
+/*
+ * @tc.name: EventRunnerNativeImplement001
+ * @tc.desc: Invoke GetEventRunnerNativeObj and CreateEventRunnerNativeObj interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement001, TestSize.Level1)
+{
+    EventRunnerNativeImplement eventRunnerNativeImplement(true);
+    EXPECT_NE(eventRunnerNativeImplement.GetEventRunnerNativeObj(), nullptr);
+    EXPECT_NE(eventRunnerNativeImplement.CreateEventRunnerNativeObj(), nullptr);
+
+}
+
+/*
+ * @tc.name: EventRunnerNativeImplement002
+ * @tc.desc: Invoke RunEventRunnerNativeObj and StopEventRunnerNativeObj interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement002, TestSize.Level1)
+{
+    EventRunnerNativeImplement eventRunnerNativeImplement(true);
+    ErrCode runEventRunnerNativeObj = eventRunnerNativeImplement.RunEventRunnerNativeObj();
+    EXPECT_EQ(OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER, runEventRunnerNativeObj);
+    ErrCode stopEventRunnerNativeObj = eventRunnerNativeImplement.StopEventRunnerNativeObj();
+    EXPECT_EQ(OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER, stopEventRunnerNativeObj);
 }
