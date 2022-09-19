@@ -28,6 +28,7 @@ config("public_libeventhandler_config") {
 }
 
 ohos_shared_library("libeventhandler") {
+  all_dependent_configs = [ ":libeventhandler_config" ]
   cflags_cc = []
   sources = inner_api_sources
   defines = event_handler_log_domain_defines
