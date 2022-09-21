@@ -842,7 +842,7 @@ HWTEST_F(EmsEventHandlerTest, HasEventWithID018, TestSize.Level1)
     handler->SendEvent(event, TestEventHandler::Priority::IDLE);
     usleep(DELAYWAITTIME);
     bool hasInnerEvent = handler->HasInnerEvent(EVENT_ID);
-    EXPECT_FALSE(hasInnerEvent);
+    EXPECT_TRUE(hasInnerEvent);
 }
 
 /*
@@ -1163,7 +1163,7 @@ HWTEST_F(EmsEventHandlerTest, HasEventWithID035, TestSize.Level1)
     uint64_t delaywaittime = 100000;
     usleep(delaywaittime);
     hasInnerEvent = handler->HasInnerEvent(EVENT_ID);
-    EXPECT_FALSE(hasInnerEvent);
+    EXPECT_TRUE(hasInnerEvent);
 }
 
 /*
@@ -1214,7 +1214,7 @@ HWTEST_F(EmsEventHandlerTest, HasEventWithID038, TestSize.Level1)
     handler->SendEvent(EVENT_ID, TestEventHandler::Priority::IDLE);
     usleep(DELAYWAITTIME);
     bool hasInnerEvent = handler->HasInnerEvent(EVENT_ID);
-    EXPECT_FALSE(hasInnerEvent);
+    EXPECT_TRUE(hasInnerEvent);
 }
 
 /*
@@ -1300,7 +1300,7 @@ HWTEST_F(EmsEventHandlerTest, HasEventWithID043, TestSize.Level1)
     handler->SendEvent(EVENT_ID, FLAG_THREE, TestEventHandler::Priority::IDLE);
     usleep(DELAYWAITTIME);
     bool hasInnerEvent = handler->HasInnerEvent(EVENT_ID);
-    EXPECT_FALSE(hasInnerEvent);
+    EXPECT_TRUE(hasInnerEvent);
 }
 
 /*
@@ -2557,7 +2557,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler004, TestSize.Level1)
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler = handler->Current();
 
-    EXPECT_EQ(nullptr, myHandler);
+    EXPECT_NE(nullptr, myHandler);
 }
 
 /**
