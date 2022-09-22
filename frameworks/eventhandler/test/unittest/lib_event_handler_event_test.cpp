@@ -468,7 +468,6 @@ HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement001, TestSize.Level
     EventRunnerNativeImplement eventRunnerNativeImplement(true);
     EXPECT_NE(eventRunnerNativeImplement.GetEventRunnerNativeObj(), nullptr);
     EXPECT_NE(eventRunnerNativeImplement.CreateEventRunnerNativeObj(), nullptr);
-
 }
 
 /*
