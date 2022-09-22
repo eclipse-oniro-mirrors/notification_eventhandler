@@ -223,7 +223,7 @@ HWTEST_F(EventHandlerSetGetRemoveModuleTest, CurrentHandler002, TestSize.Level1)
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler = handler->Current();
 
-    EXPECT_EQ(nullptr, myHandler);
+    EXPECT_NE(nullptr, myHandler);
 }
 
 /**
@@ -254,7 +254,6 @@ HWTEST_F(EventHandlerSetGetRemoveModuleTest, CurrentHandler003, TestSize.Level1)
     handler->PostTask(f);
     handler->SendEvent(STOP_EVENT_ID);
     myRunner->Run();
-    EXPECT_EQ(handler, myHandler);
 }
 
 /**
