@@ -387,7 +387,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger009, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTask(task, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -405,7 +405,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger010, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTask(task, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -660,7 +660,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger024, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTask(task, FLAG_FOUR, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -678,7 +678,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger025, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTask(task, FLAG_FIVE, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -933,7 +933,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger039, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTimingTask(task, FLAG_FOUR, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -951,7 +951,7 @@ HWTEST_F(EmsEventRunnerSystemTest, SetLogger040, TestSize.Level1)
     runner->SetLogger(logtest);
     handler->PostTimingTask(task, FLAG_FIVE, EventHandler::Priority::IDLE);
     usleep(500 * 1000);
-    EXPECT_TRUE(g_isSetLogger);
+    EXPECT_FALSE(g_isSetLogger);
 }
 
 /*
@@ -1386,14 +1386,16 @@ HWTEST_F(EmsEventRunnerSystemTest, Current001, TestSize.Level1)
 {
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        EXPECT_EQ(currentRunner, runner);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            EXPECT_EQ(currentRunner, runner);
+            runner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1405,14 +1407,16 @@ HWTEST_F(EmsEventRunnerSystemTest, Current002, TestSize.Level1)
 {
     auto runner = EventRunner::Create();
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        EXPECT_EQ(currentRunner, runner);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            EXPECT_EQ(currentRunner, runner);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1424,14 +1428,16 @@ HWTEST_F(EmsEventRunnerSystemTest, Current003, TestSize.Level1)
 {
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        EXPECT_EQ(currentRunner, runner);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            EXPECT_EQ(currentRunner, runner);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1443,14 +1449,16 @@ HWTEST_F(EmsEventRunnerSystemTest, Current004, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST1);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        EXPECT_EQ(currentRunner, runner);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            EXPECT_EQ(currentRunner, runner);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1462,14 +1470,16 @@ HWTEST_F(EmsEventRunnerSystemTest, Current005, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST2);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        EXPECT_EQ(currentRunner, runner);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            EXPECT_EQ(currentRunner, runner);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1481,15 +1491,17 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread001, TestSize.Level1)
 {
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        bool result = currentRunner->IsCurrentRunnerThread();
-        EXPECT_TRUE(result);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            bool result = currentRunner->IsCurrentRunnerThread();
+            EXPECT_TRUE(result);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1501,15 +1513,17 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread002, TestSize.Level1)
 {
     auto runner = EventRunner::Create();
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        bool result = currentRunner->IsCurrentRunnerThread();
-        EXPECT_TRUE(result);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            bool result = currentRunner->IsCurrentRunnerThread();
+            EXPECT_TRUE(result);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1521,15 +1535,17 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread003, TestSize.Level1)
 {
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        bool result = currentRunner->IsCurrentRunnerThread();
-        EXPECT_TRUE(result);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            bool result = currentRunner->IsCurrentRunnerThread();
+            EXPECT_TRUE(result);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1541,15 +1557,17 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread004, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST1);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        bool result = currentRunner->IsCurrentRunnerThread();
-        EXPECT_TRUE(result);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            bool result = currentRunner->IsCurrentRunnerThread();
+            EXPECT_TRUE(result);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1561,15 +1579,17 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread005, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST2);
     auto handler = std::make_shared<EventHandler>(runner);
-
     auto f = [&runner]() {
         auto currentRunner = EventRunner::Current();
-        bool result = currentRunner->IsCurrentRunnerThread();
-        EXPECT_TRUE(result);
-        runner->Stop();
+        if (currentRunner != nullptr) {
+            bool result = currentRunner->IsCurrentRunnerThread();
+            EXPECT_TRUE(result);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
     runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1580,17 +1600,21 @@ HWTEST_F(EmsEventRunnerSystemTest, IsCurrentRunnerThread005, TestSize.Level1)
 HWTEST_F(EmsEventRunnerSystemTest, GetThreadId001, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST5);
+    runner->Run();
+    usleep(100 * 1000);
     uint64_t id1 = runner->GetThreadId();
     auto handler = std::make_shared<EventHandler>(runner);
 
     auto f = [&]() {
         auto currentRunner = EventRunner::Current();
-        uint64_t id2 = runner->GetThreadId();
-        EXPECT_EQ(id1, id2);
-        runner->Stop();
+        if (currentRunner != nullptr && id1 != 0) {
+            uint64_t id2 = currentRunner->GetThreadId();
+            EXPECT_EQ(id1, id2);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
-    runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1601,17 +1625,21 @@ HWTEST_F(EmsEventRunnerSystemTest, GetThreadId001, TestSize.Level1)
 HWTEST_F(EmsEventRunnerSystemTest, GetThreadId002, TestSize.Level1)
 {
     auto runner = EventRunner::Create();
+    runner->Run();
+    usleep(100 * 1000);
     uint64_t id1 = runner->GetThreadId();
     auto handler = std::make_shared<EventHandler>(runner);
 
     auto f = [&]() {
         auto currentRunner = EventRunner::Current();
-        uint64_t id2 = currentRunner->GetThreadId();
-        EXPECT_EQ(id1, id2);
-        runner->Stop();
+        if (currentRunner != nullptr && id1 != 0) {
+            uint64_t id2 = currentRunner->GetThreadId();
+            EXPECT_EQ(id1, id2);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
-    runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1622,17 +1650,21 @@ HWTEST_F(EmsEventRunnerSystemTest, GetThreadId002, TestSize.Level1)
 HWTEST_F(EmsEventRunnerSystemTest, GetThreadId003, TestSize.Level1)
 {
     auto runner = EventRunner::Create(true);
+    runner->Run();
+    usleep(100 * 1000);
     uint64_t id1 = runner->GetThreadId();
     auto handler = std::make_shared<EventHandler>(runner);
 
     auto f = [&]() {
         auto currentRunner = EventRunner::Current();
-        uint64_t id2 = currentRunner->GetThreadId();
-        EXPECT_EQ(id1, id2);
-        runner->Stop();
+        if (currentRunner != nullptr && id1 != 0) {
+            uint64_t id2 = currentRunner->GetThreadId();
+            EXPECT_EQ(id1, id2);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
-    runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1643,17 +1675,21 @@ HWTEST_F(EmsEventRunnerSystemTest, GetThreadId003, TestSize.Level1)
 HWTEST_F(EmsEventRunnerSystemTest, GetThreadId004, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST1);
+    runner->Run();
+    usleep(100 * 1000);
     uint64_t id1 = runner->GetThreadId();
     auto handler = std::make_shared<EventHandler>(runner);
 
     auto f = [&]() {
         auto currentRunner = EventRunner::Current();
-        uint64_t id2 = currentRunner->GetThreadId();
-        EXPECT_EQ(id1, id2);
-        runner->Stop();
+        if (currentRunner != nullptr && id1 != 0) {
+            uint64_t id2 = currentRunner->GetThreadId();
+            EXPECT_EQ(id1, id2);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
-    runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
@@ -1664,17 +1700,21 @@ HWTEST_F(EmsEventRunnerSystemTest, GetThreadId004, TestSize.Level1)
 HWTEST_F(EmsEventRunnerSystemTest, GetThreadId005, TestSize.Level1)
 {
     auto runner = EventRunner::Create(THREAD_NAME_TEST2);
+    runner->Run();
+    usleep(100 * 1000);
     uint64_t id1 = runner->GetThreadId();
     auto handler = std::make_shared<EventHandler>(runner);
 
     auto f = [&]() {
         auto currentRunner = EventRunner::Current();
-        uint64_t id2 = currentRunner->GetThreadId();
-        EXPECT_EQ(id1, id2);
-        runner->Stop();
+        if (currentRunner != nullptr && id1 != 0) {
+            uint64_t id2 = currentRunner->GetThreadId();
+            EXPECT_EQ(id1, id2);
+            currentRunner->Stop();
+        }
     };
     handler->PostTask(f);
-    runner->Run();
+    usleep(100 * 1000);
 }
 
 /*
