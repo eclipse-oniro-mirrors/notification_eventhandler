@@ -57,7 +57,7 @@ namespace AppExecFwk {
     {
         napi_value data = nullptr;
         napi_create_object(env, &data);
-        for (map<string, Val>::iterator it = eventData.begin(); it != eventData.end(); it++) {
+        for (map<string, Val>::iterator it = eventData.begin(); it != eventData.end(); ++it) {
             string key = it->first;
             Val val = it->second;
             napi_value napiValue = nullptr;
