@@ -19,6 +19,10 @@
 #include "event_runner.h"
 #include "dumper.h"
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 namespace OHOS {
 namespace AppExecFwk {
 enum class EventType {
@@ -28,15 +32,21 @@ enum class EventType {
 };
 
 struct Caller {
-    std::string file_;
-    int         line_;
-    std::string func_;
-
+    std::string file_ {""};
+    int         line_ {0};
+    std::string func_ {""};
+#if __has_builtin(__builtin_FILE)
     Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(), std::string func = __builtin_FUNCTION()):
            file_(file), line_(line), func_(func) {
     }
-
+#else
+    Caller() {
+    }
+#endif
     std::string ToString() {
+        if (file_.empty()) {
+            return "[ ]";
+        }
         size_t split = file_.find_last_of("/\\");
         if (split == std::string::npos) {
             split = 0;
