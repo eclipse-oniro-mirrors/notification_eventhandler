@@ -237,7 +237,7 @@ private:
             }
         }
 
-        inline void Disable() const
+        static inline void Disable()
         {
             avatarEnabled_ = false;
         }
