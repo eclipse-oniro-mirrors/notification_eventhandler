@@ -37,7 +37,7 @@ struct Caller {
     std::string func_ {""};
 #if __has_builtin(__builtin_FILE)
     Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(), std::string func = __builtin_FUNCTION())
-    : file_(file), line_(line), func_(func) {
+        : file_(file), line_(line), func_(func) {
     }
 #else
     Caller() {
