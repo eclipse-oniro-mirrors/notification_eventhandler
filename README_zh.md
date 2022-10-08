@@ -1,4 +1,4 @@
-# Eventhandler
+# Eventhandler部件
 
 ## 简介
 ​        EventHandler提供了OpenHarmony线程间通信的基本能力，可以通过EventRunner创建新线程，将耗时的操作抛到新线程上执行，从而实现在不阻塞原来的线程的基础上合理地处理耗时任务。
@@ -13,25 +13,27 @@
 | EventQueue   | 线程消息队列，管理InnerEvent，在初始化EventRunner对象时需要创建一个与之关联的EventQueue。 |
 
 
+### 架构图
 
-## 整体架构
+**图1** 子系统架构图
+
 ![evenhandler](figures/evenhandler.png)
 
-## 目录结构
 
 
+## 目录
 
 ```
 base/notification/eventhandler
 ├── interfaces
 │   ├── inner_api                      # 内部接口存放目录
 │   └── kits                           # 外部接口存放目录
-│       └── native                     # C/C++接口   					   
+│       └── native                     # C/C++接口
 ├── frameworks                         # 包管理服务框架代码
 │   ├── eventhandler                   # 内部实现存放目录
 │   ├── napi                           # js接口实现存放目录
 │   └── native                         # C/C++接口实现存放目录
-└── test						       # 测试目录
+└── test                               # 测试目录
 ```
 
 
@@ -44,7 +46,7 @@ base/notification/eventhandler
 
 ## 接口说明
 
-详见[API接口说明文档](https://gitee.com/openharmony/docs/blob/master/zh-cn/application-dev/reference/apis/js-apis-emitter.md )。
+详见[API接口说明文档](https://gitee.com/openharmony/docs/blob/master/zh-cn/application-dev/reference/apis/js-apis-emitter.md)。
 
 
 
