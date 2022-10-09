@@ -37,7 +37,7 @@ ohos_shared_library("libeventhandler") {
   public_configs = [ ":public_libeventhandler_config" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
 

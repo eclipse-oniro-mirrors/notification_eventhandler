@@ -192,7 +192,7 @@ HWTEST_F(LibEventHandlerTraceTest, EventTrace002, TestSize.Level0)
     /**
      * @tc.setup: begin hitrace and get event with eventId and param.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC);
     uint32_t eventId = 0;
     int64_t eventParam = 0;
     auto event = InnerEvent::Get(eventId, eventParam);
@@ -209,7 +209,7 @@ HWTEST_F(LibEventHandlerTraceTest, EventTrace002, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -224,7 +224,7 @@ HWTEST_F(LibEventHandlerTraceTest, BeginTrace001, TestSize.Level0)
     /**
      * @tc.setup: begin hitrace with flag HITRACE_FLAG_INCLUDE_ASYNC and HITRACE_FLAG_TP_INFO.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
 
     /**
      * @tc.steps: step1. post task and check trace id of event until the task is executed.
@@ -233,7 +233,7 @@ HWTEST_F(LibEventHandlerTraceTest, BeginTrace001, TestSize.Level0)
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
     auto f = []() {
-        HiTraceId traceId = HiTrace::GetId();
+        HiTraceId traceId = HiTraceChain::GetId();
         EXPECT_TRUE(traceId.IsValid());
         g_eventProcess.store(true);
     };
@@ -246,7 +246,7 @@ HWTEST_F(LibEventHandlerTraceTest, BeginTrace001, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -269,7 +269,7 @@ HWTEST_F(LibEventHandlerTraceTest, BeginTrace002, TestSize.Level0)
      * @tc.expected: step1. trace id is not valid.
      */
     auto f = []() {
-        HiTraceId traceId = HiTrace::GetId();
+        HiTraceId traceId = HiTraceChain::GetId();
         EXPECT_FALSE(traceId.IsValid());
         g_eventProcess.store(true);
     };
@@ -293,7 +293,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag001, TestSize.Level0)
     /**
      * @tc.setup: begin trace and set flag HITRACE_FLAG_INCLUDE_ASYNC.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC);
 
     /**
      * @tc.steps: step1. create runner and handler, get event with id and param and send the event, check wheather the
@@ -306,7 +306,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag001, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -322,7 +322,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag002, TestSize.Level0)
     /**
      * @tc.setup:begin trace and set flag HITRACE_FLAG_DONOT_CREATE_SPAN.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_DONOT_CREATE_SPAN);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_DONOT_CREATE_SPAN);
 
     /**
      * @tc.steps: step1.  create runner and handler, get event with id and param and send the event, check wheather the
@@ -335,7 +335,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag002, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -351,7 +351,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag003, TestSize.Level0)
     /**
      * @tc.setup:begin trace and set flag HITRACE_FLAG_TP_INFO.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_TP_INFO | HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_TP_INFO | HITRACE_FLAG_INCLUDE_ASYNC);
 
     /**
      * @tc.steps: step1. create runner and handler,  get event with id and param and send the event, check wheather the
@@ -364,7 +364,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag003, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -380,7 +380,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag004, TestSize.Level0)
     /**
      * @tc.setup: begin trace and set flag HITRACE_FLAG_NO_BE_INFO.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_NO_BE_INFO | HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_NO_BE_INFO | HITRACE_FLAG_INCLUDE_ASYNC);
 
     /**
      * @tc.steps: step1. create runner and handler, get event with id and param and send the event, check wheather the
@@ -393,7 +393,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag004, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -409,7 +409,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag005, TestSize.Level0)
     /**
      * @tc.setup: begin trace and set flag HITRACE_FLAG_DONOT_ENABLE_LOG.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_DONOT_ENABLE_LOG | HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_DONOT_ENABLE_LOG | HITRACE_FLAG_INCLUDE_ASYNC);
 
     /**
      * @tc.steps: step1. create runner and handler, get event with id and param and send the event, check wheather the
@@ -422,7 +422,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag005, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -438,7 +438,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag006, TestSize.Level0)
     /**
      * @tc.setup: begin trace and set flag HITRACE_FLAG_FAULT_TRIGGER.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_FAULT_TRIGGER | HITRACE_FLAG_INCLUDE_ASYNC);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_FAULT_TRIGGER | HITRACE_FLAG_INCLUDE_ASYNC);
 
     /**
      * @tc.steps: step1. create runner and handler, get event with id and param and send the event, check wheather the
@@ -451,7 +451,7 @@ HWTEST_F(LibEventHandlerTraceTest, TraceFlag006, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -466,7 +466,7 @@ HWTEST_F(LibEventHandlerTraceTest, DepositTrace001, TestSize.Level0)
     /**
      * @tc.setup: create runner and handler, begin trace and set flag.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
 
     /**
      * @tc.steps: step1. create runner and handler in the same thread,  get event and sendEvent, then
@@ -494,7 +494,7 @@ HWTEST_F(LibEventHandlerTraceTest, DepositTrace001, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -509,7 +509,7 @@ HWTEST_F(LibEventHandlerTraceTest, SyncSendTrace001, TestSize.Level0)
     /**
      * @tc.setup: create runner and handler, begin trace and set flag.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
 
     /**
      * @tc.steps: step1. create runner and handler, make sure the runner is the current runner, then get event and
@@ -544,7 +544,7 @@ HWTEST_F(LibEventHandlerTraceTest, SyncSendTrace001, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
 
 /**
@@ -559,7 +559,7 @@ HWTEST_F(LibEventHandlerTraceTest, SyncSendTrace002, TestSize.Level0)
     /**
      * @tc.setup: create runner and handler, begin trace and set flag.
      */
-    auto initId = HiTrace::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
+    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
 
     /**
      * @tc.steps: step1. create runner and handler, make sure the runner is not current runner, then get event and
@@ -585,5 +585,5 @@ HWTEST_F(LibEventHandlerTraceTest, SyncSendTrace002, TestSize.Level0)
     /**
      * @tc.teardown: end trace id.
      */
-    HiTrace::End(initId);
+    HiTraceChain::End(initId);
 }
