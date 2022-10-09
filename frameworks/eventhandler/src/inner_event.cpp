@@ -239,12 +239,12 @@ const std::shared_ptr<HiTraceId> InnerEvent::GetOrCreateTraceId()
         return hiTraceId_;
     }
 
-    auto traceId = HiTrace::GetId();
+    auto traceId = HiTraceChain::GetId();
     if (!traceId.IsValid()) {
         return nullptr;
     }
 
-    hiTraceId_ = std::make_shared<HiTraceId>(HiTrace::CreateSpan());
+    hiTraceId_ = std::make_shared<HiTraceId>(HiTraceChain::CreateSpan());
     return hiTraceId_;
 }
 

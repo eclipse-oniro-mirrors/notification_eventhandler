@@ -36,7 +36,7 @@ ohos_unittest("LibEventHandlerCheckTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
 
@@ -58,7 +58,7 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
 
@@ -79,7 +79,7 @@ ohos_unittest("LibEventHandlerEventTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
   if (has_hichecker_native_part) {
@@ -99,7 +99,7 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
 
@@ -120,7 +120,7 @@ ohos_unittest("LibEventHandlerTraceTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitrace",
+    "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
   ]
 

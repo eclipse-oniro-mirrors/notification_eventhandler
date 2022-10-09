@@ -66,7 +66,7 @@ static inline int32_t NanosecondsToTimeout(int64_t nanoseconds)
     return (milliseconds > INT32_MAX) ? INT32_MAX : static_cast<int32_t>(milliseconds);
 }
 
-using HiTrace = OHOS::HiviewDFX::HiTrace;
+using HiTraceChain = OHOS::HiviewDFX::HiTraceChain;
 
 static inline bool AllowHiTraceOutPut(const std::shared_ptr<HiTraceId>& traceId, bool isSyncEvent)
 {
@@ -83,11 +83,11 @@ static inline void HiTracePointerOutPut(const std::shared_ptr<HiTraceId>& spanId
     const InnerEvent::Pointer& event, const char* action, HiTraceTracepointType type)
 {
     if (!event->HasTask()) {
-        HiTrace::Tracepoint(type, *spanId, "%s event, event id: %d", action, event->GetInnerEventId());
+        HiTraceChain::Tracepoint(type, *spanId, "%s event, event id: %d", action, event->GetInnerEventId());
     } else if (!event->GetTaskName().empty()) {
-        HiTrace::Tracepoint(type, *spanId, "%s task with name, name: %s", action, event->GetTaskName().c_str());
+        HiTraceChain::Tracepoint(type, *spanId, "%s task with name, name: %s", action, event->GetTaskName().c_str());
     } else {
-        HiTrace::Tracepoint(type, *spanId, "%s UnNamed Task", action);
+        HiTraceChain::Tracepoint(type, *spanId, "%s UnNamed Task", action);
     }
 }
 

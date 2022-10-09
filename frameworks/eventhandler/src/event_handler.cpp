@@ -73,7 +73,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     }
 
     event->SetOwner(shared_from_this());
-    // get traceId from event, if HiTrace::begin has been called, would get a valid trace id.
+    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto traceId = event->GetOrCreateTraceId();
     // if traceId is valid, out put trace information
     if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
@@ -116,7 +116,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return true;
     }
 
-    // get traceId from event, if HiTrace::begin has been called, would get a valid trace id.
+    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto spanId = event->GetOrCreateTraceId();
 
     // Create waiter, used to block.
@@ -129,7 +129,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     waiter->Wait();
 
     if ((spanId) && (spanId->IsValid())) {
-        HiTrace::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
+        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
     }
 
     return true;
@@ -306,10 +306,10 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     currentEventHandler = shared_from_this();
 
     auto spanId = event->GetTraceId();
-    auto traceId = HiTrace::GetId();
+    auto traceId = HiTraceChain::GetId();
     bool allowTraceOutPut = AllowHiTraceOutPut(spanId, event->HasWaiter());
     if (allowTraceOutPut) {
-        HiTrace::SetId(*spanId);
+        HiTraceChain::SetId(*spanId);
         HiTracePointerOutPut(spanId, event, "Receive", HiTraceTracepointType::HITRACE_TP_SR);
     }
 
@@ -327,10 +327,10 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     DistributeTimeAction(event, nowStart);
 
     if (allowTraceOutPut) {
-        HiTrace::Tracepoint(HiTraceTracepointType::HITRACE_TP_SS, *spanId, "Event Distribute over");
-        HiTrace::ClearId();
+        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_SS, *spanId, "Event Distribute over");
+        HiTraceChain::ClearId();
         if (traceId.IsValid()) {
-            HiTrace::SetId(traceId);
+            HiTraceChain::SetId(traceId);
         }
     }
 }
