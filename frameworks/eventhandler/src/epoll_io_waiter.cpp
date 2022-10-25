@@ -125,18 +125,18 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
 
     // Block on epoll_wait outside of the lock.
     struct epoll_event epollEvents[MAX_EPOLL_EVENTS_SIZE];
-    int32_t retVal = TEMP_FAILURE_RETRY(
-        epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, NanosecondsToTimeout(nanoseconds)));
-
+    int32_t retVal = epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, NanosecondsToTimeout(nanoseconds));
     // Decrease waiting count after block at once.
     --waitingCount_;
 
     bool result = true;
     if (retVal < 0) {
-        char errmsg[MAX_ERRORMSG_LEN] = {0};
-        GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("WaitFor: Failed to wait epoll, %{public}s", errmsg);
-        result = false;
+        if (errno != EINTR) {
+            char errmsg[MAX_ERRORMSG_LEN] = {0};
+            GetLastErr(errmsg, MAX_ERRORMSG_LEN);
+            HILOGE("WaitFor: Failed to wait epoll, %{public}s", errmsg);
+            result = false;
+        }
     } else {
         for (int32_t i = 0; i < retVal; ++i) {
             if (epollEvents[i].data.fd == awakenFd_) {
