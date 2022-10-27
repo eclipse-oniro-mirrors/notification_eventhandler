@@ -43,7 +43,7 @@ struct Caller {
     Caller() {
     }
 #endif
-    std::string ToString() 
+    std::string ToString()
     {
         if (file_.empty()) {
             return "[ ]";
