@@ -69,6 +69,7 @@
             "test": [
                 "//base/notification/eventhandler/frameworks/eventhandler/test:unittest",
                 "//base/notification/eventhandler/frameworks/test/moduletest:moduletest",
+                "//base/notification/eventhandler/test/fuzztest:fuzztest",
                 "//base/notification/eventhandler/test/systemtest:systemtest"
             ]
         }
