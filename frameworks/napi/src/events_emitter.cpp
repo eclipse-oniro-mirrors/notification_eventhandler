@@ -151,10 +151,10 @@ namespace AppExecFwk {
                 eventDataWorker = nullptr;
                 return;
             }
-            work->data = (void *)eventDataWorker;
+            work->data = reinterpret_cast<void *>(eventDataWorker);
             uv_queue_work(loop, work, [](uv_work_t *work) {},
                 [](uv_work_t *work, int status) {
-                EventDataWorker* eventDataInner = (EventDataWorker*)work->data;
+                EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(work->data);
                 ProcessCallback(eventDataInner);
                 delete eventDataInner;
                 eventDataInner = nullptr;
