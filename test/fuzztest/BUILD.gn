@@ -20,6 +20,11 @@ group("fuzztest") {
     "epolliowaiter_fuzzer:EpollIoWaiterFuzzTest",
     "eventhandler_fuzzer:EventHandlerFuzzTest",
     "eventhandlerannex_fuzzer:EventHandlerAnnexFuzzTest",
+    "eventqueue_fuzzer:EventQueueFuzzTest",
+    "eventrunner_fuzzer:EventRunnerFuzzTest",
+    "filedescriptorlistener_fuzzer:FileDescriptorListenerFuzzTest",
+    "innerevent_fuzzer:InnerEventFuzzTest",
     "nativeimplementeventhandler_fuzzer:NativeImplementEventHandlerFuzzTest",
+    "noneiowaiter_fuzzer:NoneIoWaiterFuzzTest",
   ]
 }
