@@ -220,11 +220,11 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
     // Transform file descriptor listener events into epoll events.
     uint32_t epollEvents = 0;
     if ((events & FILE_DESCRIPTOR_INPUT_EVENT) != 0) {
-        epollEvents |= (EPOLLIN | EPOLLET);
+        epollEvents |= EPOLLIN;
     }
 
     if ((events & FILE_DESCRIPTOR_OUTPUT_EVENT) != 0) {
-        epollEvents |= (EPOLLOUT | EPOLLET);
+        epollEvents |= EPOLLOUT;
     }
 
     if (EpollCtrl(epollFd_, EPOLL_CTL_ADD, fileDescriptor, epollEvents) < 0) {
