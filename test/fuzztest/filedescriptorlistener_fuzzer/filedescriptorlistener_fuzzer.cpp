@@ -13,7 +13,11 @@
  * limitations under the License.
  */
 
+#define private public
+#define protected public
 #include "file_descriptor_listener.h"
+#undef private
+#undef protected
 #include "filedescriptorlistener_fuzzer.h"
 #include "securec.h"
 
@@ -21,26 +25,10 @@ namespace OHOS {
 namespace {
     constexpr size_t U32_AT_SIZE = 4;
 }
-
-class MyFileDescriptorListener : public AppExecFwk::FileDescriptorListener {
-public:
-    MyFileDescriptorListener() = default;
-   virtual ~MyFileDescriptorListener()
-    {};
-    void OnReadable(int32_t fileDescriptor) override
-    {}
-    void OnWritable(int32_t fileDescriptor) override
-    {}
-    void OnShutdown(int32_t fileDescriptor) override
-    {}
-    void OnException(int32_t fileDescriptor) override
-    {}
-};
-
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
-    auto listener = std::make_shared<MyFileDescriptorListener>();
+    auto listener = std::make_shared<AppExecFwk::FileDescriptorListener>();
     listener -> OnReadable(fileDescriptor);
     listener -> OnWritable(fileDescriptor);
     listener -> OnShutdown(fileDescriptor);
