@@ -96,6 +96,7 @@ namespace AppExecFwk {
             std::lock_guard<std::mutex> lock(emitterInsMutex);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
+                callbackInner->callback = nullptr;
             }
         } else {
             napi_value resultData = nullptr;
