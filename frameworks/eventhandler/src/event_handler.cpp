@@ -337,15 +337,16 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
 
 void EventHandler::Dump(Dumper &dumper)
 {
+    auto now = std::chrono::system_clock::now();
+    auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    auto tt = std::chrono::system_clock::to_time_t(now);
+    auto us = tp.time_since_epoch().count() % 1000;
     struct tm curTime = {0};
-
-    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     localtime_r(&tt, &curTime);
-
     char sysTime[DATETIME_STRING_LENGTH];
-    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y%m%d %I:%M %p", &curTime);
-    std::string message =
-        dumper.GetTag() + " EventHandler dump begain curTime:" + std::string(sysTime) + LINE_SEPARATOR;
+    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y%m%d %I:%M:%S.", &curTime);
+    auto message = dumper.GetTag() + " EventHandler dump begain curTime:" +
+                   std::string(sysTime) + std::to_string(us) + LINE_SEPARATOR;
     dumper.Dump(message);
 
     if (eventRunner_ == nullptr) {
