@@ -2557,7 +2557,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler004, TestSize.Level1)
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler = handler->Current();
 
-    EXPECT_NE(nullptr, myHandler);
+    EXPECT_EQ(nullptr, myHandler);
 }
 
 /**
