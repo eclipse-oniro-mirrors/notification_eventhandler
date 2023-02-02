@@ -155,8 +155,11 @@ namespace AppExecFwk {
             work->data = reinterpret_cast<void *>(eventDataWorker);
             uv_queue_work(loop, work, [](uv_work_t *work) {},
                 [](uv_work_t *work, int status) {
+                napi_handle_scope scope;
                 EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(work->data);
+                napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
                 ProcessCallback(eventDataInner);
+                napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
                 delete eventDataInner;
                 eventDataInner = nullptr;
                 delete work;
