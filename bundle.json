@@ -4,7 +4,7 @@
     "version": "3.1",
     "license": "Apache 2.0",
     "segment": {
-        "destPath": "base/notification/eventhandler/frameworks/eventhandler"
+        "destPath": "base/notification/eventhandler"
     },
     "component": {
         "name": "eventhandler",
