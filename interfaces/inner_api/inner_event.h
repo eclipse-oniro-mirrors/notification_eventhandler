@@ -43,7 +43,6 @@ public:
     using TimePoint = std::chrono::time_point<Clock>;
     using Callback = std::function<void()>;
     using Pointer = std::unique_ptr<InnerEvent, void (*)(InnerEvent *)>;
-
     class Waiter {
     public:
         Waiter() = default;
@@ -270,6 +269,26 @@ public:
     }
 
     /**
+     * Set send kernel thread id of the event.
+     *
+     * @param senderKernelThreadId Send kernel thread id of the event
+     */
+    inline void SetSenderKernelThreadId(uint64_t senderKernelThreadId)
+    {
+        senderKernelThreadId_ = senderKernelThreadId;
+    }
+
+    /**
+     * Get the kernel thread id of the event.
+     *
+     * @return Returns kernel thread id of the event after it has been sent.
+     */
+    inline uint64_t GetSenderKernelThreadId()
+    {
+        return senderKernelThreadId_;
+    }
+
+    /**
      * Get id of the event.
      * Make sure {@link #hasTask} returns false.
      *
@@ -390,6 +409,20 @@ public:
     }
 
     /**
+     * Convert TimePoint to human readable string.
+     *
+     * @param time object represent time
+     */
+    static std::string DumpTimeToString(const TimePoint &time);
+
+    /**
+     * Convert std::chrono::system_clock::time_point to human readable string.
+     *
+     * @param time object represent time
+     */
+    static std::string DumpTimeToString(const std::chrono::system_clock::time_point &time);
+
+    /**
      * Prints out the internal information about an object in the specified format,
      * helping you diagnose internal errors of the object.
      *
@@ -502,6 +535,7 @@ private:
     std::weak_ptr<EventHandler> owner_;
     TimePoint handleTime_;
     TimePoint sendTime_;
+    uint64_t senderKernelThreadId_{0};
 
     // Event id of the event, if it is not a task object
     uint32_t innerEventId_{0};

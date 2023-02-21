@@ -256,6 +256,9 @@ private:
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
+
+    // current running event info
+    std::string currentRunningInfo_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

@@ -139,6 +139,13 @@ public:
     uint64_t GetThreadId();
 
     /**
+     * Obtain the kernel thread ID of the worker thread associated with this EventRunner.
+     *
+     * @return kernel thread id.
+     */
+    uint64_t GetKernelThreadId();
+
+    /**
      * Check whether the current thread is the worker thread of this EventRunner.
      *
      * @return Returns true if the current thread is the worker thread of this EventRunner; returns false otherwise.
@@ -215,6 +222,7 @@ private:
     std::shared_ptr<EventQueue> queue_;
     std::shared_ptr<EventInnerRunner> innerRunner_;
     static std::shared_ptr<EventRunner> mainRunner_;
+    std::string currentEventInfo_;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;
