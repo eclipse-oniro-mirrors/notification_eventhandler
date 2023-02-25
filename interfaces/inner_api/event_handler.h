@@ -941,6 +941,11 @@ public:
      */
     bool IsIdle();
 
+    /**
+     * @param enableEventLog dump event log handle time.
+     */
+    void EnableEventLog(bool enableEventLog = false);
+
 protected:
     /**
      * Process the event. Developers should override this method.
@@ -950,10 +955,10 @@ protected:
     virtual void ProcessEvent(const InnerEvent::Pointer &event);
 
 private:
+    bool enableEventLog_ {false};
     std::shared_ptr<EventRunner> eventRunner_;
     CallbackTimeout deliveryTimeoutCallback_;
     CallbackTimeout distributeTimeoutCallback_;
-
     static thread_local std::weak_ptr<EventHandler> currentEventHandler;
 };
 }  // namespace AppExecFwk

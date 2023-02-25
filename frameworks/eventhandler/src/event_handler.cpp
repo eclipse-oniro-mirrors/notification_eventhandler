@@ -16,6 +16,7 @@
 #include "event_handler.h"
 
 #include <unistd.h>
+#include <sys/syscall.h>
 #include "event_handler_utils.h"
 #ifdef HAS_HICHECKER_NATIVE_PART
 #include "hichecker.h"
@@ -27,7 +28,6 @@ DEFINE_HILOG_LABEL("EventHandler");
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
 namespace AppExecFwk {
-static constexpr int DATETIME_STRING_LENGTH = 80;
 
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
 
@@ -65,6 +65,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
 
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
+    event->SetSenderKernelThreadId(syscall(__NR_gettid));
 
     if (delayTime > 0) {
         event->SetHandleTime(now + std::chrono::milliseconds(delayTime));
@@ -304,6 +305,11 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     }
 
     currentEventHandler = shared_from_this();
+    if (enableEventLog_) {
+        auto now = InnerEvent::Clock::now();
+        auto currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
+        HILOGD("DistributeEvent: %{public}s", currentRunningInfo_.c_str());
+    }
 
     auto spanId = event->GetTraceId();
     auto traceId = HiTraceChain::GetId();
@@ -333,22 +339,17 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
             HiTraceChain::SetId(traceId);
         }
     }
+    if (enableEventLog_) {
+        auto now = InnerEvent::Clock::now();
+        HILOGD("DistributeEvent: end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
+    }
 }
 
 void EventHandler::Dump(Dumper &dumper)
 {
     auto now = std::chrono::system_clock::now();
-    auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-    auto tt = std::chrono::system_clock::to_time_t(now);
-    auto us = tp.time_since_epoch().count() % 1000;
-    struct tm curTime = {0};
-    localtime_r(&tt, &curTime);
-    char sysTime[DATETIME_STRING_LENGTH];
-    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y%m%d %I:%M:%S.", &curTime);
-    auto message = dumper.GetTag() + " EventHandler dump begain curTime:" +
-                   std::string(sysTime) + std::to_string(us) + LINE_SEPARATOR;
-    dumper.Dump(message);
-
+    dumper.Dump(dumper.GetTag() + " EventHandler dump begin curTime: " +
+        InnerEvent::DumpTimeToString(now) + LINE_SEPARATOR);
     if (eventRunner_ == nullptr) {
         dumper.Dump(dumper.GetTag() + " event runner uninitialized!" + LINE_SEPARATOR);
     } else {
@@ -396,5 +397,10 @@ bool EventHandler::IsIdle()
 
 void EventHandler::ProcessEvent(const InnerEvent::Pointer &)
 {}
+
+void EventHandler::EnableEventLog(bool enableEventLog)
+{
+    enableEventLog_ = enableEventLog;
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS

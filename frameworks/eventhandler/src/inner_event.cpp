@@ -27,6 +27,10 @@ DEFINE_HILOG_LABEL("InnerEvent");
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+static constexpr int DATETIME_STRING_LENGTH = 80;
+static constexpr int MAX_MS_LENGTH = 3;
+static constexpr int MS_PER_SECOND = 1000;
+
 class WaiterImp final : public InnerEvent::Waiter {
 public:
     WaiterImp(){};
@@ -253,22 +257,48 @@ const std::shared_ptr<HiTraceId> InnerEvent::GetTraceId()
     return hiTraceId_;
 }
 
+std::string InnerEvent::DumpTimeToString(const std::chrono::system_clock::time_point &time)
+{
+    auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(time);
+    auto tt = std::chrono::system_clock::to_time_t(time);
+    auto ms = tp.time_since_epoch().count() % MS_PER_SECOND;
+    auto msString = std::to_string(ms);
+    if (msString.length() < MAX_MS_LENGTH) {
+        msString = std::string(MAX_MS_LENGTH - msString.length(), '0') + msString;
+    }
+    struct tm curTime = {0};
+    localtime_r(&tt, &curTime);
+    char sysTime[DATETIME_STRING_LENGTH];
+    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y-%m-%d %I:%M:%S.", &curTime);
+    return std::string(sysTime) + msString;
+}
+
+std::string InnerEvent::DumpTimeToString(const TimePoint &time)
+{
+    auto tp = std::chrono::system_clock::now() +
+        std::chrono::duration_cast<std::chrono::milliseconds>(time - std::chrono::steady_clock::now());
+    return DumpTimeToString(tp);
+}
+
 std::string InnerEvent::Dump()
 {
     std::string content;
 
     content.append("Event { ");
+    content.append("send thread = " + std::to_string(senderKernelThreadId_));
+    content.append(", send time = " + DumpTimeToString(sendTime_));
+    content.append(", handle time = " + DumpTimeToString(handleTime_));
     if (!owner_.expired()) {
         if (HasTask()) {
-            content.append("task name = " + taskName_);
+            content.append(", task name = " + taskName_);
         } else {
-            content.append("id = " + std::to_string(innerEventId_));
+            content.append(", id = " + std::to_string(innerEventId_));
         }
         if (param_ != 0) {
             content.append(", param = " + std::to_string(param_));
         }
     } else {
-        content = "No handler";
+        content = ", No handler";
     }
     content.append(" }" + LINE_SEPARATOR);
 

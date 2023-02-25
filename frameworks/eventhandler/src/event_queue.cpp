@@ -309,6 +309,7 @@ InnerEvent::Pointer EventQueue::GetExpiredEventLocked(InnerEvent::TimePoint &nex
     if (event) {
         // Exit idle mode, if found an event to distribute.
         isIdle_ = false;
+        currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + ", " +  event->Dump();
         return event;
     }
 
@@ -323,12 +324,15 @@ InnerEvent::Pointer EventQueue::GetExpiredEventLocked(InnerEvent::TimePoint &nex
 
         // Return the idle event that has been sent before time stamp and reaches its handle time.
         if ((idleEvent->GetSendTime() <= idleTimeStamp_) && (idleEvent->GetHandleTime() <= now)) {
-            return PopFrontEventFromListLocked(idleEvents_);
+            event = PopFrontEventFromListLocked(idleEvents_);
+            currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + ", " +  event->Dump();
+            return event;
         }
     }
 
     // Update wake up time.
     nextExpiredTime = wakeUpTime_;
+    currentRunningInfo_.clear();
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
@@ -539,6 +543,9 @@ void EventQueue::Dump(Dumper &dumper)
     if (!usable_.load()) {
         return;
     }
+
+    dumper.Dump(dumper.GetTag() + " Current Running: " + currentRunningInfo_);
+
     std::string priority[] = {"Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {

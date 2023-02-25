@@ -22,7 +22,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <unistd.h>
 #include <sys/prctl.h>
+#include <sys/syscall.h>
 
 #include "event_handler.h"
 #include "event_handler_utils.h"
@@ -35,6 +37,7 @@ DEFINE_HILOG_LABEL("EventRunner");
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+
 // Invoke system call to set name of current thread.
 inline void SystemCallSetThreadName(const std::string &name)
 {
@@ -308,6 +311,7 @@ public:
         }
 
         threadId_ = std::this_thread::get_id();
+        kernelThreadId_ = syscall(__NR_gettid);
 
         // Save old event runner.
         std::weak_ptr<EventRunner> oldRunner = currentEventRunner;
@@ -501,8 +505,7 @@ void EventRunner::Dump(Dumper &dumper)
     }
 
     dumper.Dump(dumper.GetTag() + " Event runner (" + "Thread name = " + innerRunner_->GetThreadName() +
-                ", Thread ID = " + std::to_string(GetThreadId()) + ") is running" + LINE_SEPARATOR);
-
+                ", Thread ID = " + std::to_string(GetKernelThreadId()) + ") is running" + LINE_SEPARATOR);
     queue_->Dump(dumper);
 }
 
@@ -543,6 +546,11 @@ uint64_t EventRunner::GetThreadId()
     buf << tid;
     std::string stid = buf.str();
     return std::stoull(stid);
+}
+
+uint64_t EventRunner::GetKernelThreadId()
+{
+    return innerRunner_->GetKernelThreadId();
 }
 
 bool EventRunner::IsCurrentRunnerThread()

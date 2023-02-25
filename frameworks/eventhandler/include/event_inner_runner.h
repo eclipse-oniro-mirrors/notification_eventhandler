@@ -55,6 +55,11 @@ public:
         return threadId_;
     }
 
+    uint64_t GetKernelThreadId()
+    {
+        return kernelThreadId_;
+    }
+
 protected:
     std::shared_ptr<EventQueue> queue_;
     std::weak_ptr<EventRunner> owner_;
@@ -62,6 +67,7 @@ protected:
     static ThreadLocalData<std::weak_ptr<EventRunner>> currentEventRunner;
     std::string threadName_;
     std::thread::id threadId_;
+    uint64_t kernelThreadId_{0};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
