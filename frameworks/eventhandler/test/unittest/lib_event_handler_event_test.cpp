@@ -454,7 +454,7 @@ HWTEST_F(LibEventHandlerEventTest, Dump001, TestSize.Level1)
     queue.DumpQueueInfo(runnerInfo);
     auto event = InnerEvent::Get(eventId, eventParam);
     std::string result = event->Dump();
-    EXPECT_EQ("No handler }\n", result);
+    EXPECT_EQ("Event { No handler }\n", result);
     EXPECT_EQ(runner->GetCurrentEventQueue(), nullptr);
 }
 
