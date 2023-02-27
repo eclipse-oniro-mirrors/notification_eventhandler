@@ -285,10 +285,10 @@ std::string InnerEvent::Dump()
     std::string content;
 
     content.append("Event { ");
-    content.append("send thread = " + std::to_string(senderKernelThreadId_));
-    content.append(", send time = " + DumpTimeToString(sendTime_));
-    content.append(", handle time = " + DumpTimeToString(handleTime_));
     if (!owner_.expired()) {
+        content.append("send thread = " + std::to_string(senderKernelThreadId_));
+        content.append(", send time = " + DumpTimeToString(sendTime_));
+        content.append(", handle time = " + DumpTimeToString(handleTime_));
         if (HasTask()) {
             content.append(", task name = " + taskName_);
         } else {
@@ -298,7 +298,7 @@ std::string InnerEvent::Dump()
             content.append(", param = " + std::to_string(param_));
         }
     } else {
-        content = ", No handler";
+        content.append("No handler");
     }
     content.append(" }" + LINE_SEPARATOR);
 

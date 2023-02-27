@@ -307,8 +307,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     currentEventHandler = shared_from_this();
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        auto currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
-        HILOGD("DistributeEvent: %{public}s", currentRunningInfo_.c_str());
+        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
+        HILOGD("DistributeEvent: %{public}s", currentRunningInfo.c_str());
     }
 
     auto spanId = event->GetTraceId();
