@@ -131,7 +131,7 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
 
     bool result = true;
     if (retVal < 0) {
-        if (errno != EINTR) {
+        if (errno != EINTR && errno != EINVAL) {
             char errmsg[MAX_ERRORMSG_LEN] = {0};
             GetLastErr(errmsg, MAX_ERRORMSG_LEN);
             HILOGE("WaitFor: Failed to wait epoll, %{public}s", errmsg);
