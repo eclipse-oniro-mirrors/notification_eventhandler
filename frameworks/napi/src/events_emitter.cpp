@@ -90,9 +90,8 @@ namespace AppExecFwk {
             return;
         }
         AsyncCallbackInfo* callbackInner = eventDataInner->callbackInfo;
-        HILOGI("Prepare to process callbackInner %{public}p", callbackInner);
         if (callbackInner->isDeleted) {
-            HILOGI("ProcessEvent isDeleted callbackInfo = %{public}p", callbackInner);
+            HILOGI("ProcessEvent isDeleted");
             std::lock_guard<std::mutex> lock(emitterInsMutex);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
@@ -108,7 +107,7 @@ namespace AppExecFwk {
             napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
             napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
             if (callbackInner->once) {
-                HILOGI("ProcessEvent delete once callback callbackInfo = %{public}p", callbackInner);
+                HILOGI("ProcessEvent delete once");
                 std::lock_guard<std::mutex> lock(emitterInsMutex);
                 callbackInner->isDeleted = true;
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
@@ -133,7 +132,6 @@ namespace AppExecFwk {
         EventData eventData = *(event->GetUniqueObject<EventData>());
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
-            HILOGI("Prepare to process callbackInfo %{public}p", callbackInfo);
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
             if (!eventDataWorker) {
                 HILOGE("new object failed");
@@ -204,7 +202,7 @@ namespace AppExecFwk {
             }
             if (!once) {
                 if (callbackInfo[i]->once) {
-                    HILOGI("JS_On callbackInfo %{public}p change once to on", callbackInfo[i]);
+                    HILOGI("JS_On change once to on");
                     callbackInfo[i]->once = false;
                 } else {
                     HILOGI("JS_On already on");
@@ -213,7 +211,7 @@ namespace AppExecFwk {
                 if (callbackInfo[i]->once) {
                     HILOGI("JS_Once already once");
                 } else {
-                    HILOGI("JS_Once callbackInfo %{public}p change on to once", callbackInfo[i]);
+                    HILOGI("JS_Once change on to once");
                     callbackInfo[i]->once = true;
                 }
             }
@@ -256,7 +254,6 @@ namespace AppExecFwk {
             callbackInfo->once = once;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
             emitterInstances[eventIdValue].push_back(callbackInfo);
-            HILOGI("OnOrOnce callbackInfo = %{public}p", callbackInfo);
         }
         return nullptr;
     }
@@ -291,7 +288,6 @@ namespace AppExecFwk {
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
             for (auto callbackInfo : subscribe->second) {
-                HILOGI("JS_Off callbackInfo = %{public}p", callbackInfo);
                 callbackInfo->isDeleted = true;
             }
         }
