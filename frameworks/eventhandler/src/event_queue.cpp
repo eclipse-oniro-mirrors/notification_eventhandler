@@ -156,6 +156,19 @@ void EventQueue::RemoveOrphan()
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter);
 }
 
+
+void EventQueue::RemoveAll()
+{
+    std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        return;
+    }
+    for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
+        subEventQueues_[i].queue.clear();
+    }
+    idleEvents_.clear();
+}
+
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner)
 {
     if (!owner) {
