@@ -30,6 +30,21 @@
 namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
+class EventHandler;
+
+struct CurrentRunningEvent {
+    InnerEvent::TimePoint beginTime_;
+    std::weak_ptr<EventHandler> owner_;
+    uint64_t senderKernelThreadId_{0};
+    InnerEvent::TimePoint sendTime_;
+    InnerEvent::TimePoint handleTime_;
+    int64_t param_{0};
+    bool hasTask_{false};
+    std::string taskName_;
+    uint32_t innerEventId_{0};
+    CurrentRunningEvent();
+    CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event);
+};
 
 class EventQueue final {
 public:
@@ -160,7 +175,7 @@ public:
      * Prints out the internal information about an object in the specified format,
      * helping you diagnose internal errors of the object.
      *
-     * @param dumpr The Dumper object you have implemented to process the output internal information.
+     * @param dumper The Dumper object you have implemented to process the output internal information.
      */
     void Dump(Dumper &dumper);
 
@@ -229,7 +244,7 @@ private:
     void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
     bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
-
+    std::string DumpCurrentRunning();
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -258,7 +273,7 @@ private:
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
 
     // current running event info
-    std::string currentRunningInfo_;
+    CurrentRunningEvent currentRunningEvent_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
