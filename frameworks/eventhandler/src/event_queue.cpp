@@ -309,7 +309,7 @@ InnerEvent::Pointer EventQueue::GetExpiredEventLocked(InnerEvent::TimePoint &nex
     if (event) {
         // Exit idle mode, if found an event to distribute.
         isIdle_ = false;
-        currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + ", " +  event->Dump();
+        currentRunningEvent_ = CurrentRunningEvent(now, event);
         return event;
     }
 
@@ -325,14 +325,14 @@ InnerEvent::Pointer EventQueue::GetExpiredEventLocked(InnerEvent::TimePoint &nex
         // Return the idle event that has been sent before time stamp and reaches its handle time.
         if ((idleEvent->GetSendTime() <= idleTimeStamp_) && (idleEvent->GetHandleTime() <= now)) {
             event = PopFrontEventFromListLocked(idleEvents_);
-            currentRunningInfo_ = "start at " + InnerEvent::DumpTimeToString(now) + ", " +  event->Dump();
+            currentRunningEvent_ = CurrentRunningEvent(now, event);
             return event;
         }
     }
 
     // Update wake up time.
     nextExpiredTime = wakeUpTime_;
-    currentRunningInfo_.clear();
+    currentRunningEvent_ = CurrentRunningEvent();
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
@@ -537,6 +537,35 @@ bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
     return true;
 }
 
+std::string EventQueue::DumpCurrentRunning()
+{
+    std::string content;
+    if (currentRunningEvent_.beginTime_ == InnerEvent::TimePoint::max()) {
+        content.append("{}");
+    } else {
+        content.append("start at " + InnerEvent::DumpTimeToString(currentRunningEvent_.beginTime_) + ", ");
+        content.append("Event { ");
+        if (!currentRunningEvent_.owner_.expired()) {
+            content.append("send thread = " + std::to_string(currentRunningEvent_.senderKernelThreadId_));
+            content.append(", send time = " + InnerEvent::DumpTimeToString(currentRunningEvent_.sendTime_));
+            content.append(", handle time = " + InnerEvent::DumpTimeToString(currentRunningEvent_.handleTime_));
+            if (currentRunningEvent_.hasTask_) {
+                content.append(", task name = " + currentRunningEvent_.taskName_);
+            } else {
+                content.append(", id = " + std::to_string(currentRunningEvent_.innerEventId_));
+            }
+            if (currentRunningEvent_.param_ != 0) {
+                content.append(", param = " + std::to_string(currentRunningEvent_.param_));
+            }
+        } else {
+            content.append("No handler");
+        }
+        content.append(" }");
+    }
+
+    return content;
+}
+
 void EventQueue::Dump(Dumper &dumper)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
@@ -544,8 +573,7 @@ void EventQueue::Dump(Dumper &dumper)
         return;
     }
 
-    dumper.Dump(dumper.GetTag() + " Current Running: " + currentRunningInfo_);
-
+    dumper.Dump(dumper.GetTag() + " Current Running: " + DumpCurrentRunning() + LINE_SEPARATOR);
     std::string priority[] = {"Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -624,5 +652,27 @@ bool EventQueue::IsQueueEmpty()
 
     return idleEvents_.size() == 0;
 }
+
+CurrentRunningEvent::CurrentRunningEvent()
+{
+    beginTime_ = InnerEvent::TimePoint::max();
+}
+
+CurrentRunningEvent::CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event)
+{
+    beginTime_ = time;
+    owner_ = event->GetOwner();
+    senderKernelThreadId_ = event->GetSenderKernelThreadId();
+    sendTime_ = event->GetSendTime();
+    handleTime_ = event->GetHandleTime();
+    param_ = event->GetParam();
+    if (event->HasTask()) {
+        hasTask_ = true;
+        taskName_ = event->GetTaskName();
+    } else {
+        innerEventId_ = event->GetInnerEventId();
+    }
+}
+
 }  // namespace AppExecFwk
 }  // namespace OHOS
