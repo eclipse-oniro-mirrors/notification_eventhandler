@@ -276,7 +276,10 @@ public:
         queue_ = std::make_shared<EventQueue>();
     }
 
-    ~EventRunnerImpl() final = default;
+    ~EventRunnerImpl() final
+    {
+        queue_->RemoveAll();
+    }
     DISALLOW_COPY_AND_MOVE(EventRunnerImpl);
 
     static void ThreadMain(const std::weak_ptr<EventRunnerImpl> &wp)
