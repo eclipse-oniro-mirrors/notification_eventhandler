@@ -67,6 +67,11 @@ public:
     void RemoveOrphan();
 
     /**
+     * Remove all events.
+     */
+    void RemoveAll();
+
+    /**
      * Remove events with specified requirements.
      *
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
