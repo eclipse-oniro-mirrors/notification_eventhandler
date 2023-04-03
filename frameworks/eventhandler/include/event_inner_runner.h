@@ -67,7 +67,7 @@ protected:
     static ThreadLocalData<std::weak_ptr<EventRunner>> currentEventRunner;
     std::string threadName_;
     std::thread::id threadId_;
-    uint64_t kernelThreadId_{0};
+    int64_t kernelThreadId_{0};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
