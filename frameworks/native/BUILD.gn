@@ -17,12 +17,7 @@ import("../../eventhandler.gni")
 ohos_shared_library("eventhandler_native") {
   sources = [ "src/native_interface_eventhandler.cpp" ]
 
-  include_dirs = [
-    "${kits_path}/native",
-    "//commonlibrary/c_utils/base/include",
-    "//base/hiviewdfx/interfaces/innerkits/libhilog/include",
-    "//base/hiviewdfx/interfaces/innerkits/libhitrace/include",
-  ]
+  include_dirs = [ "${kits_path}/native" ]
 
   cflags = [ "-Wno-error=inconsistent-missing-override" ]
 

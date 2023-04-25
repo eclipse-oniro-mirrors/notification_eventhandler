@@ -20,8 +20,7 @@ module_output_path = "eventhandler/fuzztest"
 ##############################fuzztest##########################################
 ohos_fuzztest("EpollIoWaiterFuzzTest") {
   module_out_path = module_output_path
-  fuzz_config_file =
-      "//base/notification/eventhandler/test/fuzztest/epolliowaiter_fuzzer"
+  fuzz_config_file = "${fuzztest_path}/epolliowaiter_fuzzer"
 
   include_dirs = []
   cflags = [
