@@ -20,6 +20,7 @@
 namespace OHOS {
 namespace {
     constexpr size_t U32_AT_SIZE = 4;
+    constexpr uint8_t ENABLE = 2;
 }
 
 class DumperTest : public AppExecFwk::Dumper {
@@ -56,6 +57,14 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     runner->GetCurrentEventQueue();
     runner->GetThreadId();
     runner->IsCurrentRunnerThread();
+    bool inNewThread = *data % ENABLE;
+    runner->Create(inNewThread);
+    runner->Create(stringData);
+    runner->Current();
+    runner->Run();
+    runner->Stop();
+    runner->GetEventQueue();
+    runner->GetMainEventRunner();
     return true;
 }
 }

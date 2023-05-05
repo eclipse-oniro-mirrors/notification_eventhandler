@@ -40,6 +40,31 @@ public:
     }
 };
 
+class MyFileDescriptorListener : public AppExecFwk::FileDescriptorListener {
+public:
+    MyFileDescriptorListener()
+    {}
+    ~MyFileDescriptorListener()
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnReadable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnWritable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnException(int32_t)
+    {}
+
+    MyFileDescriptorListener(const MyFileDescriptorListener &) = delete;
+    MyFileDescriptorListener &operator=(const MyFileDescriptorListener &) = delete;
+    MyFileDescriptorListener(MyFileDescriptorListener &&) = delete;
+    MyFileDescriptorListener &operator=(MyFileDescriptorListener &&) = delete;
+};
+
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     std::shared_ptr<AppExecFwk::EventRunner> runner = nullptr;
@@ -57,6 +82,19 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventHandler.RemoveAllFileDescriptorListeners();
     eventHandler.SendTimingEvent(event, taskTime, priority);
     eventHandler.RemoveFileDescriptorListener(fileDescriptor);
+    eventHandler.SendEvent(event, taskTime, priority);
+    eventHandler.SendSyncEvent(event, priority);
+    eventHandler.RemoveAllEvents();
+    eventHandler.RemoveEvent(innerEventId, taskTime);
+    eventHandler.RemoveEvent(innerEventId);
+    std::string stringData(data);
+    eventHandler.RemoveTask(stringData);
+    auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
+    eventHandler.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener);
+    eventHandler.SetEventRunner(runner);
+    eventHandler.GetEventRunner();
+    eventHandler.DistributeEvent(event);
+    eventHandler.HasInnerEvent(taskTime);
     return eventHandler.HasInnerEvent(innerEventId);
 }
 }

@@ -26,6 +26,9 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     uint32_t innerEventId = *data;
     auto event = AppExecFwk::InnerEvent::Get(innerEventId);
     event->Dump();
+    int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    event->Get();
+    event->Get(innerEventId, param);
     return true;
 }
 }
