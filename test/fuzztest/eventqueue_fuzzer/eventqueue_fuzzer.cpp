@@ -35,6 +35,31 @@ public:
     }
 };
 
+class MyFileDescriptorListener : public AppExecFwk::FileDescriptorListener {
+public:
+    MyFileDescriptorListener()
+    {}
+    ~MyFileDescriptorListener()
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnReadable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnWritable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnException(int32_t)
+    {}
+
+    MyFileDescriptorListener(const MyFileDescriptorListener &) = delete;
+    MyFileDescriptorListener &operator=(const MyFileDescriptorListener &) = delete;
+    MyFileDescriptorListener(MyFileDescriptorListener &&) = delete;
+    MyFileDescriptorListener &operator=(MyFileDescriptorListener &&) = delete;
+};
+
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     AppExecFwk::InnerEvent::TimePoint nextExpiredTime = AppExecFwk::InnerEvent::TimePoint::max();
@@ -46,6 +71,28 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventQueue.Dump(dumper);
     eventQueue.DumpQueueInfo(stringData);
     eventQueue.IsQueueEmpty();
+    std::list<AppExecFwk::InnerEvent::Pointer> events;
+    AppExecFwk::InnerEvent::Pointer event = std::move(events.front());
+    AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::LOW;
+    eventQueue.Insert(event, priority);
+    eventQueue.RemoveOrphan();
+    eventQueue.GetEvent();
+    eventQueue.IsIdle();
+    eventQueue.Prepare();
+    eventQueue.Finish();
+    std::shared_ptr<AppExecFwk::EventHandler> myHandler;
+    uint32_t innerEventId = *data;
+    int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    eventQueue.HasInnerEvent(myHandler, innerEventId);
+    eventQueue.Remove(myHandler);
+    eventQueue.Remove(myHandler, innerEventId);
+    eventQueue.Remove(myHandler, innerEventId, param);
+    eventQueue.Remove(myHandler, stringData);
+    int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
+    eventQueue.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener);
+    eventQueue.RemoveFileDescriptorListener(myHandler);
+    eventQueue.RemoveFileDescriptorListener(fileDescriptor);
     return true;
 }
 }
