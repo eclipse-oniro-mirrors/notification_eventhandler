@@ -20,7 +20,8 @@
 namespace OHOS {
 namespace {
     constexpr size_t U32_AT_SIZE = 4;
-    constexpr uint8_t ENABLE = 2;
+    static auto runner = AppExecFwk::EventRunner::Create(true);
+    [[maybe_unused]] static auto runner2 = AppExecFwk::EventRunner::Create("EventRunnerFuzzTest");
 }
 
 class DumperTest : public AppExecFwk::Dumper {
@@ -50,16 +51,12 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     DumperTest dumper;
     std::string stringData(data);
     std::shared_ptr<LoggerTest> logger = std::make_shared<LoggerTest>();
-    auto runner = AppExecFwk::EventRunner::Create(true);
     runner->Dump(dumper);
     runner->DumpRunnerInfo(stringData);
     runner->SetLogger(logger);
     runner->GetCurrentEventQueue();
     runner->GetThreadId();
     runner->IsCurrentRunnerThread();
-    bool inNewThread = *data % ENABLE;
-    runner->Create(inNewThread);
-    runner->Create(stringData);
     runner->Current();
     runner->Run();
     runner->Stop();
