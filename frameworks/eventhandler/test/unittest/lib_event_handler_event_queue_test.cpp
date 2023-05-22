@@ -1710,3 +1710,47 @@ HWTEST_F(LibEventHandlerEventQueueTest, IsQueueEmpty003, TestSize.Level1)
     bool ret = runner->GetEventQueue()->IsQueueEmpty();
     EXPECT_FALSE(ret);
 }
+
+/*
+ * @tc.name: RemoveFileDescriptorListenerLocked
+ * @tc.desc: RemoveFileDescriptorListenerLocked test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, RemoveFileDescriptorListenerLocked001, TestSize.Level1)
+{
+    auto queue = std::make_shared<EventQueue>(nullptr);
+    EXPECT_NE(queue, nullptr);
+    queue->RemoveOrphan();
+}
+
+/*
+ * @tc.name: RemoveOrphan
+ * @tc.desc: RemoveOrphan test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, RemoveOrphan004, TestSize.Level1)
+{
+    auto queue = std::make_shared<EventQueue>();
+    EXPECT_NE(queue, nullptr);
+    queue->RemoveOrphan();
+}
+
+/*
+ * @tc.name: Remove
+ * @tc.desc: Remove test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, Remove001, TestSize.Level1)
+{
+    auto queue = std::make_shared<EventQueue>();
+    EXPECT_NE(queue, nullptr);
+    std::shared_ptr<EventHandler> owner = nullptr;
+    queue->Remove(owner);
+    queue->Remove(owner, 0);
+    queue->Remove(owner, 0, 0);
+    queue->Remove(owner, "test");
+
+    auto runner = EventRunner::Create(true);
+    owner = std::make_shared<EventHandler>(runner);
+    queue->Remove(owner, "");
+}
