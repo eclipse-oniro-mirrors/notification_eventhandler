@@ -14,7 +14,7 @@
  */
 
 #include "event_queue.h"
-#include "eventqueue_fuzzer.h"
+#include "eventqueueinsert_fuzzer.h"
 #include "securec.h"
 
 namespace OHOS {
@@ -22,30 +22,14 @@ namespace {
     constexpr size_t U32_AT_SIZE = 4;
 }
 
-class DumperTest : public AppExecFwk::Dumper {
-public:
-    DumperTest() = default;
-    virtual ~DumperTest()
-    {};
-    void Dump(const std::string &message) override
-    {}
-    std::string GetTag() override
-    {
-        return {};
-    }
-};
-
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
-    AppExecFwk::InnerEvent::TimePoint nextExpiredTime = AppExecFwk::InnerEvent::TimePoint::max();
-    DumperTest dumper;
-    std::string stringData(data);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
     AppExecFwk::EventQueue eventQueue(ioWaiter);
-    eventQueue.GetExpiredEvent(nextExpiredTime);
-    eventQueue.Dump(dumper);
-    eventQueue.DumpQueueInfo(stringData);
-    eventQueue.IsQueueEmpty();
+    std::list<AppExecFwk::InnerEvent::Pointer> events;
+    AppExecFwk::InnerEvent::Pointer event = std::move(events.front());
+    AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::LOW;
+    eventQueue.Insert(event, priority);
     return true;
 }
 }
