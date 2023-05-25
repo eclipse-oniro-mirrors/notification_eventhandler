@@ -21,6 +21,8 @@ group("fuzztest") {
     "eventhandler_fuzzer:EventHandlerFuzzTest",
     "eventhandlerannex_fuzzer:EventHandlerAnnexFuzzTest",
     "eventqueue_fuzzer:EventQueueFuzzTest",
+    "eventqueueannex_fuzzer:EventQueueAnnexFuzzTest",
+    "eventqueueinsert_fuzzer:EventQueueInsertFuzzTest",
     "eventrunner_fuzzer:EventRunnerFuzzTest",
     "filedescriptorlistener_fuzzer:FileDescriptorListenerFuzzTest",
     "innerevent_fuzzer:InnerEventFuzzTest",
