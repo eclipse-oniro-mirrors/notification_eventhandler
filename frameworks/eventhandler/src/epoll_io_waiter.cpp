@@ -101,12 +101,10 @@ bool EpollIoWaiter::Init()
     // If any error happened, close all valid file descriptors.
     if (epollFd >= 0) {
         close(epollFd);
-        epollFd = -1;
     }
 
     if (awakenFd >= 0) {
         close(awakenFd);
-        awakenFd = -1;
     }
 
     return false;
