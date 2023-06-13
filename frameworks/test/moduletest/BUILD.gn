@@ -44,7 +44,7 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -68,7 +68,7 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -92,7 +92,7 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -116,7 +116,7 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -140,7 +140,7 @@ ohos_moduletest("EventHandlerPressModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -164,7 +164,7 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -188,7 +188,7 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 

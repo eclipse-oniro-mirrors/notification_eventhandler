@@ -39,7 +39,7 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -63,7 +63,7 @@ ohos_unittest("LibEventHandlerCheckTest") {
 
   if (has_hichecker_native_part) {
     cflags_cc += [ "-DHAS_HICHECKER_NATIVE_PART" ]
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -84,7 +84,7 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -104,7 +104,7 @@ ohos_unittest("LibEventHandlerEventTest") {
     "hiviewdfx_hilog_native:libhilog",
   ]
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -125,7 +125,7 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
@@ -146,7 +146,7 @@ ohos_unittest("LibEventHandlerTraceTest") {
   ]
 
   if (has_hichecker_native_part) {
-    external_deps += [ "hichecker_native:libhichecker" ]
+    external_deps += [ "hichecker:libhichecker" ]
   }
 }
 
