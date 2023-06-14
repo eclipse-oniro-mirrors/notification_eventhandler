@@ -23,7 +23,7 @@
             "components": [
                 "hitrace_native",
                 "hiviewdfx_hilog_native",
-                "hichecker_native"
+                "hichecker"
             ],
             "third_party": []
         },
