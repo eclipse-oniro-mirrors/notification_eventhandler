@@ -34,7 +34,7 @@ ohos_shared_library("emitter") {
   ]
 
   external_deps = [
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "napi:ace_napi",
   ]
 

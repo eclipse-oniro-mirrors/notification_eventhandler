@@ -21,11 +21,15 @@
         "ram": "1000KB",
         "deps": {
             "components": [
-                "hitrace_native",
-                "hiviewdfx_hilog_native",
-                "hichecker"
+                "hitrace",
+                "hilog",
+                "hichecker",
+                "napi",
+                "c_utils"
             ],
-            "third_party": []
+            "third_party": [
+                "libuv"
+            ]
         },
         "build": {
             "group_type": {

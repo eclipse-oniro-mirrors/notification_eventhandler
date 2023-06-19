@@ -36,8 +36,8 @@ ohos_shared_library("libeventhandler") {
   public_configs = [ ":public_libeventhandler_config" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
