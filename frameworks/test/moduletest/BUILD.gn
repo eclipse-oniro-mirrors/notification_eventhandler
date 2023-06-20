@@ -39,8 +39,8 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -63,8 +63,8 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -87,8 +87,8 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -111,8 +111,8 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -135,8 +135,8 @@ ohos_moduletest("EventHandlerPressModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -159,8 +159,8 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
@@ -183,8 +183,8 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
   ]
 
   if (has_hichecker_native_part) {
