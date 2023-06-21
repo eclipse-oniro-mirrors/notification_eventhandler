@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,13 +22,24 @@
 #include "event_queue.h"
 #include "event_runner.h"
 #include "inner_event.h"
+#define private public
 #include "native_implement_eventhandler.h"
+#undef private
 
 using namespace testing::ext;
 using namespace OHOS::AppExecFwk;
 namespace {
 const size_t MAX_POOL_SIZE = 64;
 }
+
+typedef void (*FileFDCallback)(int32_t filedescriptor);
+
+struct FileDescriptorCallbacks {
+    FileFDCallback readableCallback_;
+    FileFDCallback writableCallback_;
+    FileFDCallback shutdownCallback_;
+    FileFDCallback exceptionCallback_;
+};
 
 /**
  * test for task information.
@@ -482,4 +493,37 @@ HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement002, TestSize.Level
     EXPECT_EQ(OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER, runEventRunnerNativeObj);
     ErrCode stopEventRunnerNativeObj = eventRunnerNativeImplement.StopEventRunnerNativeObj();
     EXPECT_EQ(OHOS::AppExecFwk::EVENT_HANDLER_ERR_NO_EVENT_RUNNER, stopEventRunnerNativeObj);
+}
+
+/*
+ * @tc.name: EventRunnerNativeImplement003
+ * @tc.desc: InvokeRemoveFileDescriptorListener interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement003, TestSize.Level1)
+{
+    std::shared_ptr<EventRunnerNativeImplement> eventRunnerNativeImplement =
+        std::make_shared<EventRunnerNativeImplement>(true);
+    EXPECT_NE(eventRunnerNativeImplement, nullptr);
+    eventRunnerNativeImplement->eventRunner_ = EventRunner::Create(false);
+    int32_t fileDescriptor = 1;
+    eventRunnerNativeImplement->RemoveFileDescriptorListener(fileDescriptor);
+}
+
+/*
+ * @tc.name: EventRunnerNativeImplement004
+ * @tc.desc: AddFileDescriptorListener interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement004, TestSize.Level1)
+{
+    std::shared_ptr<EventRunnerNativeImplement> eventRunnerNativeImplement =
+        std::make_shared<EventRunnerNativeImplement>(true);
+    EXPECT_NE(eventRunnerNativeImplement, nullptr);
+    eventRunnerNativeImplement->eventRunner_ = EventRunner::Create(false);
+    int32_t fileDescriptor = 1;
+    uint32_t events = 2;
+    struct FileDescriptorCallbacks P1;
+    FileDescriptorCallbacks *fdCallbacks = &P1;
+    eventRunnerNativeImplement->AddFileDescriptorListener(fileDescriptor, events, fdCallbacks);
 }
