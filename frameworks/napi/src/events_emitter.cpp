@@ -178,46 +178,48 @@ namespace AppExecFwk {
         HILOGI("ProcessEvent end");
     }
 
-    bool IsExistSameCallback(napi_env env, uint32_t eventIdValue, napi_value argv, bool once)
+    static void UpdateOnceFlag(AsyncCallbackInfo *callbackInfo, bool once)
+    {
+        if (!once) {
+            if (callbackInfo->once) {
+                HILOGI("JS_On change once to on");
+                callbackInfo->once = false;
+            } else {
+                HILOGI("JS_On already on");
+            }
+        } else {
+            if (callbackInfo->once) {
+                HILOGI("JS_Once already once");
+            } else {
+                HILOGI("JS_Once change on to once");
+                callbackInfo->once = true;
+            }
+        }
+    }
+
+    AsyncCallbackInfo* SearchCallbackInfo(napi_env env, uint32_t eventIdValue, napi_value argv)
     {
         auto subscribe = emitterInstances.find(eventIdValue);
         if (subscribe == emitterInstances.end()) {
-            return false;
+            return nullptr;
         }
-        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second;
-        size_t callbackSize = callbackInfo.size();
-        napi_value callback = nullptr;
-        for (size_t i = 0; i < callbackSize; i++) {
-            if (callbackInfo[i]->isDeleted) {
+        for (auto callbackInfo : subscribe->second) {
+            napi_value callback = nullptr;
+            if (callbackInfo->isDeleted) {
                 continue;
             }
-            if (callbackInfo[i]->env != env) {
+            if (callbackInfo->env != env) {
                 continue;
             }
-            napi_get_reference_value(callbackInfo[i]->env, callbackInfo[i]->callback, &callback);
+            napi_get_reference_value(callbackInfo->env, callbackInfo->callback, &callback);
             bool isEq = false;
             napi_strict_equals(env, argv, callback, &isEq);
             if (!isEq) {
                 continue;
             }
-            if (!once) {
-                if (callbackInfo[i]->once) {
-                    HILOGI("JS_On change once to on");
-                    callbackInfo[i]->once = false;
-                } else {
-                    HILOGI("JS_On already on");
-                }
-            } else {
-                if (callbackInfo[i]->once) {
-                    HILOGI("JS_Once already once");
-                } else {
-                    HILOGI("JS_Once change on to once");
-                    callbackInfo[i]->once = true;
-                }
-            }
-            return true;
+            return callbackInfo;
         }
-        return false;
+        return nullptr;
     }
 
     napi_value OnOrOnce(napi_env env, napi_callback_info cbinfo, bool once)
@@ -225,27 +227,43 @@ namespace AppExecFwk {
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-        NAPI_ASSERT(env, argc >= ARGC_NUM, "requires 2 parameter");
+        if (argc < ARGC_NUM) {
+            HILOGE("requires 2 parameter");
+            return nullptr;
+        }
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
-        NAPI_ASSERT(env, eventValueType == napi_object, "type mismatch for parameter 1");
+        if (eventValueType != napi_object) {
+            HILOGE("type mismatch for parameter 1");
+            return nullptr;
+        }
 
         napi_valuetype eventHandleType;
         napi_typeof(env, argv[1], &eventHandleType);
-        NAPI_ASSERT(env, eventHandleType == napi_function, "type mismatch for parameter 2");
+        if (eventHandleType != napi_function) {
+            HILOGE("type mismatch for parameter 2");
+            return nullptr;
+        }
 
         bool hasEventId = false;
         napi_value eventId;
         napi_has_named_property(env, argv[0], "eventId", &hasEventId);
-        NAPI_ASSERT(env, hasEventId, "Wrong argument 1");
+        if (hasEventId == false) {
+            HILOGE("Wrong argument 1");
+            return nullptr;
+        }
+
         napi_get_named_property(env, argv[0], "eventId", &eventId);
         uint32_t eventIdValue;
         napi_get_value_uint32(env, eventId, &eventIdValue);
         HILOGI("OnOrOnce eventIdValue:%{public}d", eventIdValue);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
-        if (!IsExistSameCallback(env, eventIdValue, argv[1], once)) {
-            AsyncCallbackInfo* callbackInfo = new (std::nothrow) AsyncCallbackInfo();
+        auto callbackInfo = SearchCallbackInfo(env, eventIdValue, argv[1]);
+        if (callbackInfo != nullptr) {
+            UpdateOnceFlag(callbackInfo, once);
+        } else {
+            callbackInfo = new (std::nothrow) AsyncCallbackInfo();
             if (!callbackInfo) {
                 HILOGE("new object failed");
                 return nullptr;
@@ -273,18 +291,40 @@ namespace AppExecFwk {
     napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     {
         HILOGI("JS_Off start");
-        size_t argc = 1;
-        napi_value argv[1] = {0};
+        size_t argc = ARGC_NUM;
+        napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-        NAPI_ASSERT(env, argc >= 1, "requires 1 parameter");
+        if (argc < 1) {
+            HILOGE("requires at least 1 parameter");
+            return nullptr;
+        }
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
-        NAPI_ASSERT(env, eventValueType == napi_number, "type mismatch for parameter 1");
+        if (eventValueType != napi_number) {
+            HILOGE("type mismatch for parameter 1");
+            return nullptr;
+        }
 
         uint32_t eventId;
         napi_get_value_uint32(env, argv[0], &eventId);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
+
+        if (argc == ARGC_NUM) {
+            napi_valuetype eventHandleType;
+            napi_typeof(env, argv[1], &eventHandleType);
+            if (eventHandleType != napi_function) {
+                HILOGE("type mismatch for parameter 2");
+                return nullptr;
+            }
+
+            auto callbackInfo = SearchCallbackInfo(env, eventId, argv[1]);
+            if (callbackInfo != nullptr) {
+                callbackInfo->isDeleted = true;
+            }
+            return nullptr;
+        }
+
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
             for (auto callbackInfo : subscribe->second) {
@@ -331,7 +371,10 @@ namespace AppExecFwk {
     {
         napi_valuetype dataType;
         napi_typeof(env, argv, &dataType);
-        NAPI_ASSERT_BASE(env, dataType == napi_object, "type mismatch for parameter 2", false);
+        if (dataType != napi_object) {
+            HILOGE("type mismatch for parameter 2");
+            return false;
+        }
 
         bool hasData = false;
         napi_has_named_property(env, argv, "data", &hasData);
@@ -342,13 +385,13 @@ namespace AppExecFwk {
             napi_value keyArr = nullptr;
             napi_status status = napi_get_property_names(env, data, &keyArr);
             if (status != napi_ok) {
-                HILOGI("can not get property names");
+                HILOGE("can not get property names");
                 return false;
             }
             uint32_t len = 0;
             status = napi_get_array_length(env, keyArr, &len);
             if (status != napi_ok) {
-                HILOGI("can not get array length");
+                HILOGE("can not get array length");
                 return false;
             }
 
@@ -366,12 +409,10 @@ namespace AppExecFwk {
 
                 if (!ParseEventData(env, key, data, val, keyChars)) {
                     delete val;
-                    val = nullptr;
                     continue;
                 }
                 eventData.insert(make_pair(keyChars, *val));
                 hasEventData = true;
-                delete val;
                 val = nullptr;
             }
 
@@ -409,17 +450,26 @@ namespace AppExecFwk {
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-        NAPI_ASSERT(env, argc >= 1, "requires more than 1 parameter");
-        HILOGI("JS_Emit argc:%{public}zu", argc);
+        if (argc < ARGC_NUM) {
+            HILOGE("requires 2 parameter");
+            return nullptr;
+        }
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
-        NAPI_ASSERT(env, eventValueType == napi_object, "type mismatch for parameter 1");
+        if (eventValueType != napi_object) {
+            HILOGE("type mismatch for parameter 1");
+            return nullptr;
+        }
 
         bool hasEventId = false;
         napi_value value;
         napi_has_named_property(env, argv[0], "eventId", &hasEventId);
-        NAPI_ASSERT(env, hasEventId == true, "Wrong argument 1");
+        if (hasEventId == false) {
+            HILOGE("Wrong argument 1");
+            return nullptr;
+        }
+
         napi_get_named_property(env, argv[0], "eventId", &value);
         uint32_t eventId;
         napi_get_value_uint32(env, value, &eventId);
@@ -442,7 +492,6 @@ namespace AppExecFwk {
         }
 
         if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], eventId, priority)) {
-            HILOGI("EmitWithEventData sucess");
             return nullptr;
         } else {
             HILOGI("JS_Emit sendevent without id:%{public}d", eventId);
