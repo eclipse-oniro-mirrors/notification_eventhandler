@@ -89,10 +89,10 @@ namespace AppExecFwk {
             HILOGW("EventDataWorkder instance(uv_work_t) is nullptr");
             return;
         }
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
         AsyncCallbackInfo* callbackInner = eventDataInner->callbackInfo;
         if (callbackInner->isDeleted) {
             HILOGI("ProcessEvent isDeleted");
-            std::lock_guard<std::mutex> lock(emitterInsMutex);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
                 callbackInner->callback = nullptr;
@@ -108,12 +108,12 @@ namespace AppExecFwk {
             napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
             if (callbackInner->once) {
                 HILOGI("ProcessEvent delete once");
-                std::lock_guard<std::mutex> lock(emitterInsMutex);
                 callbackInner->isDeleted = true;
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
                 callbackInner->callback = nullptr;
             }
         }
+        callbackInner->processed = true;
     }
 
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
@@ -150,6 +150,19 @@ namespace AppExecFwk {
                 eventDataWorker = nullptr;
                 return;
             }
+
+            if (callbackInfo->once || callbackInfo->isDeleted) {
+                HILOGI("ProcessEvent once callback or isDeleted callback");
+                iter = callbackInfos.erase(iter);
+                if (callbackInfo->processed) {
+                    delete callbackInfo;
+                    callbackInfo = nullptr;
+                    continue;
+                }
+            } else {
+                ++iter;
+            }
+
             work->data = reinterpret_cast<void *>(eventDataWorker);
             uv_queue_work(loop, work, [](uv_work_t *work) {},
                 [](uv_work_t *work, int status) {
@@ -163,18 +176,13 @@ namespace AppExecFwk {
                 delete work;
                 work = nullptr;
             });
-            if (callbackInfo->once || callbackInfo->isDeleted) {
-                HILOGI("ProcessEvent once callback or isDeleted callback");
-                iter = callbackInfos.erase(iter);
-                if (callbackInfos.begin() == callbackInfos.end()) {
-                    emitterInstances.erase(eventId);
-                    HILOGI("ProcessEvent delete the last callback");
-                    break;
-                }
-            } else {
-                ++iter;
-            }
         }
+
+        if (callbackInfos.empty()) {
+            emitterInstances.erase(eventId);
+            HILOGI("ProcessEvent delete the last callback");
+        }
+
         HILOGI("ProcessEvent end");
     }
 
