@@ -421,7 +421,7 @@ namespace AppExecFwk {
                 }
                 eventData.insert(make_pair(keyChars, *val));
                 hasEventData = true;
-                val = nullptr;
+                delete val;
             }
 
             if (hasEventData) {
@@ -458,8 +458,8 @@ namespace AppExecFwk {
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-        if (argc < ARGC_NUM) {
-            HILOGE("requires 2 parameter");
+        if (argc < 1) {
+            HILOGE("requires more than 1 parameter");
             return nullptr;
         }
 
