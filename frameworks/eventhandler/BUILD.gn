@@ -49,6 +49,7 @@ ohos_shared_library("libeventhandler") {
   innerapi_tags = [
     "platformsdk",
     "chipsetsdk_indirect",
+    "sasdk",
   ]
   part_name = "eventhandler"
 }
