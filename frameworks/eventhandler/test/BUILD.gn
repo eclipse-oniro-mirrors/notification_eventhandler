@@ -15,8 +15,6 @@ import("//build/test.gni")
 import("../inner_api_sources.gni")
 
 config("libeventhandler_test_private_config") {
-  defines = event_handler_log_domain_defines
-
   configs = [ "${frameworks_path}/eventhandler:libeventhandler_config" ]
 }
 

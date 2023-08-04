@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,16 +27,17 @@
 #include <sys/syscall.h>
 
 #include "event_handler.h"
-#include "event_handler_utils.h"
 #include "event_inner_runner.h"
+#include "event_logger.h"
 #include "singleton.h"
 #include "thread_local_data.h"
 
-DEFINE_HILOG_LABEL("EventRunner");
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+
+DEFINE_EH_HILOG_LABEL("EventRunner");
 
 // Invoke system call to set name of current thread.
 inline void SystemCallSetThreadName(const std::string &name)
@@ -44,8 +45,9 @@ inline void SystemCallSetThreadName(const std::string &name)
     if (prctl(PR_SET_NAME, name.c_str()) < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("SystemCallSetThreadName: Failed to set thread name, %{public}s", errmsg);
+        HILOGE("Failed to set thread name, %{public}s", errmsg);
     }
+    HILOGD("thread name is %{public}s", name.c_str());
 }
 
 // Help to calculate hash code of object.
@@ -69,13 +71,13 @@ public:
     {
         // Get id of current thread.
         auto threadId = std::this_thread::get_id();
-        HILOGD("Reclaim: Thread id: %{public}zu", CalculateHashCode(threadId));
+        HILOGD("Thread id: %{public}zu", CalculateHashCode(threadId));
 
         {
             // Add thread id to list and notify to reclaim.
             std::lock_guard<std::mutex> lock(collectorLock_);
             if (destroying_) {
-                HILOGI("Reclaim: Thread collector is destroying");
+                HILOGI("Thread collector is destroying");
                 return;
             }
 
@@ -98,16 +100,16 @@ public:
     {
         if ((!thread) || (!thread->joinable()) || (!threadExit)) {
             auto threadState = thread ? (thread->joinable() ? "active" : "finished") : "null";
-            HILOGE("Deposit(%{public}s, %{public}s): Invalid parameter", threadState, threadExit ? "valid" : "null");
+            HILOGE("%{public}s, %{public}s: Invalid parameter", threadState, threadExit ? "valid" : "null");
             return false;
         }
 
         auto threadId = thread->get_id();
-        HILOGD("Deposit: New thread id: %{public}zu", CalculateHashCode(threadId));
+        HILOGD("New thread id: %{public}zu", CalculateHashCode(threadId));
         // Save these information into map.
         std::lock_guard<std::mutex> lock(collectorLock_);
         if (destroying_) {
-            HILOGW("Deposit: Collector thread is destroying");
+            HILOGW("Collector thread is destroying");
             return false;
         }
         // Save thread object and its exit callback.
@@ -120,7 +122,7 @@ public:
     }
 
 private:
-    DEFINE_HILOG_LABEL("ThreadCollector");
+    DEFINE_EH_HILOG_LABEL("ThreadCollector");
 
     struct ThreadExitInfo {
         std::unique_ptr<std::thread> thread;
@@ -129,6 +131,7 @@ private:
 
     inline void ReclaimAll()
     {
+        HILOGD("enter");
         std::unique_lock<std::mutex> lock(collectorLock_);
         // All thread deposited need to stop one by one.
         while (!depositMap_.empty()) {
@@ -138,6 +141,7 @@ private:
 
     void Stop()
     {
+        HILOGD("enter");
         {
             // Stop the collect thread, while destruction of collector.
             std::lock_guard<std::mutex> lock(collectorLock_);
@@ -175,14 +179,14 @@ private:
         lock.unlock();
 
         size_t hashThreadId = CalculateHashCode(threadId);
-        HILOGD("DoReclaim: Thread id: %{public}zu", hashThreadId);
+        HILOGD("Thread id: %{public}zu", hashThreadId);
         if (needCallExit) {
             // Call exit callback to stop loop in thread.
             exitInfo.threadExit();
         }
         // Wait until thread finished.
         exitInfo.thread->join();
-        HILOGD("DoReclaim: Done, thread id: %{public}zu", hashThreadId);
+        HILOGD("Done, thread id: %{public}zu", hashThreadId);
 
         // Lock again.
         lock.lock();
@@ -190,7 +194,7 @@ private:
 
     void Run()
     {
-        HILOGD("Run: Collector thread is started");
+        HILOGD("Collector thread is started");
 
         std::unique_lock<std::mutex> lock(collectorLock_);
         while (!destroying_) {
@@ -211,7 +215,7 @@ private:
             isWaiting_ = false;
         }
 
-        HILOGD("Run: Collector thread is stopped");
+        HILOGD("Collector thread is stopped");
     }
 
     std::mutex collectorLock_;
@@ -234,6 +238,7 @@ private:
         Avatar() = default;
         ~Avatar()
         {
+            HILOGI("enter");
             if (avatarEnabled_) {
                 GetInstance().avatarDestructed_ = true;
                 GetInstance().Stop();
@@ -257,12 +262,14 @@ ThreadCollector::ThreadCollector()
     : collectorLock_(), condition_(), reclaims_(), depositMap_(), threadLock_(), thread_(nullptr)
 {
     // Thread collector is created, so enable avatar.
+    HILOGD("enter");
     avatarEnabled_ = true;
 }
 
 ThreadCollector::~ThreadCollector()
 {
     // If avatar is not destructed, stop collector by itself.
+    HILOGI("enter");
     if (!avatarDestructed_) {
         avatar_.Disable();
         Stop();
@@ -273,20 +280,23 @@ class EventRunnerImpl final : public EventInnerRunner {
 public:
     explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner) : EventInnerRunner(runner)
     {
+        HILOGD("enter");
         queue_ = std::make_shared<EventQueue>();
     }
 
     ~EventRunnerImpl() final
     {
+        HILOGI("enter");
         queue_->RemoveAll();
     }
     DISALLOW_COPY_AND_MOVE(EventRunnerImpl);
 
     static void ThreadMain(const std::weak_ptr<EventRunnerImpl> &wp)
     {
+        HILOGD("enter");
         std::shared_ptr<EventRunnerImpl> inner = wp.lock();
         if (inner) {
-            HILOGD("ThreadMain: Start running for thread '%{public}s'", inner->threadName_.c_str());
+            HILOGD("Start running for thread '%{public}s'", inner->threadName_.c_str());
 
             // Call system call to modify thread name.
             SystemCallSetThreadName(inner->threadName_);
@@ -294,9 +304,9 @@ public:
             // Enter event loop.
             inner->Run();
 
-            HILOGD("ThreadMain: Stopped running for thread '%{public}s'", inner->threadName_.c_str());
+            HILOGD("Stopped running for thread '%{public}s'", inner->threadName_.c_str());
         } else {
-            HILOGW("ThreadMain: EventRunner has been released just after its creation");
+            HILOGW("EventRunner has been released just after its creation");
         }
 
         // Reclaim current thread.
@@ -305,6 +315,7 @@ public:
 
     void Run() final
     {
+        HILOGD("enter");
         // Prepare to start event loop.
         queue_->Prepare();
 
@@ -346,6 +357,7 @@ public:
 
     void Stop() final
     {
+        HILOGD("enter");
         queue_->Finish();
     }
 
@@ -370,13 +382,15 @@ public:
     }
 
 private:
-    DEFINE_HILOG_LABEL("EventRunnerImpl");
+    DEFINE_EH_HILOG_LABEL("EventRunnerImpl");
 };
 }  // unnamed namespace
 
 EventInnerRunner::EventInnerRunner(const std::shared_ptr<EventRunner> &runner)
     : queue_(nullptr), owner_(runner), logger_(nullptr), threadName_(""), threadId_()
-{}
+{
+    HILOGD("enter");
+}
 
 std::shared_ptr<EventRunner> EventInnerRunner::GetCurrentEventRunner()
 {
@@ -401,7 +415,9 @@ std::shared_ptr<EventRunner> EventRunner::mainRunner_;
 
 std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
 {
+    HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
+        HILOGI("EventRunner created");
         return Create(std::string());
     }
 
@@ -416,6 +432,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
 
 std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName)
 {
+    HILOGD("threadName is %{public}s", threadName.c_str());
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new EventRunner(true));
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
@@ -427,7 +444,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName)
     auto thread =
         std::make_unique<std::thread>(EventRunnerImpl::ThreadMain, std::weak_ptr<EventRunnerImpl>(innerRunner));
     if (!innerRunner->Attach(thread)) {
-        HILOGW("Create: Failed to attach thread, maybe process is exiting");
+        HILOGW("Failed to attach thread, maybe process is exiting");
         innerRunner->Stop();
         thread->join();
     }
@@ -441,11 +458,14 @@ std::shared_ptr<EventRunner> EventRunner::Current()
     if (runner) {
         return runner;
     }
+    HILOGW("current event runner is nullptr");
     return nullptr;
 }
 
 EventRunner::EventRunner(bool deposit) : deposit_(deposit)
-{}
+{
+    HILOGD("deposit_ is %{public}d", deposit_);
+}
 
 std::string EventRunner::GetRunnerThreadName() const
 {
@@ -454,6 +474,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
+    HILOGI("deposit_ is %{public}d", deposit_);
     if (deposit_) {
         innerRunner_->Stop();
     }
@@ -461,14 +482,15 @@ EventRunner::~EventRunner()
 
 ErrCode EventRunner::Run()
 {
+    HILOGD("enter");
     if (deposit_) {
-        HILOGE("Run: Do not call, if event runner is deposited");
+        HILOGE("Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
     }
 
     // Avoid more than one thread to start this runner.
     if (running_.exchange(true)) {
-        HILOGW("Run: Already running");
+        HILOGW("Already running");
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
@@ -481,6 +503,7 @@ ErrCode EventRunner::Run()
 
 ErrCode EventRunner::Stop()
 {
+    HILOGD("enter");
     if (deposit_) {
         HILOGE("Stop: Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
@@ -537,6 +560,7 @@ std::shared_ptr<EventQueue> EventRunner::GetCurrentEventQueue()
 {
     auto runner = EventRunner::Current();
     if (!runner) {
+        HILOGE("current runner is nullptr");
         return nullptr;
     }
     return runner->queue_;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,14 +22,14 @@
 #include <unistd.h>
 
 #include "event_handler_utils.h"
+#include "event_logger.h"
 #include "file_descriptor_listener.h"
-
-DEFINE_HILOG_LABEL("EpollIoWaiter");
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
 const size_t MAX_EPOLL_EVENTS_SIZE = 8;
+DEFINE_EH_HILOG_LABEL("EpollIoWaiter");
 
 inline int32_t EpollCtrl(int32_t epollFd, int32_t operation, int32_t fileDescriptor, uint32_t epollEvents)
 {
@@ -44,6 +44,7 @@ inline int32_t EpollCtrl(int32_t epollFd, int32_t operation, int32_t fileDescrip
 
 EpollIoWaiter::~EpollIoWaiter()
 {
+    HILOGI("enter");
     // Close all valid file descriptors.
     if (epollFd_ >= 0) {
         close(epollFd_);
@@ -58,8 +59,9 @@ EpollIoWaiter::~EpollIoWaiter()
 
 bool EpollIoWaiter::Init()
 {
+    HILOGD("enter");
     if (epollFd_ >= 0) {
-        HILOGE("Init: Already initialized");
+        HILOGE("Already initialized");
         return true;
     }
 
@@ -71,7 +73,7 @@ bool EpollIoWaiter::Init()
         if (epollFd < 0) {
             char errmsg[MAX_ERRORMSG_LEN] = {0};
             GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-            HILOGE("Init: Failed to create epoll, %{public}s", errmsg);
+            HILOGE("Failed to create epoll, %{public}s", errmsg);
             break;
         }
 
@@ -79,7 +81,7 @@ bool EpollIoWaiter::Init()
         if (awakenFd < 0) {
             char errmsg[MAX_ERRORMSG_LEN] = {0};
             GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-            HILOGE("Init: Failed to create event fd, %{public}s", errmsg);
+            HILOGE("Failed to create event fd, %{public}s", errmsg);
             break;
         }
 
@@ -87,7 +89,7 @@ bool EpollIoWaiter::Init()
         if (EpollCtrl(epollFd, EPOLL_CTL_ADD, awakenFd, EPOLLIN | EPOLLET) < 0) {
             char errmsg[MAX_ERRORMSG_LEN] = {0};
             GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-            HILOGE("Init: Failed to add awaken file descriptor into epoll, %{public}s", errmsg);
+            HILOGE("Failed to add awaken file descriptor into epoll, %{public}s", errmsg);
             break;
         }
 
@@ -113,7 +115,7 @@ bool EpollIoWaiter::Init()
 bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
 {
     if (epollFd_ < 0) {
-        HILOGE("WaitFor: MUST initialized before waiting");
+        HILOGE("MUST initialized before waiting");
         return false;
     }
 
@@ -132,7 +134,7 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
         if (errno != EINTR && errno != EINVAL) {
             char errmsg[MAX_ERRORMSG_LEN] = {0};
             GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-            HILOGE("WaitFor: Failed to wait epoll, %{public}s", errmsg);
+            HILOGE("Failed to wait epoll, %{public}s", errmsg);
             result = false;
         }
     } else {
@@ -180,7 +182,7 @@ void EpollIoWaiter::NotifyOne()
 void EpollIoWaiter::NotifyAll()
 {
     if (awakenFd_ < 0) {
-        HILOGE("NotifyAll: MUST initialized before notifying");
+        HILOGE("MUST initialized before notifying");
         return;
     }
 
@@ -194,7 +196,7 @@ void EpollIoWaiter::NotifyAll()
     if (retVal < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("NotifyAll: Failed to write data into awaken pipe, %{public}s", errmsg);
+        HILOGE("Failed to write data into awaken pipe, %{public}s", errmsg);
     }
 }
 
@@ -206,12 +208,12 @@ bool EpollIoWaiter::SupportListeningFileDescriptor() const
 bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
 {
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0)) {
-        HILOGE("AddFileDescriptor(%{public}d, %{public}u): Invalid parameter", fileDescriptor, events);
+        HILOGE("%{public}d, %{public}u: Invalid parameter", fileDescriptor, events);
         return false;
     }
 
     if (epollFd_ < 0) {
-        HILOGE("AddFileDescriptor: MUST initialized before adding fds");
+        HILOGE("MUST initialized before adding fds");
         return false;
     }
 
@@ -228,7 +230,7 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
     if (EpollCtrl(epollFd_, EPOLL_CTL_ADD, fileDescriptor, epollEvents) < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("AddFileDescriptor: Failed to add file descriptor into epoll, %{public}s", errmsg);
+        HILOGE("Failed to add file descriptor into epoll, %{public}s", errmsg);
         return false;
     }
 
@@ -238,19 +240,19 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
 void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
 {
     if (fileDescriptor < 0) {
-        HILOGE("RemoveFileDescriptor: Invalid param while removing fd, fd = %{public}d", fileDescriptor);
+        HILOGE("Invalid param while removing fd, fd = %{public}d", fileDescriptor);
         return;
     }
 
     if (epollFd_ < 0) {
-        HILOGE("RemoveFileDescriptor: MUST initialized before removing fds");
+        HILOGE("MUST initialized before removing fds");
         return;
     }
 
     if (EpollCtrl(epollFd_, EPOLL_CTL_DEL, fileDescriptor, 0) < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("RemoveFileDescriptor: Failed to remove file descriptor from epoll, %{public}s", errmsg);
+        HILOGE("Failed to remove file descriptor from epoll, %{public}s", errmsg);
         return;
     }
 }
@@ -262,7 +264,7 @@ void EpollIoWaiter::DrainAwakenPipe() const
     if (retVal < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("DrainAwakenPipe: Failed to read data from awaken pipe, %{public}s", errmsg);
+        HILOGE("Failed to read data from awaken pipe, %{public}s", errmsg);
     }
 }
 
