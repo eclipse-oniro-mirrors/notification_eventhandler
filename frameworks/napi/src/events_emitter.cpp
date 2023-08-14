@@ -165,7 +165,7 @@ namespace AppExecFwk {
             }
 
             work->data = reinterpret_cast<void *>(eventDataWorker);
-            uv_queue_work(loop, work, [](uv_work_t *work) {},
+            uv_queue_work_with_qos(loop, work, [](uv_work_t *work) {},
                 [](uv_work_t *work, int status) {
                 napi_handle_scope scope;
                 EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(work->data);
@@ -176,7 +176,7 @@ namespace AppExecFwk {
                 eventDataInner = nullptr;
                 delete work;
                 work = nullptr;
-            });
+            }, uv_qos_user_initiated);
         }
 
         if (callbackInfos.empty()) {
