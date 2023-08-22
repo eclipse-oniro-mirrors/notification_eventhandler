@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,30 +17,24 @@
 
 #include <uv.h>
 
-#include "hilog/log.h"
+#include "event_logger.h"
 
-#define DEFINE_HILOG_LABEL(name) \
-static constexpr OHOS::HiviewDFX::HiLogLabel LOG_LABEL = { LOG_CORE, LOG_DOMAIN, name }
-
-#define HILOGE(...) OHOS::HiviewDFX::HiLog::Error(LOG_LABEL, ##__VA_ARGS__)
-#define HILOGW(...) OHOS::HiviewDFX::HiLog::Warn(LOG_LABEL, ##__VA_ARGS__)
-#define HILOGI(...) OHOS::HiviewDFX::HiLog::Info(LOG_LABEL, ##__VA_ARGS__)
-#define HILOGD(...) OHOS::HiviewDFX::HiLog::Debug(LOG_LABEL, ##__VA_ARGS__)
-
-DEFINE_HILOG_LABEL("events_emitter");
 using namespace std;
 namespace OHOS {
 namespace AppExecFwk {
+namespace {
+    DEFINE_EH_HILOG_LABEL("EventsEmitter");
+}
     static std::mutex emitterInsMutex;
     static map<uint32_t, std::vector<AsyncCallbackInfo *>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
     {
-        HILOGI("EventHandlerInstance::EventHandlerInstance constructed");
+        HILOGI("EventHandlerInstance constructed");
     }
     EventHandlerInstance::~EventHandlerInstance()
     {
-        HILOGI("EventHandlerInstance::EventHandlerInstance de-constructed");
+        HILOGI("EventHandlerInstance de-constructed");
     }
     std::shared_ptr<EventHandlerInstance> EventHandlerInstance::GetInstance()
     {
@@ -85,13 +79,14 @@ namespace AppExecFwk {
 
     void ProcessCallback(const EventDataWorker* eventDataInner)
     {
+        HILOGD("enter");
         if (eventDataInner == nullptr) {
             HILOGW("EventDataWorkder instance(uv_work_t) is nullptr");
             return;
         }
         AsyncCallbackInfo* callbackInner = eventDataInner->callbackInfo;
         if (callbackInner->isDeleted) {
-            HILOGI("ProcessEvent isDeleted");
+            HILOGD("ProcessEvent isDeleted");
             std::lock_guard<std::mutex> lock(emitterInsMutex);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
@@ -107,7 +102,7 @@ namespace AppExecFwk {
             napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
             napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
             if (callbackInner->once) {
-                HILOGI("ProcessEvent delete once");
+                HILOGD("ProcessEvent delete once");
                 std::lock_guard<std::mutex> lock(emitterInsMutex);
                 callbackInner->isDeleted = true;
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
@@ -120,7 +115,7 @@ namespace AppExecFwk {
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
         uint32_t eventId = event->GetInnerEventId();
-        HILOGI("ProcessEvent, eventId = %{public}d", eventId);
+        HILOGD("eventId = %{public}d", eventId);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
@@ -129,7 +124,7 @@ namespace AppExecFwk {
         }
 
         auto& callbackInfos = subscribe->second;
-        HILOGI("ProcessEvent, size = %{public}zu", callbackInfos.size());
+        HILOGD("size = %{public}zu", callbackInfos.size());
         EventData eventData = *(event->GetUniqueObject<EventData>());
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
@@ -146,14 +141,14 @@ namespace AppExecFwk {
             napi_get_uv_event_loop(callbackInfo->env, &loop);
             uv_work_t *work = new (std::nothrow) uv_work_t;
             if (work == nullptr) {
-                HILOGI("uv_work_t instance is nullptr");
+                HILOGE("uv_work_t instance is nullptr");
                 delete eventDataWorker;
                 eventDataWorker = nullptr;
                 return;
             }
 
             if (callbackInfo->once || callbackInfo->isDeleted) {
-                HILOGI("ProcessEvent once callback or isDeleted callback");
+                HILOGD("once callback or isDeleted callback");
                 iter = callbackInfos.erase(iter);
                 if (callbackInfo->processed) {
                     delete callbackInfo;
@@ -181,26 +176,24 @@ namespace AppExecFwk {
 
         if (callbackInfos.empty()) {
             emitterInstances.erase(eventId);
-            HILOGI("ProcessEvent delete the last callback");
+            HILOGD("ProcessEvent delete the last callback");
         }
-
-        HILOGI("ProcessEvent end");
     }
 
     static void UpdateOnceFlag(AsyncCallbackInfo *callbackInfo, bool once)
     {
         if (!once) {
             if (callbackInfo->once) {
-                HILOGI("JS_On change once to on");
+                HILOGD("JS_On change once to on");
                 callbackInfo->once = false;
             } else {
-                HILOGI("JS_On already on");
+                HILOGD("JS_On already on");
             }
         } else {
             if (callbackInfo->once) {
-                HILOGI("JS_Once already once");
+                HILOGD("JS_Once already once");
             } else {
-                HILOGI("JS_Once change on to once");
+                HILOGD("JS_Once change on to once");
                 callbackInfo->once = true;
             }
         }
@@ -266,7 +259,7 @@ namespace AppExecFwk {
         napi_get_named_property(env, argv[0], "eventId", &eventId);
         uint32_t eventIdValue;
         napi_get_value_uint32(env, eventId, &eventIdValue);
-        HILOGI("OnOrOnce eventIdValue:%{public}d", eventIdValue);
+        HILOGD("OnOrOnce eventIdValue:%{public}d", eventIdValue);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(env, eventIdValue, argv[1]);
         if (callbackInfo != nullptr) {
@@ -287,19 +280,19 @@ namespace AppExecFwk {
 
     napi_value JS_On(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGI("JS_On start");
+        HILOGD("enter");
         return OnOrOnce(env, cbinfo, false);
     }
 
     napi_value JS_Once(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGI("JS_Once start");
+        HILOGD("enter");
         return OnOrOnce(env, cbinfo, true);
     }
 
     napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGI("JS_Off start");
+        HILOGD("enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
@@ -348,7 +341,7 @@ namespace AppExecFwk {
         napi_valuetype valueType;
         napi_typeof(env, key, &valueType);
         if (valueType != napi_valuetype::napi_string) {
-            HILOGI("param is discarded because the key type of the event params must be String.");
+            HILOGE("param is discarded because the key type of the event params must be String.");
             return false;
         }
 
@@ -370,7 +363,7 @@ namespace AppExecFwk {
             val->type = DataType::STRING;
             HILOGD("key:%{public}s value=%{public}s.", keyChars, val->value.cValue);
         } else {
-            HILOGI("param=%{public}s is discarded because the value type is invalid.", keyChars);
+            HILOGE("param=%{public}s is discarded because the value type is invalid.", keyChars);
             return false;
         }
         return true;
@@ -378,6 +371,7 @@ namespace AppExecFwk {
 
     bool EmitWithEventData(napi_env env, napi_value argv, uint32_t eventId, Priority priority)
     {
+        HILOGD("enter");
         napi_valuetype dataType;
         napi_typeof(env, argv, &dataType);
         if (dataType != napi_object) {
@@ -392,14 +386,12 @@ namespace AppExecFwk {
             napi_get_named_property(env, argv, "data", &data);
 
             napi_value keyArr = nullptr;
-            napi_status status = napi_get_property_names(env, data, &keyArr);
-            if (status != napi_ok) {
+            if (napi_get_property_names(env, data, &keyArr) != napi_ok) {
                 HILOGE("can not get property names");
                 return false;
             }
             uint32_t len = 0;
-            status = napi_get_array_length(env, keyArr, &len);
-            if (status != napi_ok) {
+            if (napi_get_array_length(env, keyArr, &len) != napi_ok) {
                 HILOGE("can not get array length");
                 return false;
             }
@@ -426,7 +418,7 @@ namespace AppExecFwk {
             }
 
             if (hasEventData) {
-                HILOGI("sendevent with eventData id:%{public}d", eventId);
+                HILOGD("sendevent with eventData id:%{public}d", eventId);
                 auto event = InnerEvent::Get(eventId, make_unique<EventData>(eventData));
                 eventHandler->SendEvent(event, 0, priority);
                 return true;
@@ -455,7 +447,7 @@ namespace AppExecFwk {
 
     napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGI("JS_Emit start");
+        HILOGD("enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
@@ -482,10 +474,10 @@ namespace AppExecFwk {
         napi_get_named_property(env, argv[0], "eventId", &value);
         uint32_t eventId;
         napi_get_value_uint32(env, value, &eventId);
-        HILOGI("JS_Emit eventIdValue:%{public}d", eventId);
+        HILOGD("JS_Emit eventIdValue:%{public}d", eventId);
 
         if (!IsExistValidCallback(env, eventId)) {
-            HILOGW("JS_Emit has no valid callback");
+            HILOGE("JS_Emit has no valid callback");
             return nullptr;
         }
 
@@ -496,14 +488,14 @@ namespace AppExecFwk {
             napi_get_named_property(env, argv[0], "priority", &value);
             uint32_t priorityValue;
             napi_get_value_uint32(env, value, &priorityValue);
-            HILOGI("JS_Emit priority:%{public}d", priorityValue);
+            HILOGD("JS_Emit priority:%{public}d", priorityValue);
             priority = static_cast<Priority>(priorityValue);
         }
 
         if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], eventId, priority)) {
             return nullptr;
         } else {
-            HILOGI("JS_Emit sendevent without id:%{public}d", eventId);
+            HILOGD("JS_Emit sendevent without id:%{public}d", eventId);
             auto event = InnerEvent::Get(eventId, make_unique<EventData>());
             eventHandler->SendEvent(event, 0, priority);
             return nullptr;
@@ -552,7 +544,7 @@ namespace AppExecFwk {
 
     napi_value EmitterInit(napi_env env, napi_value exports)
     {
-        HILOGE("enter");
+        HILOGD("enter");
         napi_property_descriptor desc[] = {
             DECLARE_NAPI_FUNCTION("on", JS_On),
             DECLARE_NAPI_FUNCTION("once", JS_Once),

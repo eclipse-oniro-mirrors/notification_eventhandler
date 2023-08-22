@@ -13,7 +13,7 @@
 
 import("//build/test.gni")
 
-module_output_path = "appexecfwk_standard/eventhandlermgrsst"
+module_output_path = "notification/eventhandlermgrsst"
 
 ohos_systemtest("EmsLoggerSystemTest") {
   module_out_path = module_output_path

@@ -22,5 +22,3 @@ inner_api_sources = [
   "${frameworks_path}/eventhandler/src/native_implement_eventhandler.cpp",
   "${frameworks_path}/eventhandler/src/none_io_waiter.cpp",
 ]
-
-event_handler_log_domain_defines = [ "LOG_DOMAIN=0xD001200" ]

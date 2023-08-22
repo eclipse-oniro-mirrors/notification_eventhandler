@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,13 +20,16 @@
 #include "epoll_io_waiter.h"
 #include "event_handler.h"
 #include "event_handler_utils.h"
+#include "event_logger.h"
 #include "none_io_waiter.h"
 
-DEFINE_HILOG_LABEL("EventQueue");
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+
+DEFINE_EH_HILOG_LABEL("EventQueue");
+
 // Help to insert events into the event queue sorted by handle time.
 inline void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event)
 {
@@ -82,11 +85,14 @@ inline InnerEvent::Pointer PopFrontEventFromListLocked(std::list<InnerEvent::Poi
 }  // unnamed namespace
 
 EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>())
-{}
+{
+    HILOGD("enter");
+}
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
     : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>())
 {
+    HILOGD("enter");
     if (ioWaiter_->SupportListeningFileDescriptor()) {
         // Set callback to handle events from file descriptors.
         ioWaiter_->SetFileDescriptorEventCallback(
@@ -98,17 +104,19 @@ EventQueue::~EventQueue()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
+    HILOGI("EventQueue is unavailable hence");
 }
 
 void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
 {
     if (!event) {
-        HILOGE("Insert: Could not insert an invalid event");
+        HILOGE("Could not insert an invalid event");
         return;
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     bool needNotify = false;
@@ -136,6 +144,7 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
 
 void EventQueue::RemoveOrphan()
 {
+    HILOGD("enter");
     // Remove all events which lost its owner.
     auto filter = [](const InnerEvent::Pointer &p) { return !p->GetOwner(); };
 
@@ -151,6 +160,7 @@ void EventQueue::RemoveOrphan()
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter);
@@ -159,8 +169,10 @@ void EventQueue::RemoveOrphan()
 
 void EventQueue::RemoveAll()
 {
+    HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -171,8 +183,9 @@ void EventQueue::RemoveAll()
 
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner)
 {
+    HILOGD("enter");
     if (!owner) {
-        HILOGE("Remove: Invalid owner");
+        HILOGE("Invalid owner");
         return;
     }
 
@@ -183,8 +196,9 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner)
 
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId)
 {
+    HILOGD("enter");
     if (!owner) {
-        HILOGE("Remove: Invalid owner");
+        HILOGE("Invalid owner");
         return;
     }
 
@@ -197,8 +211,9 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t inn
 
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId, int64_t param)
 {
+    HILOGD("enter");
     if (!owner) {
-        HILOGE("Remove: Invalid owner");
+        HILOGE("Invalid owner");
         return;
     }
 
@@ -212,8 +227,9 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t inn
 
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
 {
+    HILOGD("enter");
     if ((!owner) || (name.empty())) {
-        HILOGE("Remove: Invalid owner or task name");
+        HILOGE("Invalid owner or task name");
         return;
     }
 
@@ -226,8 +242,10 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::s
 
 void EventQueue::Remove(const RemoveFilter &filter)
 {
+    HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -239,7 +257,7 @@ void EventQueue::Remove(const RemoveFilter &filter)
 bool EventQueue::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId)
 {
     if (!owner) {
-        HILOGE("HasInnerEvent: Invalid owner");
+        HILOGE("Invalid owner");
         return false;
     }
     auto filter = [&owner, innerEventId](const InnerEvent::Pointer &p) {
@@ -251,7 +269,7 @@ bool EventQueue::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint3
 bool EventQueue::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param)
 {
     if (!owner) {
-        HILOGE("HasInnerEvent: Invalid owner");
+        HILOGE("Invalid owner");
         return false;
     }
     auto filter = [&owner, param](const InnerEvent::Pointer &p) {
@@ -264,6 +282,7 @@ bool EventQueue::HasInnerEvent(const HasFilter &filter)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return false;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -361,7 +380,7 @@ InnerEvent::Pointer EventQueue::GetEvent()
         WaitUntilLocked(nextWakeUpTime, lock);
     }
 
-    HILOGD("GetEvent: Break out");
+    HILOGD("Break out");
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
@@ -375,20 +394,19 @@ ErrCode EventQueue::AddFileDescriptorListener(
     int32_t fileDescriptor, uint32_t events, const std::shared_ptr<FileDescriptorListener> &listener)
 {
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0) || (!listener)) {
-        HILOGE("AddFileDescriptorListener(%{public}d, %{public}u, %{public}s): Invalid parameter",
-            fileDescriptor,
-            events,
-            listener ? "valid" : "null");
+        HILOGE("%{public}d, %{public}u, %{public}s: Invalid parameter",
+               fileDescriptor, events, listener ? "valid" : "null");
         return EVENT_HANDLER_ERR_INVALID_PARAM;
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
     }
     auto it = listeners_.find(fileDescriptor);
     if (it != listeners_.end()) {
-        HILOGE("AddFileDescriptorListener: File descriptor %{public}d is already in listening", fileDescriptor);
+        HILOGE("File descriptor %{public}d is already in listening", fileDescriptor);
         return EVENT_HANDLER_ERR_FD_ALREADY;
     }
 
@@ -397,7 +415,7 @@ ErrCode EventQueue::AddFileDescriptorListener(
     }
 
     if (!ioWaiter_->AddFileDescriptor(fileDescriptor, events)) {
-        HILOGE("AddFileDescriptorListener: Failed to add file descriptor into IO waiter");
+        HILOGE("Failed to add file descriptor into IO waiter");
         return EVENT_HANDLER_ERR_FD_FAILED;
     }
 
@@ -407,8 +425,9 @@ ErrCode EventQueue::AddFileDescriptorListener(
 
 void EventQueue::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler> &owner)
 {
+    HILOGD("enter");
     if (!owner) {
-        HILOGE("RemoveFileDescriptorListener: Invalid owner");
+        HILOGE("Invalid owner");
         return;
     }
 
@@ -421,6 +440,7 @@ void EventQueue::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter);
@@ -428,13 +448,15 @@ void EventQueue::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler
 
 void EventQueue::RemoveFileDescriptorListener(int32_t fileDescriptor)
 {
+    HILOGD("enter");
     if (fileDescriptor < 0) {
-        HILOGE("RemoveFileDescriptorListener(%{public}d): Invalid file descriptor", fileDescriptor);
+        HILOGE("%{public}d: Invalid file descriptor", fileDescriptor);
         return;
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     if (listeners_.erase(fileDescriptor) > 0) {
@@ -444,8 +466,10 @@ void EventQueue::RemoveFileDescriptorListener(int32_t fileDescriptor)
 
 void EventQueue::Prepare()
 {
+    HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     finished_ = false;
@@ -453,8 +477,10 @@ void EventQueue::Prepare()
 
 void EventQueue::Finish()
 {
+    HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     finished_ = true;
@@ -466,7 +492,7 @@ void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_
     // Get a temp reference of IO waiter, otherwise it maybe released while waiting.
     auto ioWaiterHolder = ioWaiter_;
     if (!ioWaiterHolder->WaitFor(lock, TimePointToTimeOut(when))) {
-        HILOGE("WaitUntilLocked: Failed to call wait, reset IO waiter");
+        HILOGE("Failed to call wait, reset IO waiter");
         ioWaiter_ = std::make_shared<NoneIoWaiter>();
         listeners_.clear();
     }
@@ -475,15 +501,15 @@ void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_
 void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
 {
     std::shared_ptr<FileDescriptorListener> listener;
-
     {
         std::lock_guard<std::mutex> lock(queueLock_);
         if (!usable_.load()) {
+            HILOGW("EventQueue is unavailable.");
             return;
         }
         auto it = listeners_.find(fileDescriptor);
         if (it == listeners_.end()) {
-            HILOGW("HandleFileDescriptorEvent: Can not found listener, maybe it is removed");
+            HILOGW("Can not found listener, maybe it is removed");
             return;
         }
 
@@ -496,7 +522,7 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
 
     auto handler = listener->GetOwner();
     if (!handler) {
-        HILOGW("HandleFileDescriptorEvent: Owner of listener is released");
+        HILOGW("Owner of listener is released");
         return;
     }
 
@@ -504,7 +530,7 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     auto f = [fileDescriptor, events, wp]() {
         auto listener = wp.lock();
         if (!listener) {
-            HILOGW("HandleFileDescriptorEvent-Lambda: Listener is released");
+            HILOGW("Listener is released");
             return;
         }
 
@@ -531,13 +557,14 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
 
 bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
 {
+    HILOGD("enter");
     if (ioWaiter_->SupportListeningFileDescriptor()) {
         return true;
     }
 
     auto newIoWaiter = std::make_shared<EpollIoWaiter>();
     if (!newIoWaiter->Init()) {
-        HILOGE("EnsureIoWaiterSupportListerningFileDescriptorLocked: Failed to initialize epoll");
+        HILOGE("Failed to initialize epoll");
         return false;
     }
 
@@ -583,6 +610,7 @@ void EventQueue::Dump(Dumper &dumper)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
 
@@ -617,6 +645,7 @@ void EventQueue::DumpQueueInfo(std::string& queueInfo)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return;
     }
     std::string priority[] = {"Immediate", "High", "Low"};
@@ -654,6 +683,7 @@ bool EventQueue::IsQueueEmpty()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
         return false;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,17 +18,18 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "event_handler_utils.h"
+#include "event_logger.h"
 #ifdef HAS_HICHECKER_NATIVE_PART
 #include "hichecker.h"
 #endif // HAS_HICHECKER_NATIVE_PART
 #include "thread_local_data.h"
 
-DEFINE_HILOG_LABEL("EventHandler");
-
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
 namespace AppExecFwk {
-
+namespace {
+DEFINE_EH_HILOG_LABEL("EventHandler");
+}
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
 
 std::shared_ptr<EventHandler> EventHandler::Current()
@@ -37,11 +38,15 @@ std::shared_ptr<EventHandler> EventHandler::Current()
 }
 
 EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRunner_(runner)
-{}
+{
+    HILOGD("enter");
+}
 
 EventHandler::~EventHandler()
 {
+    HILOGI("enter");
     if (eventRunner_) {
+        HILOGI("eventRunner is alive");
         /*
          * This handler is finishing, need to remove all events belong to it.
          * But events only have weak pointer of this handler,
@@ -54,12 +59,12 @@ EventHandler::~EventHandler()
 bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Priority priority)
 {
     if (!event) {
-        HILOGE("SendEvent: Could not send an invalid event");
+        HILOGE("Could not send an invalid event");
         return false;
     }
 
     if (!eventRunner_) {
-        HILOGE("SendEvent: MUST Set event runner before sending events");
+        HILOGE("MUST Set event runner before sending events");
         return false;
     }
 
@@ -92,7 +97,7 @@ bool EventHandler::SendTimingEvent(InnerEvent::Pointer &event, int64_t taskTime,
     long nowSysTime = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
     int64_t delayTime = taskTime - nowSysTime;
     if (delayTime < 0) {
-        HILOGE("SendTimingEvent: SendTime is before now systime, change to 0 delaytime Event");
+        HILOGW("SendTime is before now systime, change to 0 delaytime Event");
         return SendEvent(event, 0, priority);
     }
 
@@ -102,12 +107,12 @@ bool EventHandler::SendTimingEvent(InnerEvent::Pointer &event, int64_t taskTime,
 bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 {
     if ((!event) || (priority == Priority::IDLE)) {
-        HILOGE("SendSyncEvent: Could not send an invalid event or idle event");
+        HILOGE("Could not send an invalid event or idle event");
         return false;
     }
 
     if ((!eventRunner_) || (!eventRunner_->IsRunning())) {
-        HILOGE("SendSyncEvent: MUST Set a running event runner before sending sync events");
+        HILOGE("MUST Set a running event runner before sending sync events");
         return false;
     }
 
@@ -124,6 +129,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     auto waiter = event->CreateWaiter();
     // Send this event as normal one.
     if (!SendEvent(event, 0, priority)) {
+        HILOGE("SendEvent is failed");
         return false;
     }
     // Wait until event is processed(recycled).
@@ -138,8 +144,9 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 
 void EventHandler::RemoveAllEvents()
 {
+    HILOGD("enter");
     if (!eventRunner_) {
-        HILOGE("RemoveAllEvents: MUST Set event runner before removing all events");
+        HILOGE("MUST Set event runner before removing all events");
         return;
     }
 
@@ -148,8 +155,9 @@ void EventHandler::RemoveAllEvents()
 
 void EventHandler::RemoveEvent(uint32_t innerEventId)
 {
+    HILOGD("enter");
     if (!eventRunner_) {
-        HILOGE("RemoveEvent: MUST Set event runner before removing events by id");
+        HILOGE("MUST Set event runner before removing events by id");
         return;
     }
 
@@ -158,8 +166,9 @@ void EventHandler::RemoveEvent(uint32_t innerEventId)
 
 void EventHandler::RemoveEvent(uint32_t innerEventId, int64_t param)
 {
+    HILOGD("enter");
     if (!eventRunner_) {
-        HILOGE("RemoveEvent: MUST Set event runner before removing events by id and param");
+        HILOGE("MUST Set event runner before removing events by id and param");
         return;
     }
 
@@ -168,8 +177,9 @@ void EventHandler::RemoveEvent(uint32_t innerEventId, int64_t param)
 
 void EventHandler::RemoveTask(const std::string &name)
 {
+    HILOGD("enter");
     if (!eventRunner_) {
-        HILOGE("RemoveTask: MUST Set event runner before removing events by task name");
+        HILOGE("MUST Set event runner before removing events by task name");
         return;
     }
 
@@ -179,16 +189,15 @@ void EventHandler::RemoveTask(const std::string &name)
 ErrCode EventHandler::AddFileDescriptorListener(
     int32_t fileDescriptor, uint32_t events, const std::shared_ptr<FileDescriptorListener> &listener)
 {
+    HILOGD("enter");
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0) || (!listener)) {
-        HILOGE("AddFileDescriptorListener(%{public}d, %{public}u, %{public}s): Invalid parameter",
-            fileDescriptor,
-            events,
-            listener ? "valid" : "null");
+        HILOGE("%{public}d, %{public}u, %{public}s: Invalid parameter",
+               fileDescriptor, events, listener ? "valid" : "null");
         return EVENT_HANDLER_ERR_INVALID_PARAM;
     }
 
     if (!eventRunner_) {
-        HILOGE("AddFileDescriptorListener: MUST Set event runner before adding fd listener");
+        HILOGE("MUST Set event runner before adding fd listener");
         return EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
     }
 
@@ -198,8 +207,9 @@ ErrCode EventHandler::AddFileDescriptorListener(
 
 void EventHandler::RemoveAllFileDescriptorListeners()
 {
+    HILOGD("enter");
     if (!eventRunner_) {
-        HILOGE("RemoveAllFileDescriptorListeners: MUST Set event runner before removing all fd listener");
+        HILOGE("MUST Set event runner before removing all fd listener");
         return;
     }
 
@@ -208,13 +218,14 @@ void EventHandler::RemoveAllFileDescriptorListeners()
 
 void EventHandler::RemoveFileDescriptorListener(int32_t fileDescriptor)
 {
+    HILOGD("enter");
     if (fileDescriptor < 0) {
-        HILOGE("RemoveFileDescriptorListener(%{public}d): Invalid parameter", fileDescriptor);
+        HILOGE("fd %{public}d: Invalid parameter", fileDescriptor);
         return;
     }
 
     if (!eventRunner_) {
-        HILOGE("RemoveFileDescriptorListener: MUST Set event runner before removing fd listener by fd");
+        HILOGE("MUST Set event runner before removing fd listener by fd");
         return;
     }
 
@@ -223,12 +234,13 @@ void EventHandler::RemoveFileDescriptorListener(int32_t fileDescriptor)
 
 void EventHandler::SetEventRunner(const std::shared_ptr<EventRunner> &runner)
 {
+    HILOGD("enter");
     if (eventRunner_ == runner) {
         return;
     }
 
     if (eventRunner_) {
-        HILOGW("SetEventRunner: It is not recommended to change the event runner dynamically");
+        HILOGW("It is not recommended to change the event runner dynamically");
 
         // Remove all events and listeners from old event runner.
         RemoveAllEvents();
@@ -243,6 +255,7 @@ void EventHandler::SetEventRunner(const std::shared_ptr<EventRunner> &runner)
 void EventHandler::DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart)
 {
 #ifdef HAS_HICHECKER_NATIVE_PART
+    HILOGD("enter");
     if (!HiChecker::NeedCheckSlowEvent()) {
         return;
     }
@@ -271,6 +284,7 @@ void EventHandler::DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEve
 void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart)
 {
 #ifdef HAS_HICHECKER_NATIVE_PART
+    HILOGD("enter");
     if (!HiChecker::NeedCheckSlowEvent()) {
         return;
     }
@@ -300,7 +314,7 @@ void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerE
 void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
 {
     if (!event) {
-        HILOGE("DistributeEvent: Could not distribute an invalid event");
+        HILOGE("Could not distribute an invalid event");
         return;
     }
 
@@ -308,7 +322,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
         auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
-        HILOGD("DistributeEvent: %{public}s", currentRunningInfo.c_str());
+        HILOGD("%{public}s", currentRunningInfo.c_str());
     }
 
     auto spanId = event->GetTraceId();
@@ -321,7 +335,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
 
     InnerEvent::TimePoint nowStart = InnerEvent::Clock::now();
     DeliveryTimeAction(event, nowStart);
-
+    HILOGD("EventName is %{public}s.", GetEventName(event).c_str());
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
         (event->GetTaskCallback())();
@@ -341,7 +355,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     }
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        HILOGD("DistributeEvent: end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
+        HILOGD("end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
     }
 }
 
@@ -379,6 +393,7 @@ std::string EventHandler::GetEventName(const InnerEvent::Pointer &event)
 {
     std::string eventName;
     if (!event) {
+        HILOGW("event is nullptr");
         return eventName;
     }
 

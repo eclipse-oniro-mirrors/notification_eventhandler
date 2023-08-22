@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,9 +17,7 @@
 
 #include <chrono>
 
-#include "event_handler_utils.h"
-
-DEFINE_HILOG_LABEL("NoneIoWaiter");
+#include "event_logger.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -27,11 +25,14 @@ namespace {
 const int32_t HOURS_PER_DAY = 24;
 const int32_t DAYS_PER_YEAR = 365;
 const int32_t HOURS_PER_YEAR = HOURS_PER_DAY * DAYS_PER_YEAR;
+DEFINE_EH_HILOG_LABEL("NoneIoWaiter");
 }  // unnamed namespace
 
 // Nothing to do, but used to fix a codex warning.
 NoneIoWaiter::~NoneIoWaiter()
-{}
+{
+    HILOGI("enter");
+}
 
 bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
 {
@@ -76,18 +77,18 @@ bool NoneIoWaiter::SupportListeningFileDescriptor() const
 
 bool NoneIoWaiter::AddFileDescriptor(int32_t, uint32_t)
 {
-    HILOGW("AddFileDescriptor: Function is not supported !!!");
+    HILOGW("Function is not supported !!!");
     return false;
 }
 
 void NoneIoWaiter::RemoveFileDescriptor(int32_t)
 {
-    HILOGW("RemoveFileDescriptor: Function is not supported !!!");
+    HILOGW("Function is not supported !!!");
 }
 
 void NoneIoWaiter::SetFileDescriptorEventCallback(const IoWaiter::FileDescriptorEventCallback &)
 {
-    HILOGW("SetFileDescriptorEventCallback: Function is not supported !!!");
+    HILOGW("Function is not supported !!!");
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

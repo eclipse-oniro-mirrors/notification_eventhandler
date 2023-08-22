@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,9 +20,8 @@
 #include <vector>
 
 #include "event_handler_utils.h"
+#include "event_logger.h"
 #include "singleton.h"
-
-DEFINE_HILOG_LABEL("InnerEvent");
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -30,6 +29,7 @@ namespace {
 static constexpr int DATETIME_STRING_LENGTH = 80;
 static constexpr int MAX_MS_LENGTH = 3;
 static constexpr int MS_PER_SECOND = 1000;
+DEFINE_EH_HILOG_LABEL("InnerEvent");
 
 class WaiterImp final : public InnerEvent::Waiter {
 public:
@@ -147,6 +147,7 @@ private:
 
 InnerEventPool::InnerEventPool() : poolLock_(), events_()
 {
+    HILOGI("enter");
     // Reserve enough memory
     std::lock_guard<std::mutex> lock(poolLock_);
     events_.reserve(MAX_BUFFER_POOL_SIZE);
@@ -154,6 +155,7 @@ InnerEventPool::InnerEventPool() : poolLock_(), events_()
 
 InnerEventPool::~InnerEventPool()
 {
+    HILOGI("enter");
     // Release all memory in the poll
     std::lock_guard<std::mutex> lock(poolLock_);
     events_.clear();
@@ -171,6 +173,7 @@ InnerEvent::Pointer InnerEvent::Get(uint32_t innerEventId, int64_t param)
     if (event != nullptr) {
         event->innerEventId_ = innerEventId;
         event->param_ = param;
+        HILOGD("innerEventId is %{public}u", innerEventId);
     }
     return event;
 }
@@ -187,6 +190,7 @@ InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string 
     if (event != nullptr) {
         event->taskCallback_ = callback;
         event->taskName_ = name;
+        HILOGD("event taskName is %{public}s", name.c_str());
     }
     return event;
 }
