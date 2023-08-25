@@ -103,7 +103,7 @@ public:
         }
 
         // Allocate new memory, while pool is empty.
-        return InnerEvent::Pointer(new InnerEvent, Drop);
+        return InnerEvent::Pointer(new (std::nothrow) InnerEvent, Drop);
     }
 
 private:
