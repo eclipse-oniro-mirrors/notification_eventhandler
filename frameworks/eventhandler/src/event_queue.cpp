@@ -96,7 +96,8 @@ EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
     if (ioWaiter_->SupportListeningFileDescriptor()) {
         // Set callback to handle events from file descriptors.
         ioWaiter_->SetFileDescriptorEventCallback(
-            std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2));
+            std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3));
     }
 }
 
@@ -390,8 +391,8 @@ InnerEvent::Pointer EventQueue::GetExpiredEvent(InnerEvent::TimePoint &nextExpir
     return GetExpiredEventLocked(nextExpiredTime);
 }
 
-ErrCode EventQueue::AddFileDescriptorListener(
-    int32_t fileDescriptor, uint32_t events, const std::shared_ptr<FileDescriptorListener> &listener)
+ErrCode EventQueue::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+    const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName)
 {
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0) || (!listener)) {
         HILOGE("%{public}d, %{public}u, %{public}s: Invalid parameter",
@@ -414,7 +415,7 @@ ErrCode EventQueue::AddFileDescriptorListener(
         return EVENT_HANDLER_ERR_FD_NOT_SUPPORT;
     }
 
-    if (!ioWaiter_->AddFileDescriptor(fileDescriptor, events)) {
+    if (!ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName)) {
         HILOGE("Failed to add file descriptor into IO waiter");
         return EVENT_HANDLER_ERR_FD_FAILED;
     }
@@ -498,7 +499,7 @@ void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_
     }
 }
 
-void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
+void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &taskName)
 {
     std::shared_ptr<FileDescriptorListener> listener;
     {
@@ -552,7 +553,7 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     };
 
     // Post a high priority task to handle file descriptor events.
-    handler->PostHighPriorityTask(f);
+    handler->PostHighPriorityTask(f, taskName);
 }
 
 bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
@@ -570,7 +571,8 @@ bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
 
     // Set callback to handle events from file descriptors.
     newIoWaiter->SetFileDescriptorEventCallback(
-        std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2));
+        std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
+        std::placeholders::_3));
 
     ioWaiter_->NotifyAll();
     ioWaiter_ = newIoWaiter;
@@ -615,6 +617,15 @@ void EventQueue::Dump(Dumper &dumper)
     }
 
     dumper.Dump(dumper.GetTag() + " Current Running: " + DumpCurrentRunning() + LINE_SEPARATOR);
+
+    dumper.Dump(dumper.GetTag() + " History event queue information:" + LINE_SEPARATOR);
+    for (uint8_t i = 0; i < HISTORY_EVENT_NUM_POWER; i++) {
+        if (historyEvents_[i].senderKernelThreadId == 0) {
+            continue;
+        }
+        dumper.Dump(dumper.GetTag() + " No. " + std::to_string(i) + " : " + HistoryQueueDump(historyEvents_[i]));
+    }
+
     std::string priority[] = {"Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -694,6 +705,47 @@ bool EventQueue::IsQueueEmpty()
     }
 
     return idleEvents_.size() == 0;
+}
+
+void EventQueue::PushToHistoryQueue(const InnerEvent::Pointer &event, const InnerEvent::TimePoint &triggerTime)
+{
+    if (event == nullptr) {
+        HILOGW("event is nullptr.");
+    }
+    historyEvents_[historyEventIndex_].senderKernelThreadId = event->GetSenderKernelThreadId();
+    historyEvents_[historyEventIndex_].sendTime = event->GetSendTime();
+    historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
+    historyEvents_[historyEventIndex_].triggerTime = triggerTime;
+    historyEvents_[historyEventIndex_].completeTime = InnerEvent::Clock::now();
+
+    if (event->HasTask()) {
+        historyEvents_[historyEventIndex_].hasTask = true;
+        historyEvents_[historyEventIndex_].taskName = event->GetTaskName();
+    } else {
+        historyEvents_[historyEventIndex_].innerEventId = event->GetInnerEventId();
+    }
+    historyEventIndex_++;
+    historyEventIndex_ = historyEventIndex_ & (HISTORY_EVENT_NUM_POWER - 1);
+}
+
+std::string EventQueue::HistoryQueueDump(const HistoryEvent &historyEvent)
+{
+    std::string content;
+
+    content.append("Event { ");
+    content.append("send thread = " + std::to_string(historyEvent.senderKernelThreadId));
+    content.append(", send time = " + InnerEvent::DumpTimeToString(historyEvent.sendTime));
+    content.append(", handle time = " + InnerEvent::DumpTimeToString(historyEvent.handleTime));
+    content.append(", trigger time = " + InnerEvent::DumpTimeToString(historyEvent.triggerTime));
+    content.append(", completeTime time = " + InnerEvent::DumpTimeToString(historyEvent.completeTime));
+    if (historyEvent.hasTask) {
+        content.append(", task name = " + historyEvent.taskName);
+    } else {
+        content.append(", id = " + std::to_string(historyEvent.innerEventId));
+    }
+    content.append(" }" + LINE_SEPARATOR);
+
+    return content;
 }
 
 CurrentRunningEvent::CurrentRunningEvent()

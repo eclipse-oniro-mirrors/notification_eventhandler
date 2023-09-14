@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -916,7 +916,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, NotifyQueue002, TestSize.Level1)
     uint32_t event = 1;
 
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
-    handler->AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener);
+    handler->AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener, "NotifyQueue002");
 
     /**
      * @tc.steps: step2. post a delay task to block handler thread, then new a thread to post a task to wake up the
@@ -985,7 +985,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, NotifyQueue003, TestSize.Level1)
      */
     auto newTask = [&handler, &fileDescriptor, &event, &fileDescriptorListener, &taskCalled]() {
         usleep(10000);
-        handler->AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener);
+        handler->AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener, "NotifyQueue003");
         usleep(10000);
         auto newCalled = taskCalled.load();
         EXPECT_FALSE(newCalled);
@@ -1074,7 +1074,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddAndRemoveFileDescriptorListener001, T
     int32_t fileDescriptor = fds[0];
     uint32_t event = 1;
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener,
+        "AddAndRemoveFileDescriptorListener001");
     EXPECT_EQ(result, ERR_OK);
     queue.RemoveFileDescriptorListener(-1);
     queue.RemoveFileDescriptorListener(fileDescriptor);
@@ -1108,7 +1109,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddAndRemoveFileDescriptorListener002, T
 
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     fileDescriptorListener->SetOwner(handler);
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener,
+        "AddAndRemoveFileDescriptorListener002");
     EXPECT_EQ(result, ERR_OK);
     queue.RemoveFileDescriptorListener(nullptr);
     queue.RemoveFileDescriptorListener(handler);
@@ -1142,9 +1144,11 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener001, TestSize.L
      */
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     fileDescriptorListener->SetOwner(handler);
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, listenEvent, fileDescriptorListener);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, listenEvent, fileDescriptorListener,
+        "AddFileDescriptorListener001");
     EXPECT_EQ(result, ERR_OK);
-    result = queue.AddFileDescriptorListener(fileDescriptor, listenEvent, fileDescriptorListener);
+    result = queue.AddFileDescriptorListener(fileDescriptor, listenEvent, fileDescriptorListener,
+        "AddFileDescriptorListener001");
     EXPECT_EQ(result, EVENT_HANDLER_ERR_FD_ALREADY);
     queue.RemoveFileDescriptorListener(handler);
     close(fds[0]);
@@ -1177,7 +1181,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener002, TestSize.L
 
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     fileDescriptorListener->SetOwner(handler);
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, newEvent, fileDescriptorListener);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, newEvent, fileDescriptorListener,
+        "AddFileDescriptorListener002");
     EXPECT_EQ(result, EVENT_HANDLER_ERR_INVALID_PARAM);
     queue.RemoveFileDescriptorListener(handler);
     close(fds[0]);
@@ -1210,7 +1215,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener003, TestSize.L
 
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     fileDescriptorListener->SetOwner(handler);
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, nullptr);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, nullptr, "AddFileDescriptorListener003");
     EXPECT_EQ(result, EVENT_HANDLER_ERR_INVALID_PARAM);
     queue.RemoveFileDescriptorListener(handler);
     close(fds[0]);
@@ -1243,7 +1248,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener004, TestSize.L
     uint32_t event = 1;
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     fileDescriptorListener->SetOwner(handler);
-    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener);
+    auto result = queue.AddFileDescriptorListener(fileDescriptor, event, fileDescriptorListener,
+        "AddFileDescriptorListener004");
     EXPECT_EQ(result, EVENT_HANDLER_ERR_INVALID_PARAM);
     queue.RemoveFileDescriptorListener(handler);
     close(fds[0]);
@@ -1284,7 +1290,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
      */
     uint32_t event = (FILE_DESCRIPTOR_INPUT_EVENT | FILE_DESCRIPTOR_OUTPUT_EVENT);
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
-    result = queue.AddFileDescriptorListener(readFileDescriptor, event, fileDescriptorListener);
+    result = queue.AddFileDescriptorListener(readFileDescriptor, event, fileDescriptorListener,
+        "AddFileDescriptorListener005");
     EXPECT_EQ(result, EVENT_HANDLER_ERR_FD_NOT_SUPPORT);
     close(fds[0]);
     close(fds[1]);

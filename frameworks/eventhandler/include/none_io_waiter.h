@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,7 +38,7 @@ public:
 
     bool SupportListeningFileDescriptor() const final;
 
-    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events) final;
+    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName) final;
     void RemoveFileDescriptor(int32_t fileDescriptor) final;
 
     void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;

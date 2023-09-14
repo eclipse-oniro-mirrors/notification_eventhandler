@@ -125,8 +125,8 @@ public:
      * @param listener Listener callback.
      * @return Return 'ERR_OK' on success.
      */
-    ErrCode AddFileDescriptorListener(
-        int32_t fileDescriptor, uint32_t events, const std::shared_ptr<FileDescriptorListener> &listener);
+    ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName);
 
     /**
      * Remove all file descriptor listeners for a specified owner.
@@ -222,9 +222,21 @@ public:
      */
     bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param);
 
+    void PushToHistoryQueue(const InnerEvent::Pointer &event, const InnerEvent::TimePoint &triggerTime);
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
+
+    struct HistoryEvent {
+        uint64_t senderKernelThreadId{0};
+        std::string taskName;
+        uint32_t innerEventId{0};
+        bool hasTask{false};
+        InnerEvent::TimePoint sendTime;
+        InnerEvent::TimePoint handleTime;
+        InnerEvent::TimePoint triggerTime;
+        InnerEvent::TimePoint completeTime;
+    };
 
     /*
      * To avoid starvation of lower priority event queue, give a chance to process lower priority events,
@@ -246,8 +258,9 @@ private:
     InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime);
     InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
     void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
-    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name);
     bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
+    std::string HistoryQueueDump(const HistoryEvent &historyEvent);
     std::string DumpCurrentRunning();
     std::mutex queueLock_;
 
@@ -278,6 +291,10 @@ private:
 
     // current running event info
     CurrentRunningEvent currentRunningEvent_;
+
+    static const uint8_t HISTORY_EVENT_NUM_POWER = 32; // 必须是2的幂次，使用位运算取余
+    std::vector<HistoryEvent> historyEvents_ = std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER);
+    uint8_t historyEventIndex_ = 0;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

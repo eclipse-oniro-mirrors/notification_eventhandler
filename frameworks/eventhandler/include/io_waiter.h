@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -28,7 +28,7 @@ namespace AppExecFwk {
 // Interface of IO waiter
 class IoWaiter {
 public:
-    using FileDescriptorEventCallback = std::function<void(int32_t, uint32_t)>;
+    using FileDescriptorEventCallback = std::function<void(int32_t, uint32_t, const std::string&)>;
 
     IoWaiter() = default;
     virtual ~IoWaiter() = default;
@@ -67,7 +67,7 @@ public:
      * @param events Events from file descriptor, such as input, output.
      * @return True if succeeded.
      */
-    virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events) = 0;
+    virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName) = 0;
 
     /**
      * Remove file descriptor.

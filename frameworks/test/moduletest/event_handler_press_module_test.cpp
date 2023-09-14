@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -210,9 +210,11 @@ HWTEST_F(EventHandlerPressModuleTest, FdListenerPress001, TestSize.Level3)
     auto listener = std::make_shared<MyFileDescriptorListener>();
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "FdListenerPress001");
     EXPECT_EQ(inResult, ERR_OK);
-    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener);
+    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
+        "FdListenerPress001");
     EXPECT_EQ(outResult, ERR_OK);
 
     int64_t delayTime = 20000;
