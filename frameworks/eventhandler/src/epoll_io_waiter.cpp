@@ -164,7 +164,7 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
             }
 
             if (callback_) {
-                callback_(epollEvents[i].data.fd, events);
+                callback_(epollEvents[i].data.fd, events, taskNameMap_[epollEvents[i].data.fd]);
             }
         }
     }
@@ -205,7 +205,7 @@ bool EpollIoWaiter::SupportListeningFileDescriptor() const
     return true;
 }
 
-bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
+bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName)
 {
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0)) {
         HILOGE("%{public}d, %{public}u: Invalid parameter", fileDescriptor, events);
@@ -234,6 +234,7 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events)
         return false;
     }
 
+    taskNameMap_.emplace(fileDescriptor, taskName);
     return true;
 }
 
@@ -255,6 +256,8 @@ void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
         HILOGE("Failed to remove file descriptor from epoll, %{public}s", errmsg);
         return;
     }
+
+    taskNameMap_.erase(fileDescriptor);
 }
 
 void EpollIoWaiter::DrainAwakenPipe() const

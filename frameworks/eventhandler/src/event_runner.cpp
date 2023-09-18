@@ -337,6 +337,7 @@ public:
             std::shared_ptr<EventHandler> handler = event->GetOwner();
             // Make sure owner of the event exists.
             if (handler) {
+                auto triggerTime = InnerEvent::Clock::now();
                 std::shared_ptr<Logger> logging = logger_;
                 if (logging != nullptr) {
                     if (!event->HasTask()) {
@@ -346,6 +347,7 @@ public:
                     }
                 }
                 handler->DistributeEvent(event);
+                queue_->PushToHistoryQueue(event, triggerTime);
             }
             // Release event manually, otherwise event will be released until next event coming.
             event.reset();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -90,7 +90,8 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     std::string stringData(data);
     eventHandler.RemoveTask(stringData);
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
-    eventHandler.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener);
+    eventHandler.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener,
+        "DoSomethingInterestingWithMyAPI");
     eventHandler.SetEventRunner(runner);
     eventHandler.GetEventRunner();
     eventHandler.DistributeEvent(event);

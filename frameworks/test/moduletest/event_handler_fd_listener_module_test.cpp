@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -144,9 +144,10 @@ HWTEST_F(EventHandlerFdListenerModuleTest, AddListener001, TestSize.Level1)
     auto listener = std::make_shared<MyFileDescriptorListener>();
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener, "AddListener001");
     EXPECT_EQ(inResult, ERR_OK);
-    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener);
+    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
+        "AddListener001");
     EXPECT_EQ(outResult, ERR_OK);
 
     int64_t delayTime = 100;
@@ -173,7 +174,8 @@ HWTEST_F(EventHandlerFdListenerModuleTest, AddListener002, TestSize.Level1)
     auto handler = std::make_shared<MyEventHandler>(myRunner);
 
     int32_t fd = -1;
-    auto inResult = handler->AddFileDescriptorListener(fd, FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fd, FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "AddListener002");
     EXPECT_EQ(EVENT_HANDLER_ERR_INVALID_PARAM, inResult);
 }
 
@@ -198,7 +200,7 @@ HWTEST_F(EventHandlerFdListenerModuleTest, AddListener003, TestSize.Level1)
     auto handler = std::make_shared<MyEventHandler>(myRunner);
 
     uint32_t event = 0;
-    auto inResult = handler->AddFileDescriptorListener(fds[0], event, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], event, listener, "AddListener003");
     EXPECT_EQ(EVENT_HANDLER_ERR_INVALID_PARAM, inResult);
 }
 
@@ -221,7 +223,8 @@ HWTEST_F(EventHandlerFdListenerModuleTest, AddListener004, TestSize.Level1)
     auto myRunner = EventRunner::Create(true);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
 
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, nullptr);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, nullptr,
+        "AddListener004");
     EXPECT_EQ(EVENT_HANDLER_ERR_INVALID_PARAM, inResult);
 }
 
@@ -244,7 +247,8 @@ HWTEST_F(EventHandlerFdListenerModuleTest, AddListener005, TestSize.Level1)
     auto listener = std::make_shared<MyFileDescriptorListener>();
     auto handler = std::make_shared<MyEventHandler>(nullptr);
 
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "AddListener005");
     EXPECT_EQ(EVENT_HANDLER_ERR_NO_EVENT_RUNNER, inResult);
 }
 
@@ -267,9 +271,11 @@ HWTEST_F(EventHandlerFdListenerModuleTest, RemoveListener001, TestSize.Level1)
     auto listener = std::make_shared<MyFileDescriptorListener>();
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "RemoveListener001");
     EXPECT_EQ(inResult, ERR_OK);
-    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener);
+    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
+        "RemoveListener001");
     EXPECT_EQ(outResult, ERR_OK);
     handler->RemoveAllFileDescriptorListeners();
 
@@ -299,9 +305,11 @@ HWTEST_F(EventHandlerFdListenerModuleTest, RemoveListener002, TestSize.Level1)
     auto listener = std::make_shared<MyFileDescriptorListener>();
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "RemoveListener002");
     EXPECT_EQ(inResult, ERR_OK);
-    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener);
+    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
+        "RemoveListener002");
     EXPECT_EQ(outResult, ERR_OK);
     handler->RemoveFileDescriptorListener(fds[0]);
 
@@ -332,7 +340,8 @@ HWTEST_F(EventHandlerFdListenerModuleTest, TriggerShutdown001, TestSize.Level1)
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     auto otherHandler = std::make_shared<MyEventHandler>(EventRunner::Create());
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener,
+        "TriggerShutdown001");
     EXPECT_EQ(inResult, ERR_OK);
 
     int64_t delayTime = 100;
@@ -367,7 +376,8 @@ HWTEST_F(EventHandlerFdListenerModuleTest, TriggerException001, TestSize.Level1)
     auto listener = std::make_shared<MyFileDescriptorListener>(fds[0]);
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener);
+    auto inResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
+        "TriggerException001");
     EXPECT_EQ(inResult, ERR_OK);
 
     int64_t delayTime = 100;

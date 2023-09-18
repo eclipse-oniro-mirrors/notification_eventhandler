@@ -62,7 +62,8 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventQueue.Remove(myHandler, stringData);
     int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
-    eventQueue.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener);
+    eventQueue.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener,
+        "DoSomethingInterestingWithMyAPI");
     eventQueue.RemoveFileDescriptorListener(myHandler);
     eventQueue.RemoveFileDescriptorListener(fileDescriptor);
     eventQueue.RemoveOrphan();

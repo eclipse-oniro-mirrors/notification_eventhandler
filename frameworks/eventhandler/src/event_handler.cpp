@@ -186,8 +186,8 @@ void EventHandler::RemoveTask(const std::string &name)
     eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
 }
 
-ErrCode EventHandler::AddFileDescriptorListener(
-    int32_t fileDescriptor, uint32_t events, const std::shared_ptr<FileDescriptorListener> &listener)
+ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+    const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName)
 {
     HILOGD("enter");
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0) || (!listener)) {
@@ -202,7 +202,7 @@ ErrCode EventHandler::AddFileDescriptorListener(
     }
 
     listener->SetOwner(shared_from_this());
-    return eventRunner_->GetEventQueue()->AddFileDescriptorListener(fileDescriptor, events, listener);
+    return eventRunner_->GetEventQueue()->AddFileDescriptorListener(fileDescriptor, events, listener, taskName);
 }
 
 void EventHandler::RemoveAllFileDescriptorListeners()

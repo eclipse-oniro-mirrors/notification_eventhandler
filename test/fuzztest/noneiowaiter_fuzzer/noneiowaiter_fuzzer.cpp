@@ -27,7 +27,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
     AppExecFwk::IoWaiter::FileDescriptorEventCallback callback;
     AppExecFwk::NoneIoWaiter noneIoWaiter;
-    noneIoWaiter.AddFileDescriptor(fileDescriptor, events);
+    noneIoWaiter.AddFileDescriptor(fileDescriptor, events, "DoSomethingInterestingWithMyAPI");
     noneIoWaiter.RemoveFileDescriptor(fileDescriptor);
     noneIoWaiter.SetFileDescriptorEventCallback(callback);
     return true;
