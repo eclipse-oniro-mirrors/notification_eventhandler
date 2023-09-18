@@ -16,16 +16,6 @@ import("//build/ohos/ace/ace.gni")
 import("../../eventhandler.gni")
 
 ohos_shared_library("emitter") {
-  sanitize = {
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
-  stack_protector_ret = true
-
   include_dirs = [
     "include",
     "${inner_api_path}",

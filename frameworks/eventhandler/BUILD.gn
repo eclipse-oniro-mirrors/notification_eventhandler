@@ -27,16 +27,6 @@ config("public_libeventhandler_config") {
 }
 
 ohos_shared_library("libeventhandler") {
-  sanitize = {
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
-  stack_protector_ret = true
-
   all_dependent_configs = [ ":libeventhandler_config" ]
   cflags_cc = []
   sources = inner_api_sources

@@ -15,16 +15,6 @@ import("//build/ohos.gni")
 import("../../eventhandler.gni")
 
 ohos_shared_library("eventhandler_native") {
-  sanitize = {
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
-  stack_protector_ret = true
-
   sources = [ "src/native_interface_eventhandler.cpp" ]
 
   include_dirs = [ "${kits_path}/native" ]
