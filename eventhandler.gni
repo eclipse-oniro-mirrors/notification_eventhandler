@@ -15,7 +15,7 @@ frameworks_path = "//base/notification/eventhandler/frameworks"
 inner_api_path = "//base/notification/eventhandler/interfaces/inner_api"
 kits_path = "//base/notification/eventhandler/interfaces/kits"
 fuzztest_path = "//base/notification/eventhandler/test/fuzztest"
-fuzz_test_output_path = "eventhandler/eventhandler"
+eventhandler_fuzz_test_output_path = "eventhandler/eventhandler"
 
 if (!defined(global_parts_info) ||
     defined(global_parts_info.hiviewdfx_hichecker_native)) {
