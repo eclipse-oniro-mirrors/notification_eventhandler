@@ -15,11 +15,10 @@
 import("//base/notification/eventhandler/eventhandler.gni")
 import("//build/config/features.gni")
 import("//build/test.gni")
-module_output_path = "eventhandler/fuzztest"
 
 ##############################fuzztest##########################################
 ohos_fuzztest("EventHandlerAnnexFuzzTest") {
-  module_out_path = module_output_path
+  module_out_path = eventhandler_fuzz_test_output_path
   fuzz_config_file = "${fuzztest_path}/eventhandlerannex_fuzzer"
 
   include_dirs = [ "${inner_api_path}" ]
