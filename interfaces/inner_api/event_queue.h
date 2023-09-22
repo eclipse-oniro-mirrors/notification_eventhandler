@@ -222,7 +222,9 @@ public:
      */
     bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param);
 
-    void PushToHistoryQueue(const InnerEvent::Pointer &event, const InnerEvent::TimePoint &triggerTime);
+    void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event);
+
+    void PushHistoryQueueAfterDistribute();
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
