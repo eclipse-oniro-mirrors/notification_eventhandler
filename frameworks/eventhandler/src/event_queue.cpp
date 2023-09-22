@@ -707,16 +707,17 @@ bool EventQueue::IsQueueEmpty()
     return idleEvents_.size() == 0;
 }
 
-void EventQueue::PushToHistoryQueue(const InnerEvent::Pointer &event, const InnerEvent::TimePoint &triggerTime)
+void EventQueue::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event)
 {
     if (event == nullptr) {
         HILOGW("event is nullptr.");
+        return;
     }
     historyEvents_[historyEventIndex_].senderKernelThreadId = event->GetSenderKernelThreadId();
     historyEvents_[historyEventIndex_].sendTime = event->GetSendTime();
     historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
-    historyEvents_[historyEventIndex_].triggerTime = triggerTime;
-    historyEvents_[historyEventIndex_].completeTime = InnerEvent::Clock::now();
+    historyEvents_[historyEventIndex_].triggerTime = InnerEvent::Clock::now();
+
 
     if (event->HasTask()) {
         historyEvents_[historyEventIndex_].hasTask = true;
@@ -724,6 +725,11 @@ void EventQueue::PushToHistoryQueue(const InnerEvent::Pointer &event, const Inne
     } else {
         historyEvents_[historyEventIndex_].innerEventId = event->GetInnerEventId();
     }
+}
+
+void EventQueue::PushHistoryQueueAfterDistribute()
+{
+    historyEvents_[historyEventIndex_].completeTime = InnerEvent::Clock::now();
     historyEventIndex_++;
     historyEventIndex_ = historyEventIndex_ & (HISTORY_EVENT_NUM_POWER - 1);
 }
