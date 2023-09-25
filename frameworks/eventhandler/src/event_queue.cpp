@@ -718,7 +718,6 @@ void EventQueue::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &eve
     historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
     historyEvents_[historyEventIndex_].triggerTime = InnerEvent::Clock::now();
 
-
     if (event->HasTask()) {
         historyEvents_[historyEventIndex_].hasTask = true;
         historyEvents_[historyEventIndex_].taskName = event->GetTaskName();
