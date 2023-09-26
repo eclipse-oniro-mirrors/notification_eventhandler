@@ -77,6 +77,7 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog:libhilog",
     "hitrace:libhitracechain",
   ]
@@ -98,6 +99,7 @@ ohos_unittest("LibEventHandlerEventTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog:libhilog",
     "hitrace:libhitracechain",
   ]
@@ -118,6 +120,7 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog:libhilog",
     "hitrace:libhitracechain",
   ]
@@ -139,6 +142,7 @@ ohos_unittest("LibEventHandlerTraceTest") {
   deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog:libhilog",
     "hitrace:libhitracechain",
   ]

@@ -29,13 +29,17 @@
 #include "event_handler.h"
 #include "event_inner_runner.h"
 #include "event_logger.h"
+#include "securec.h"
 #include "singleton.h"
-#include "thread_local_data.h"
 
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+const char *g_crashEmptyDumpInfo = "Current Event Caller is empty. Nothing to dump";
+const int CRASH_BUF_MIN_LEN = 2;
+thread_local static Caller g_currentEventCaller = {};
+thread_local static std::string g_currentEventName = {};
 
 DEFINE_EH_HILOG_LABEL("EventRunner");
 
@@ -276,12 +280,18 @@ ThreadCollector::~ThreadCollector()
     }
 }
 
+typedef void(*ThreadInfoCallback)(char *buf, size_t len, void *ucontext);
+extern "C" void SetThreadInfoCallback(ThreadInfoCallback func) __attribute__((weak));
+
 class EventRunnerImpl final : public EventInnerRunner {
 public:
     explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner) : EventInnerRunner(runner)
     {
         HILOGD("enter");
         queue_ = std::make_shared<EventQueue>();
+        if (SetThreadInfoCallback != nullptr) {
+            SetThreadInfoCallback(CrashCallback);
+        }
     }
 
     ~EventRunnerImpl() final
@@ -345,9 +355,12 @@ public:
                         logging->Log("Dispatching to handler event task name = " + event->GetTaskName());
                     }
                 }
+
+                SetCurrentEventInfo(event);
                 queue_->PushHistoryQueueBeforeDistribute(event);
                 handler->DistributeEvent(event);
                 queue_->PushHistoryQueueAfterDistribute();
+                ClearCurrentEventInfo();
             }
             // Release event manually, otherwise event will be released until next event coming.
             event.reset();
@@ -385,8 +398,55 @@ public:
 
 private:
     DEFINE_EH_HILOG_LABEL("EventRunnerImpl");
+
+    static void CrashCallback(char *buf, size_t len, void *ucontext);
+
+    void SetCurrentEventInfo(const InnerEvent::Pointer &event)
+    {
+        g_currentEventCaller = event->GetCaller();
+        if (event->HasTask()) {
+            g_currentEventName = event->GetTaskName();
+        } else {
+            g_currentEventName = std::to_string(event->GetInnerEventId());
+        }
+    }
+
+    inline void ClearCurrentEventInfo()
+    {
+        g_currentEventCaller = {};
+        g_currentEventName.clear();
+    }
 };
 }  // unnamed namespace
+
+void EventRunnerImpl::CrashCallback(char *buf, size_t len, void *ucontext)
+{
+    if (len < CRASH_BUF_MIN_LEN) {
+        return;
+    }
+    if (memset_s(buf, len, 0x00, len) != EOK) {
+        HILOGE("memset_s failed");
+        return;
+    }
+
+    if (!g_currentEventName.empty()) {
+        const char* file = g_currentEventCaller.file_.c_str();
+        const char* func = g_currentEventCaller.func_.c_str();
+        const char* eventName = g_currentEventName.c_str();
+        int line = g_currentEventCaller.line_;
+        if (snprintf_s(buf, len, len - 1, "Current Event Caller info: [%s(%s:%d)]. EventName is '%s'",
+            file, func, line, eventName) < 0) {
+            HILOGE("snprintf_s failed");
+            return;
+        }
+        return;
+    }
+
+    if (memcpy_s(buf, len - 1, g_crashEmptyDumpInfo, len - 1) != EOK) {
+        HILOGE("memcpy_s failed");
+        return;
+    }
+}
 
 EventInnerRunner::EventInnerRunner(const std::shared_ptr<EventRunner> &runner)
     : queue_(nullptr), owner_(runner), logger_(nullptr), threadName_(""), threadId_()

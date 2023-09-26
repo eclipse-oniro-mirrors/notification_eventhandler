@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -37,6 +37,31 @@ class EventHandler;
 
 const std::string LINE_SEPARATOR = "\n";
 
+struct Caller {
+    std::string file_ {""};
+    int         line_ {0};
+    std::string func_ {""};
+#if __has_builtin(__builtin_FILE)
+    Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(),
+           std::string func = __builtin_FUNCTION())
+        : file_(file), line_(line), func_(func) {}
+#else
+    Caller() {}
+#endif
+    std::string ToString() const
+    {
+        if (file_.empty()) {
+            return std::string("[ ]");
+        }
+        size_t split = file_.find_last_of("/\\");
+        if (split == std::string::npos) {
+            split = 0;
+        }
+        std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) + ")]");
+        return caller;
+    }
+};
+
 class InnerEvent final {
 public:
     using Clock = std::chrono::steady_clock;
@@ -60,9 +85,10 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
-    static Pointer Get(uint32_t innerEventId, int64_t param = 0);
+    static Pointer Get(uint32_t innerEventId, int64_t param = 0, const Caller &caller = {});
 
     /**
      * Get InnerEvent instance from pool.
@@ -70,12 +96,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Shared pointer of the object.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T>
-    static inline Pointer Get(uint32_t innerEventId, const std::shared_ptr<T> &object, int64_t param = 0)
+    static inline Pointer Get(uint32_t innerEventId, const std::shared_ptr<T> &object,
+                              int64_t param = 0, const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveSharedPtr(object);
         return event;
     }
@@ -86,12 +114,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Weak pointer of the object.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T>
-    static inline Pointer Get(uint32_t innerEventId, const std::weak_ptr<T> &object, int64_t param = 0)
+    static inline Pointer Get(uint32_t innerEventId, const std::weak_ptr<T> &object,
+                              int64_t param = 0, const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveSharedPtr(object);
         return event;
     }
@@ -102,12 +132,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of the object.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T, typename D>
-    static inline Pointer Get(uint32_t innerEventId, std::unique_ptr<T, D> &&object, int64_t param = 0)
+    static inline Pointer Get(uint32_t innerEventId, std::unique_ptr<T, D> &&object,
+                              int64_t param = 0, const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveUniquePtr(object);
         return event;
     }
@@ -118,12 +150,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of the object.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T, typename D>
-    static inline Pointer Get(uint32_t innerEventId, std::unique_ptr<T, D> &object, int64_t param = 0)
+    static inline Pointer Get(uint32_t innerEventId, std::unique_ptr<T, D> &object,
+                              int64_t param = 0, const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveUniquePtr(object);
         return event;
     }
@@ -134,12 +168,14 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event.
      * @param object Shared pointer of the object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T>
-    static inline Pointer Get(uint32_t innerEventId, int64_t param, const std::shared_ptr<T> &object)
+    static inline Pointer Get(uint32_t innerEventId, int64_t param, const std::shared_ptr<T> &object,
+                              const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveSharedPtr(object);
         return event;
     }
@@ -150,12 +186,14 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event.
      * @param object Weak pointer of the object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T>
-    static inline Pointer Get(uint32_t innerEventId, int64_t param, const std::weak_ptr<T> &object)
+    static inline Pointer Get(uint32_t innerEventId, int64_t param, const std::weak_ptr<T> &object,
+                              const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveSharedPtr(object);
         return event;
     }
@@ -166,12 +204,14 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event.
      * @param object Unique pointer of the object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T, typename D>
-    static inline Pointer Get(uint32_t innerEventId, int64_t param, std::unique_ptr<T, D> &&object)
+    static inline Pointer Get(uint32_t innerEventId, int64_t param, std::unique_ptr<T, D> &&object,
+                              const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveUniquePtr(object);
         return event;
     }
@@ -182,12 +222,14 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event.
      * @param object Unique pointer of the object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance.
      */
     template<typename T, typename D>
-    static inline Pointer Get(uint32_t innerEventId, int64_t param, std::unique_ptr<T, D> &object)
+    static inline Pointer Get(uint32_t innerEventId, int64_t param, std::unique_ptr<T, D> &object,
+                              const Caller &caller = {})
     {
-        auto event = Get(innerEventId, param);
+        auto event = Get(innerEventId, param, caller);
         event->SaveUniquePtr(object);
         return event;
     }
@@ -197,9 +239,11 @@ public:
      *
      * @param callback Callback for task.
      * @param name Name of task.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns the pointer of InnerEvent instance, if callback is invalid, returns nullptr object.
      */
-    static Pointer Get(const Callback &callback, const std::string &name = std::string());
+    static Pointer Get(const Callback &callback, const std::string &name = std::string(),
+                       const Caller &caller = {});
 
     /**
      * Get InnerEvent instance from pool.
@@ -389,6 +433,16 @@ public:
     }
 
     /**
+     * Get task caller info.
+     *
+     * @return Returns the caller info of the task.
+     */
+    inline Caller &GetCaller()
+    {
+        return caller_;
+    }
+
+    /**
      * Obtains the Runnable task that will be executed when this InnerEvent is handled.
      *
      * @return Returns the callback of the task.
@@ -551,6 +605,9 @@ private:
     // Task callback and its name.
     Callback taskCallback_;
     std::string taskName_;
+
+    // Task event caller info
+    Caller caller_;
 
     // Used for synchronized event.
     std::shared_ptr<Waiter> waiter_;
