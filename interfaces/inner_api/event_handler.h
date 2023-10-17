@@ -18,6 +18,7 @@
 
 #include "event_runner.h"
 #include "dumper.h"
+#include "inner_event.h"
 
 #ifndef __has_builtin
 #define __has_builtin(x) 0
@@ -29,32 +30,6 @@ enum class EventType {
     SYNC_EVENT = 0,
     DELAY_EVENT = 1,
     TIMING_EVENT = 2,
-};
-
-struct Caller {
-    std::string file_ {""};
-    int         line_ {0};
-    std::string func_ {""};
-#if __has_builtin(__builtin_FILE)
-    Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(), std::string func = __builtin_FUNCTION())
-        : file_(file), line_(line), func_(func) {
-    }
-#else
-    Caller() {
-    }
-#endif
-    std::string ToString()
-    {
-        if (file_.empty()) {
-            return "[ ]";
-        }
-        size_t split = file_.find_last_of("/\\");
-        if (split == std::string::npos) {
-            split = 0;
-        }
-        std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) + ")]");
-        return caller;
-    }
 };
 
 template<typename T>
@@ -133,11 +108,12 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event, default is 0.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendEvent(uint32_t innerEventId, int64_t param, int64_t delayTime)
+    inline bool SendEvent(uint32_t innerEventId, int64_t param, int64_t delayTime, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, param), delayTime);
+        return SendEvent(InnerEvent::Get(innerEventId, param, caller), delayTime);
     }
 
     /**
@@ -146,11 +122,13 @@ public:
      * @param innerEventId The id of the event.
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendEvent(uint32_t innerEventId, int64_t delayTime = 0, Priority priority = Priority::LOW)
+    inline bool SendEvent(uint32_t innerEventId, int64_t delayTime = 0,
+                          Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, 0), delayTime, priority);
+        return SendEvent(InnerEvent::Get(innerEventId, 0, caller), delayTime, priority);
     }
 
     /**
@@ -158,11 +136,12 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendEvent(uint32_t innerEventId, Priority priority)
+    inline bool SendEvent(uint32_t innerEventId, Priority priority, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, 0), 0, priority);
+        return SendEvent(InnerEvent::Get(innerEventId, 0, caller), 0, priority);
     }
 
     /**
@@ -171,12 +150,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Shared pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendEvent(uint32_t innerEventId, const std::shared_ptr<T> &object, int64_t delayTime = 0)
+    inline bool SendEvent(uint32_t innerEventId, const std::shared_ptr<T> &object,
+                          int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -185,12 +166,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Weak pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendEvent(uint32_t innerEventId, const std::weak_ptr<T> &object, int64_t delayTime = 0)
+    inline bool SendEvent(uint32_t innerEventId, const std::weak_ptr<T> &object,
+                          int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -199,12 +182,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object, int64_t delayTime = 0)
+    inline bool SendEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object,
+                          int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -213,18 +198,21 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object, int64_t delayTime = 0)
+    inline bool SendEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object,
+                          int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
      * Send an immediate event.
      *
      * @param event Event which should be handled.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     inline bool SendImmediateEvent(InnerEvent::Pointer &event)
@@ -248,11 +236,12 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event, default is 0.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendImmediateEvent(uint32_t innerEventId, int64_t param = 0)
+    inline bool SendImmediateEvent(uint32_t innerEventId, int64_t param = 0, const Caller &caller = {})
     {
-        return SendImmediateEvent(InnerEvent::Get(innerEventId, param));
+        return SendImmediateEvent(InnerEvent::Get(innerEventId, param, caller));
     }
 
     /**
@@ -260,12 +249,14 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param object Shared pointer of object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendImmediateEvent(uint32_t innerEventId, const std::shared_ptr<T> &object)
+    inline bool SendImmediateEvent(uint32_t innerEventId, const std::shared_ptr<T> &object,
+                                   const Caller &caller = {})
     {
-        return SendImmediateEvent(InnerEvent::Get(innerEventId, object));
+        return SendImmediateEvent(InnerEvent::Get(innerEventId, object, 0, caller));
     }
 
     /**
@@ -273,12 +264,14 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param object Weak pointer of object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendImmediateEvent(uint32_t innerEventId, const std::weak_ptr<T> &object)
+    inline bool SendImmediateEvent(uint32_t innerEventId, const std::weak_ptr<T> &object,
+                                   const Caller &caller = {})
     {
-        return SendImmediateEvent(InnerEvent::Get(innerEventId, object));
+        return SendImmediateEvent(InnerEvent::Get(innerEventId, object, 0, caller));
     }
 
     /**
@@ -286,12 +279,14 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendImmediateEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object)
+    inline bool SendImmediateEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object,
+                                   const Caller &caller = {})
     {
-        return SendImmediateEvent(InnerEvent::Get(innerEventId, object));
+        return SendImmediateEvent(InnerEvent::Get(innerEventId, object, 0, caller));
     }
 
     /**
@@ -299,12 +294,14 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendImmediateEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object)
+    inline bool SendImmediateEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object,
+                                   const Caller &caller = {})
     {
-        return SendImmediateEvent(InnerEvent::Get(innerEventId, object));
+        return SendImmediateEvent(InnerEvent::Get(innerEventId, object, 0, caller));
     }
 
     /**
@@ -337,11 +334,13 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event, default is 0.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendHighPriorityEvent(uint32_t innerEventId, int64_t param = 0, int64_t delayTime = 0)
+    inline bool SendHighPriorityEvent(uint32_t innerEventId, int64_t param = 0,
+                                      int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, param), delayTime);
+        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, param, caller), delayTime);
     }
 
     /**
@@ -350,12 +349,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Shared pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendHighPriorityEvent(uint32_t innerEventId, const std::shared_ptr<T> &object, int64_t delayTime = 0)
+    inline bool SendHighPriorityEvent(uint32_t innerEventId, const std::shared_ptr<T> &object,
+                                      int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -364,12 +365,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Weak pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendHighPriorityEvent(uint32_t innerEventId, const std::weak_ptr<T> &object, int64_t delayTime = 0)
+    inline bool SendHighPriorityEvent(uint32_t innerEventId, const std::weak_ptr<T> &object,
+                                      int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -378,12 +381,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendHighPriorityEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object, int64_t delayTime = 0)
+    inline bool SendHighPriorityEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object,
+                                      int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -392,12 +397,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendHighPriorityEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object, int64_t delayTime = 0)
+    inline bool SendHighPriorityEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object,
+                                      int64_t delayTime = 0, const Caller &caller = {})
     {
-        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object), delayTime);
+        return SendHighPriorityEvent(InnerEvent::Get(innerEventId, object, 0, caller), delayTime);
     }
 
     /**
@@ -407,12 +414,13 @@ public:
      * @param name Name of the task.
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostTask(const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0,
-        Priority priority = Priority::LOW, Caller caller = {})
+    inline bool PostTask(const Callback &callback, const std::string &name = std::string(),
+                         int64_t delayTime = 0, Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), delayTime, priority);
+        return SendEvent(InnerEvent::Get(callback, name, caller), delayTime, priority);
     }
 
     /**
@@ -440,11 +448,12 @@ public:
      *
      * @param callback Task callback.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostTask(const Callback &callback, Priority priority, Caller caller = {})
+    inline bool PostTask(const Callback &callback, Priority priority, const Caller &caller = {})
     {
-        return PostTask(callback, caller.ToString(), 0, priority);
+        return PostTask(callback, std::string(), 0, priority, caller);
     }
 
     /**
@@ -453,12 +462,13 @@ public:
      * @param callback Task callback.
      * @param delayTime Process the event after 'delayTime' milliseconds.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostTask(const Callback &callback, int64_t delayTime, Priority priority = Priority::LOW,
-                         Caller caller = {})
+                         const Caller &caller = {})
     {
-        return PostTask(callback, caller.ToString(), delayTime, priority);
+        return PostTask(callback, std::string(), delayTime, priority, caller);
     }
 
     /**
@@ -466,12 +476,13 @@ public:
      *
      * @param callback Task callback.
      * @param name Remove events by name of the task.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostImmediateTask(const Callback &callback, const std::string &name = std::string(),
-                                  Caller caller = {})
+                                  const Caller &caller = {})
     {
-        return SendEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), 0, Priority::IMMEDIATE);
+        return SendEvent(InnerEvent::Get(callback, name, caller), 0, Priority::IMMEDIATE);
     }
 
     /**
@@ -480,12 +491,13 @@ public:
      * @param callback Task callback.
      * @param name Name of the task.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostHighPriorityTask(const Callback &callback, const std::string &name = std::string(),
-                                     int64_t delayTime = 0, Caller caller = {})
+                                     int64_t delayTime = 0, const Caller &caller = {})
     {
-        return PostTask(callback, name.empty() ? caller.ToString() : name, delayTime, Priority::HIGH);
+        return PostTask(callback, name, delayTime, Priority::HIGH, caller);
     }
 
     /**
@@ -493,11 +505,12 @@ public:
      *
      * @param callback Task callback.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostHighPriorityTask(const Callback &callback, int64_t delayTime, Caller caller = {})
+    inline bool PostHighPriorityTask(const Callback &callback, int64_t delayTime, const Caller &caller = {})
     {
-        return PostHighPriorityTask(callback, caller.ToString(), delayTime);
+        return PostHighPriorityTask(callback, std::string(), delayTime, caller);
     }
 
     /**
@@ -506,12 +519,13 @@ public:
      * @param callback task callback.
      * @param name Name of the task.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostIdleTask(const Callback &callback, const std::string &name = std::string(), int64_t delayTime = 0,
-                             Caller caller = {})
+    inline bool PostIdleTask(const Callback &callback, const std::string &name = std::string(),
+                             int64_t delayTime = 0, const Caller &caller = {})
     {
-        return PostTask(callback, name.empty() ? caller.ToString() : name, delayTime, Priority::IDLE);
+        return PostTask(callback, name, delayTime, Priority::IDLE, caller);
     }
 
     /**
@@ -519,11 +533,12 @@ public:
      *
      * @param callback Task callback.
      * @param delayTime Process the event after 'delayTime' milliseconds.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostIdleTask(const Callback &callback, int64_t delayTime, Caller caller = {})
+    inline bool PostIdleTask(const Callback &callback, int64_t delayTime, const Caller &caller = {})
     {
-        return PostIdleTask(callback, caller.ToString(), delayTime);
+        return PostIdleTask(callback, std::string(), delayTime, caller);
     }
 
     /**
@@ -554,11 +569,13 @@ public:
      * @param innerEventId The id of the event.
      * @param param Basic parameter of the event, default is 0.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendSyncEvent(uint32_t innerEventId, int64_t param = 0, Priority priority = Priority::LOW)
+    inline bool SendSyncEvent(uint32_t innerEventId, int64_t param = 0,
+                              Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, param), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, param, caller), priority);
     }
 
     /**
@@ -566,11 +583,12 @@ public:
      *
      * @param innerEventId The id of the event.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendSyncEvent(uint32_t innerEventId, Priority priority)
+    inline bool SendSyncEvent(uint32_t innerEventId, Priority priority, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, 0), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, 0, caller), priority);
     }
 
     /**
@@ -579,13 +597,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Shared pointer of object.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendSyncEvent(
-        uint32_t innerEventId, const std::shared_ptr<T> &object, Priority priority = Priority::LOW)
+    inline bool SendSyncEvent(uint32_t innerEventId, const std::shared_ptr<T> &object,
+                              Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, object), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, object, 0, caller), priority);
     }
 
     /**
@@ -594,12 +613,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Weak pointer of object.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendSyncEvent(uint32_t innerEventId, const std::weak_ptr<T> &object, Priority priority = Priority::LOW)
+    inline bool SendSyncEvent(uint32_t innerEventId, const std::weak_ptr<T> &object,
+                              Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, object), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, object, 0, caller), priority);
     }
 
     /**
@@ -608,12 +629,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendSyncEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object, Priority priority = Priority::LOW)
+    inline bool SendSyncEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object,
+                              Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, object), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, object, 0, caller), priority);
     }
 
     /**
@@ -622,12 +645,14 @@ public:
      * @param innerEventId The id of the event.
      * @param object Unique pointer of object.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendSyncEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object, Priority priority = Priority::LOW)
+    inline bool SendSyncEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object,
+                              Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(innerEventId, object), priority);
+        return SendSyncEvent(InnerEvent::Get(innerEventId, object, 0, caller), priority);
     }
 
     /**
@@ -636,12 +661,13 @@ public:
      * @param callback Task callback.
      * @param name Name of the task.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostSyncTask(const Callback &callback, const std::string &name, Priority priority = Priority::LOW,
-                             Caller caller = {})
+    inline bool PostSyncTask(const Callback &callback, const std::string &name,
+                             Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendSyncEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), priority);
+        return SendSyncEvent(InnerEvent::Get(callback, name, caller), priority);
     }
 
     /**
@@ -649,11 +675,13 @@ public:
      *
      * @param callback Task callback.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
-    inline bool PostSyncTask(const Callback &callback, Priority priority = Priority::LOW, Caller caller = {})
+    inline bool PostSyncTask(const Callback &callback, Priority priority = Priority::LOW,
+                             const Caller &caller = {})
     {
-        return PostSyncTask(callback, caller.ToString(), priority);
+        return PostSyncTask(callback, std::string(), priority, caller);
     }
 
     /**
@@ -687,11 +715,13 @@ public:
      * @param innerEventId The id of the event.
      * @param taskTime Process the event at taskTime.
      * @param param Basic parameter of the event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime, int64_t param)
+    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime, int64_t param,
+                                const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, param), taskTime);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, param, caller), taskTime);
     }
 
     /**
@@ -700,11 +730,13 @@ public:
      * @param innerEventId The id of the event.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime, Priority priority)
+    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime, Priority priority,
+                                const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, 0), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, 0, caller), taskTime, priority);
     }
 
     /**
@@ -713,11 +745,12 @@ public:
      * @param innerEventId The id of the event.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
-    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime)
+    inline bool SendTimingEvent(uint32_t innerEventId, int64_t taskTime, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, 0), taskTime, Priority::LOW);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, 0, caller), taskTime, Priority::LOW);
     }
 
     /**
@@ -727,13 +760,14 @@ public:
      * @param object Shared pointer of object.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendTimingEvent(
-        uint32_t innerEventId, const std::shared_ptr<T> &object, int64_t taskTime, Priority priority = Priority::LOW)
+    inline bool SendTimingEvent(uint32_t innerEventId, const std::shared_ptr<T> &object, int64_t taskTime,
+                                Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, object), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, object, 0, caller), taskTime, priority);
     }
 
     /**
@@ -743,13 +777,14 @@ public:
      * @param object Weak pointer of object.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T>
-    inline bool SendTimingEvent(
-        uint32_t innerEventId, const std::weak_ptr<T> &object, int64_t taskTime, Priority priority = Priority::LOW)
+    inline bool SendTimingEvent(uint32_t innerEventId, const std::weak_ptr<T> &object, int64_t taskTime,
+                                Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, object), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, object, 0, caller), taskTime, priority);
     }
 
     /**
@@ -759,13 +794,14 @@ public:
      * @param object Unique pointer of object.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendTimingEvent(
-        uint32_t innerEventId, std::unique_ptr<T, D> &object, int64_t taskTime, Priority priority = Priority::LOW)
+    inline bool SendTimingEvent(uint32_t innerEventId, std::unique_ptr<T, D> &object, int64_t taskTime,
+                                Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, object), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, object, 0, caller), taskTime, priority);
     }
 
     /**
@@ -775,13 +811,14 @@ public:
      * @param object Unique pointer of object.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if event has been sent successfully.
      */
     template<typename T, typename D>
-    inline bool SendTimingEvent(
-        uint32_t innerEventId, std::unique_ptr<T, D> &&object, int64_t taskTime, Priority priority = Priority::LOW)
+    inline bool SendTimingEvent(uint32_t innerEventId, std::unique_ptr<T, D> &&object, int64_t taskTime,
+                                Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(innerEventId, object), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(innerEventId, object, 0, caller), taskTime, priority);
     }
 
     /**
@@ -791,12 +828,13 @@ public:
      * @param taskTime Process the event at taskTime.
      * @param name Name of the task.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostTimingTask(const Callback &callback, int64_t taskTime, const std::string &name = std::string(),
-        Priority priority = Priority::LOW, Caller caller = {})
+                               Priority priority = Priority::LOW, const Caller &caller = {})
     {
-        return SendTimingEvent(InnerEvent::Get(callback, name.empty() ? caller.ToString() : name), taskTime, priority);
+        return SendTimingEvent(InnerEvent::Get(callback, name, caller), taskTime, priority);
     }
 
     /**
@@ -805,12 +843,13 @@ public:
      * @param callback Task callback.
      * @param taskTime Process the event at taskTime.
      * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
      * @return Returns true if task has been sent successfully.
      */
     inline bool PostTimingTask(const Callback &callback, int64_t taskTime, Priority priority = Priority::LOW,
-                               Caller caller = {})
+                               const Caller &caller = {})
     {
-        return PostTimingTask(callback, taskTime, caller.ToString(), priority);
+        return PostTimingTask(callback, taskTime, std::string(), priority, caller);
     }
 
     /**

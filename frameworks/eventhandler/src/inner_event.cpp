@@ -167,18 +167,19 @@ InnerEvent::Pointer InnerEvent::Get()
     return event;
 }
 
-InnerEvent::Pointer InnerEvent::Get(uint32_t innerEventId, int64_t param)
+InnerEvent::Pointer InnerEvent::Get(uint32_t innerEventId, int64_t param, const Caller &caller)
 {
     auto event = InnerEventPool::GetInstance().Get();
     if (event != nullptr) {
         event->innerEventId_ = innerEventId;
         event->param_ = param;
-        HILOGD("innerEventId is %{public}u", innerEventId);
+        event->caller_ = caller;
+        HILOGD("innerEventId is %{public}u, caller is %{public}s", innerEventId, caller.ToString().c_str());
     }
     return event;
 }
 
-InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string &name)
+InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string &name, const Caller &caller)
 {
     // Returns nullptr while callback is invalid.
     if (!callback) {
@@ -190,7 +191,8 @@ InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string 
     if (event != nullptr) {
         event->taskCallback_ = callback;
         event->taskName_ = name;
-        HILOGD("event taskName is %{public}s", name.c_str());
+        event->caller_ = caller;
+        HILOGD("event taskName is '%{public}s', caller is %{public}s", name.c_str(), caller.ToString().c_str());
     }
     return event;
 }
@@ -207,6 +209,7 @@ void InnerEvent::ClearEvent()
         // Clear members for task
         taskCallback_ = nullptr;
         taskName_.clear();
+        caller_ = {};
     } else {
         // Clear members for event
         if (smartPtrDtor_) {
@@ -301,6 +304,7 @@ std::string InnerEvent::Dump()
         if (param_ != 0) {
             content.append(", param = " + std::to_string(param_));
         }
+        content.append(", caller = " + caller_.ToString());
     } else {
         content.append("No handler");
     }
