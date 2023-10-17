@@ -23,7 +23,7 @@ ohos_shared_library("eventhandler_native") {
     cfi_cross_dso = true
     debug = false
   }
-  stack_protector_ret = true
+  branch_protector_ret = "pac_ret"
 
   sources = [ "src/native_interface_eventhandler.cpp" ]
 
