@@ -289,9 +289,6 @@ public:
     {
         HILOGD("enter");
         queue_ = std::make_shared<EventQueue>();
-        if (SetThreadInfoCallback != nullptr) {
-            SetThreadInfoCallback(CrashCallback);
-        }
     }
 
     ~EventRunnerImpl() final
@@ -304,6 +301,9 @@ public:
     static void ThreadMain(const std::weak_ptr<EventRunnerImpl> &wp)
     {
         HILOGD("enter");
+        if (SetThreadInfoCallback != nullptr) {
+            SetThreadInfoCallback(CrashCallback);
+        }
         std::shared_ptr<EventRunnerImpl> inner = wp.lock();
         if (inner) {
             HILOGD("Start running for thread '%{public}s'", inner->threadName_.c_str());
