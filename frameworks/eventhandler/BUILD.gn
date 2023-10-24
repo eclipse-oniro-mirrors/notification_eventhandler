@@ -35,7 +35,7 @@ ohos_shared_library("libeventhandler") {
     cfi_cross_dso = true
     debug = false
   }
-  branch_protector_ret = "pac_ret"
+  stack_protector_ret = true
 
   all_dependent_configs = [ ":libeventhandler_config" ]
   cflags_cc = []
