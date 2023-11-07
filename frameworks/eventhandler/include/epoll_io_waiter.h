@@ -50,7 +50,9 @@ public:
     void RemoveFileDescriptor(int32_t fileDescriptor) final;
 
     void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
-
+    void InsertTaskNameMap(int32_t fileDescriptor, const std::string& taskName);
+    void EraseTaskNameMap(int32_t fileDescriptor);
+    std::string GetTaskNameMap(int32_t fileDescriptor);
 private:
     void DrainAwakenPipe() const;
 
@@ -58,7 +60,7 @@ private:
     int32_t epollFd_{-1};
     // File descriptor used to wake up epoll.
     int32_t awakenFd_{-1};
-
+    std::mutex taskNameMapLock;
     FileDescriptorEventCallback callback_;
     std::atomic<uint32_t> waitingCount_{0};
     std::map<int32_t, std::string> taskNameMap_;
