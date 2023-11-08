@@ -17,6 +17,7 @@
 
 #include <chrono>
 
+#include <mutex>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
@@ -162,9 +163,9 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
             if ((epollEvents[i].events & (EPOLLERR)) != 0) {
                 events |= FILE_DESCRIPTOR_EXCEPTION_EVENT;
             }
-
+            std::string taskName = GetTaskNameMap(epollEvents[i].data.fd);
             if (callback_) {
-                callback_(epollEvents[i].data.fd, events, taskNameMap_[epollEvents[i].data.fd]);
+                callback_(epollEvents[i].data.fd, events, taskName);
             }
         }
     }
@@ -233,8 +234,7 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, c
         HILOGE("Failed to add file descriptor into epoll, %{public}s", errmsg);
         return false;
     }
-
-    taskNameMap_.emplace(fileDescriptor, taskName);
+    InsertTaskNameMap(fileDescriptor, taskName);
     return true;
 }
 
@@ -256,8 +256,7 @@ void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
         HILOGE("Failed to remove file descriptor from epoll, %{public}s", errmsg);
         return;
     }
-
-    taskNameMap_.erase(fileDescriptor);
+    EraseTaskNameMap(fileDescriptor);
 }
 
 void EpollIoWaiter::DrainAwakenPipe() const
@@ -274,6 +273,29 @@ void EpollIoWaiter::DrainAwakenPipe() const
 void EpollIoWaiter::SetFileDescriptorEventCallback(const IoWaiter::FileDescriptorEventCallback &callback)
 {
     callback_ = callback;
+}
+
+
+void EpollIoWaiter::InsertTaskNameMap(int32_t fileDescriptor, const std::string& taskName)
+{
+    std::lock_guard<std::mutex> lock(taskNameMapLock);
+    taskNameMap_.emplace(fileDescriptor, taskName);
+}
+
+void EpollIoWaiter::EraseTaskNameMap(int32_t fileDescriptor)
+{
+    std::lock_guard<std::mutex> lock(taskNameMapLock);
+    taskNameMap_.erase(fileDescriptor);
+}
+
+std::string EpollIoWaiter::GetTaskNameMap(int32_t fileDescriptor)
+{
+    std::lock_guard<std::mutex> lock(taskNameMapLock);
+    auto it = taskNameMap_.find(fileDescriptor);
+    if (it == taskNameMap_.end()) {
+        return std::string();
+    }
+    return it->second;
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS
