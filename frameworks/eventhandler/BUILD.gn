@@ -34,6 +34,7 @@ ohos_shared_library("libeventhandler") {
     cfi = true
     cfi_cross_dso = true
     debug = false
+    blocklist = "./handler_blocklist.txt"
   }
   stack_protector_ret = true
 
