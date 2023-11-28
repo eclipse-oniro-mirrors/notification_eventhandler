@@ -70,11 +70,26 @@ static inline bool AllowHiTraceOutPut(const std::shared_ptr<HiTraceId>& traceId,
     return true;
 }
 
+static inline void HiTracePointerOutPutEventId(const std::shared_ptr<HiTraceId> &spanId, const char *action,
+    HiTraceTracepointType type, const InnerEvent::EventId &innerEventId)
+{
+    if (spanId == nullptr || action == nullptr) {
+        return;
+    }
+    if (innerEventId.index() == TYPE_U32_INDEX) {
+        HiTraceChain::Tracepoint(type, *spanId, "%s event, event id: %u", action, std::get<uint32_t>(innerEventId));
+    } else {
+        HiTraceChain::Tracepoint(
+            type, *spanId, "%s event, event id: %s", action, std::get<std::string>(innerEventId).c_str());
+    }
+}
+
 static inline void HiTracePointerOutPut(const std::shared_ptr<HiTraceId>& spanId,
     const InnerEvent::Pointer& event, const char* action, HiTraceTracepointType type)
 {
     if (!event->HasTask()) {
-        HiTraceChain::Tracepoint(type, *spanId, "%s event, event id: %d", action, event->GetInnerEventId());
+        auto eventId = event->GetInnerEventIdEx();
+        HiTracePointerOutPutEventId(spanId, action, type, eventId);
     } else if (!event->GetTaskName().empty()) {
         HiTraceChain::Tracepoint(type, *spanId, "%s task with name, name: %s", action, event->GetTaskName().c_str());
     } else {

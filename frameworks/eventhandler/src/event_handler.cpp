@@ -400,7 +400,12 @@ std::string EventHandler::GetEventName(const InnerEvent::Pointer &event)
     if (event->HasTask()) {
         eventName = event->GetTaskName();
     } else {
-        eventName = std::to_string(event->GetInnerEventId());
+        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+        if (eventId.index() == TYPE_U32_INDEX) {
+            eventName = std::to_string(std::get<uint32_t>(eventId));
+        } else {
+            eventName = std::get<std::string>(eventId);
+        }
     }
     return eventName;
 }

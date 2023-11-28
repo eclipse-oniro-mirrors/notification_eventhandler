@@ -179,6 +179,26 @@ InnerEvent::Pointer InnerEvent::Get(uint32_t innerEventId, int64_t param, const 
     return event;
 }
 
+InnerEvent::Pointer InnerEvent::Get(const EventId &innerEventId, int64_t param, const Caller &caller)
+{
+    auto event = InnerEventPool::GetInstance().Get();
+    if (event != nullptr) {
+        event->innerEventId_ = innerEventId;
+        event->param_ = param;
+        event->caller_ = caller;
+        if (innerEventId.index() == TYPE_U32_INDEX) {
+            HILOGD("innerEventId is %{public}u, caller is %{public}s",
+                std::get<uint32_t>(innerEventId),
+                caller.ToString().c_str());
+        } else {
+            HILOGD("innerEventId is %{public}s, caller is %{public}s",
+                std::get<std::string>(innerEventId).c_str(),
+                caller.ToString().c_str());
+        }
+    }
+    return event;
+}
+
 InnerEvent::Pointer InnerEvent::Get(const Callback &callback, const std::string &name, const Caller &caller)
 {
     // Returns nullptr while callback is invalid.
@@ -299,7 +319,11 @@ std::string InnerEvent::Dump()
         if (HasTask()) {
             content.append(", task name = " + taskName_);
         } else {
-            content.append(", id = " + std::to_string(innerEventId_));
+            if (innerEventId_.index() == TYPE_U32_INDEX) {
+                content.append(", id = " + std::to_string(std::get<uint32_t>(innerEventId_)));
+            } else {
+                content.append(", id = " + std::get<std::string>(innerEventId_));
+            }
         }
         if (param_ != 0) {
             content.append(", param = " + std::to_string(param_));

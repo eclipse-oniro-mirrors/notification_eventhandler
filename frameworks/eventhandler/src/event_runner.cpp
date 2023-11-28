@@ -350,7 +350,13 @@ public:
                 std::shared_ptr<Logger> logging = logger_;
                 if (logging != nullptr) {
                     if (!event->HasTask()) {
-                        logging->Log("Dispatching to handler event id = " + std::to_string(event->GetInnerEventId()));
+                        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+                        if (eventId.index() == TYPE_U32_INDEX) {
+                            logging->Log(
+                                "Dispatching to handler event id = " + std::to_string(std::get<uint32_t>(eventId)));
+                        } else {
+                            logging->Log("Dispatching to handler event id = " + std::get<std::string>(eventId));
+                        }
                     } else {
                         logging->Log("Dispatching to handler event task name = " + event->GetTaskName());
                     }
@@ -407,7 +413,12 @@ private:
         if (event->HasTask()) {
             g_currentEventName = event->GetTaskName();
         } else {
-            g_currentEventName = std::to_string(event->GetInnerEventId());
+            InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+            if (eventId.index() == TYPE_U32_INDEX) {
+                g_currentEventName = std::to_string(std::get<uint32_t>(eventId));
+            } else {
+                g_currentEventName = std::get<std::string>(eventId);
+            }
         }
     }
 
