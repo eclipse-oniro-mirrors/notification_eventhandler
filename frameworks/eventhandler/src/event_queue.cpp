@@ -579,6 +579,15 @@ bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
     return true;
 }
 
+void EventQueue::DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content)
+{
+    if (innerEventId.index() == TYPE_U32_INDEX) {
+        content.append(", id = " + std::to_string(std::get<uint32_t>(innerEventId)));
+    } else {
+        content.append(", id = " + std::get<std::string>(innerEventId));
+    }
+}
+
 std::string EventQueue::DumpCurrentRunning()
 {
     std::string content;
@@ -594,7 +603,7 @@ std::string EventQueue::DumpCurrentRunning()
             if (currentRunningEvent_.hasTask_) {
                 content.append(", task name = " + currentRunningEvent_.taskName_);
             } else {
-                content.append(", id = " + std::to_string(currentRunningEvent_.innerEventId_));
+                DumpCurrentRunningEventId(currentRunningEvent_.innerEventId_, content);
             }
             if (currentRunningEvent_.param_ != 0) {
                 content.append(", param = " + std::to_string(currentRunningEvent_.param_));
@@ -722,7 +731,7 @@ void EventQueue::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &eve
         historyEvents_[historyEventIndex_].hasTask = true;
         historyEvents_[historyEventIndex_].taskName = event->GetTaskName();
     } else {
-        historyEvents_[historyEventIndex_].innerEventId = event->GetInnerEventId();
+        historyEvents_[historyEventIndex_].innerEventId = event->GetInnerEventIdEx();
     }
 }
 
@@ -746,7 +755,7 @@ std::string EventQueue::HistoryQueueDump(const HistoryEvent &historyEvent)
     if (historyEvent.hasTask) {
         content.append(", task name = " + historyEvent.taskName);
     } else {
-        content.append(", id = " + std::to_string(historyEvent.innerEventId));
+        DumpCurrentRunningEventId(historyEvent.innerEventId, content);
     }
     content.append(" }" + LINE_SEPARATOR);
 
@@ -770,7 +779,7 @@ CurrentRunningEvent::CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent:
         hasTask_ = true;
         taskName_ = event->GetTaskName();
     } else {
-        innerEventId_ = event->GetInnerEventId();
+        innerEventId_ = event->GetInnerEventIdEx();
     }
 }
 

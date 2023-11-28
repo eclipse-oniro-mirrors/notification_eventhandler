@@ -24,9 +24,10 @@ namespace OHOS {
 namespace AppExecFwk {
 namespace {
     DEFINE_EH_HILOG_LABEL("EventsEmitter");
+    constexpr static uint32_t ARGC_ONE = 1u;
 }
     static std::mutex emitterInsMutex;
-    static map<uint32_t, std::vector<AsyncCallbackInfo *>> emitterInstances;
+    static map<InnerEvent::EventId, std::vector<AsyncCallbackInfo *>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
     {
@@ -38,7 +39,7 @@ namespace {
     }
     std::shared_ptr<EventHandlerInstance> EventHandlerInstance::GetInstance()
     {
-        static auto runner = EventRunner::Create("OS_eventsEmtr");
+        static auto runner = EventRunner::Create("events_emitter");
         if (runner.get() == nullptr) {
             HILOGE("failed to create EventRunner events_emitter");
             return nullptr;
@@ -112,10 +113,19 @@ namespace {
         callbackInner->processed = true;
     }
 
+    void OutPutEventIdLog(const InnerEvent::EventId &eventId)
+    {
+        if (eventId.index() == TYPE_U32_INDEX) {
+            HILOGD("Event id value:%{public}u", std::get<uint32_t>(eventId));
+        } else {
+            HILOGD("Event id value:%{public}s", std::get<std::string>(eventId).c_str());
+        }
+    }
+
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
-        uint32_t eventId = event->GetInnerEventId();
-        HILOGD("eventId = %{public}d", eventId);
+        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+        OutPutEventIdLog(eventId);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
@@ -199,7 +209,7 @@ namespace {
         }
     }
 
-    AsyncCallbackInfo* SearchCallbackInfo(napi_env env, uint32_t eventIdValue, napi_value argv)
+    AsyncCallbackInfo *SearchCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
     {
         auto subscribe = emitterInstances.find(eventIdValue);
         if (subscribe == emitterInstances.end()) {
@@ -224,6 +234,40 @@ namespace {
         return nullptr;
     }
 
+    bool GetEventIdWithObjectOrString(
+        napi_env env, napi_value argv, napi_valuetype eventValueType, InnerEvent::EventId &eventId)
+    {
+        if (eventValueType == napi_string) {
+            size_t valueStrBufLength = 0;
+            napi_get_value_string_utf8(env, argv, nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
+            auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
+            size_t valueStrLength = 0;
+            napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
+            std::string id(valueCStr.get(), valueStrLength);
+            if (id.empty()) {
+                HILOGE("Event id is empty for argument 1.");
+                return false;
+            }
+            eventId = id;
+            HILOGD("Event id value:%{public}s", id.c_str());
+        } else {
+            bool hasEventId = false;
+            napi_has_named_property(env, argv, "eventId", &hasEventId);
+            if (!hasEventId) {
+                HILOGE("Argument 1 does not have event id.");
+                return false;
+            }
+
+            napi_value eventIdValue = nullptr;
+            napi_get_named_property(env, argv, "eventId", &eventIdValue);
+            uint32_t id = 0u;
+            napi_get_value_uint32(env, eventIdValue, &id);
+            eventId = id;
+            HILOGD("Event id value:%{public}u", id);
+        }
+        return true;
+    }
+
     napi_value OnOrOnce(napi_env env, napi_callback_info cbinfo, bool once)
     {
         size_t argc = ARGC_NUM;
@@ -236,7 +280,7 @@ namespace {
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
-        if (eventValueType != napi_object) {
+        if (eventValueType != napi_object && eventValueType != napi_string) {
             HILOGE("type mismatch for parameter 1");
             return nullptr;
         }
@@ -248,18 +292,11 @@ namespace {
             return nullptr;
         }
 
-        bool hasEventId = false;
-        napi_value eventId;
-        napi_has_named_property(env, argv[0], "eventId", &hasEventId);
-        if (hasEventId == false) {
-            HILOGE("Wrong argument 1");
+        InnerEvent::EventId eventIdValue = 0u;
+        bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, eventIdValue);
+        if (!ret) {
             return nullptr;
         }
-
-        napi_get_named_property(env, argv[0], "eventId", &eventId);
-        uint32_t eventIdValue;
-        napi_get_value_uint32(env, eventId, &eventIdValue);
-        HILOGD("OnOrOnce eventIdValue:%{public}d", eventIdValue);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(env, eventIdValue, argv[1]);
         if (callbackInfo != nullptr) {
@@ -276,6 +313,30 @@ namespace {
             emitterInstances[eventIdValue].push_back(callbackInfo);
         }
         return nullptr;
+    }
+
+    bool GetEventIdWithNumberOrString(
+        napi_env env, napi_value argv, napi_valuetype eventValueType, InnerEvent::EventId &eventId)
+    {
+        if (eventValueType == napi_string) {
+            size_t valueStrBufLength = 0;
+            napi_get_value_string_utf8(env, argv, nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
+            auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
+            size_t valueStrLength = 0;
+            napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
+            std::string id(valueCStr.get(), valueStrLength);
+            if (id.empty()) {
+                return false;
+            }
+            eventId = id;
+            HILOGD("Event id value:%{public}s", id.c_str());
+        } else {
+            uint32_t id = 0u;
+            napi_get_value_uint32(env, argv, &id);
+            eventId = id;
+            HILOGD("Event id value:%{public}u", id);
+        }
+        return true;
     }
 
     napi_value JS_On(napi_env env, napi_callback_info cbinfo)
@@ -303,13 +364,17 @@ namespace {
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
-        if (eventValueType != napi_number) {
+        if (eventValueType != napi_number && eventValueType != napi_string) {
             HILOGE("type mismatch for parameter 1");
             return nullptr;
         }
 
-        uint32_t eventId;
-        napi_get_value_uint32(env, argv[0], &eventId);
+        InnerEvent::EventId eventId = 0u;
+        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
+        if (!ret) {
+            HILOGE("Event id is empty for parameter 1.");
+            return nullptr;
+        }
         std::lock_guard<std::mutex> lock(emitterInsMutex);
 
         if (argc == ARGC_NUM) {
@@ -369,7 +434,7 @@ namespace {
         return true;
     }
 
-    bool EmitWithEventData(napi_env env, napi_value argv, uint32_t eventId, Priority priority)
+    bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId &eventId, Priority priority)
     {
         HILOGD("enter");
         napi_valuetype dataType;
@@ -418,7 +483,7 @@ namespace {
             }
 
             if (hasEventData) {
-                HILOGD("sendevent with eventData id:%{public}d", eventId);
+                OutPutEventIdLog(eventId);
                 auto event = InnerEvent::Get(eventId, make_unique<EventData>(eventData));
                 eventHandler->SendEvent(event, 0, priority);
                 return true;
@@ -427,7 +492,7 @@ namespace {
         return false;
     }
 
-    bool IsExistValidCallback(napi_env env, uint32_t eventId)
+    bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)
     {
         std::lock_guard<std::mutex> lock(emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
@@ -445,39 +510,25 @@ namespace {
         return false;
     }
 
-    napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
+    napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
     {
-        HILOGD("enter");
-        size_t argc = ARGC_NUM;
-        napi_value argv[ARGC_NUM] = {0};
-        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-        if (argc < 1) {
-            HILOGE("requires more than 1 parameter");
-            return nullptr;
-        }
-
-        napi_valuetype eventValueType;
-        napi_typeof(env, argv[0], &eventValueType);
-        if (eventValueType != napi_object) {
-            HILOGE("type mismatch for parameter 1");
-            return nullptr;
-        }
-
+        InnerEvent::EventId eventId = 0u;
         bool hasEventId = false;
-        napi_value value;
+        napi_value value = nullptr;
         napi_has_named_property(env, argv[0], "eventId", &hasEventId);
         if (hasEventId == false) {
-            HILOGE("Wrong argument 1");
+            HILOGE("Wrong argument 1 does not have event id.");
             return nullptr;
         }
 
         napi_get_named_property(env, argv[0], "eventId", &value);
-        uint32_t eventId;
-        napi_get_value_uint32(env, value, &eventId);
-        HILOGD("JS_Emit eventIdValue:%{public}d", eventId);
+        uint32_t id = 0u;
+        napi_get_value_uint32(env, value, &id);
+        eventId = id;
+        HILOGD("Event id value:%{public}u", id);
 
         if (!IsExistValidCallback(env, eventId)) {
-            HILOGE("JS_Emit has no valid callback");
+            HILOGE("Invalid callback");
             return nullptr;
         }
 
@@ -486,20 +537,97 @@ namespace {
         Priority priority = Priority::LOW;
         if (hasPriority) {
             napi_get_named_property(env, argv[0], "priority", &value);
-            uint32_t priorityValue;
+            uint32_t priorityValue = 0u;
             napi_get_value_uint32(env, value, &priorityValue);
-            HILOGD("JS_Emit priority:%{public}d", priorityValue);
+            HILOGD("Event priority:%{public}d", priorityValue);
             priority = static_cast<Priority>(priorityValue);
         }
 
         if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], eventId, priority)) {
             return nullptr;
         } else {
-            HILOGD("JS_Emit sendevent without id:%{public}d", eventId);
+            auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            eventHandler->SendEvent(event, 0, priority);
+        }
+        return nullptr;
+    }
+
+    napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
+    {
+        InnerEvent::EventId eventId = 0u;
+        size_t valueStrBufLength = 0;
+        napi_get_value_string_utf8(env, argv[0], nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
+        auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
+        size_t valueStrLength = 0;
+        napi_get_value_string_utf8(env, argv[0], valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
+        std::string id(valueCStr.get(), valueStrLength);
+        if (id.empty()) {
+            HILOGE("Invalid event id:%{public}s", id.c_str());
+            return nullptr;
+        }
+        eventId = id;
+        HILOGD("Event id value:%{public}s", id.c_str());
+
+        if (!IsExistValidCallback(env, eventId)) {
+            HILOGE("Invalid callback");
+            return nullptr;
+        }
+
+        Priority priority = Priority::LOW;
+        if (argc < ARGC_NUM) {
             auto event = InnerEvent::Get(eventId, make_unique<EventData>());
             eventHandler->SendEvent(event, 0, priority);
             return nullptr;
         }
+
+        bool hasPriority = false;
+        napi_value value = nullptr;
+        napi_has_named_property(env, argv[1], "priority", &hasPriority);
+        if (!hasPriority) {
+            if (!EmitWithEventData(env, argv[1], eventId, priority)) {
+                auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+                eventHandler->SendEvent(event, 0, priority);
+            }
+            return nullptr;
+        }
+
+        napi_get_named_property(env, argv[1], "priority", &value);
+        uint32_t priorityValue = 0u;
+        napi_get_value_uint32(env, value, &priorityValue);
+        HILOGD("Event priority:%{public}d", priorityValue);
+        priority = static_cast<Priority>(priorityValue);
+
+        if (argc > ARGC_NUM && EmitWithEventData(env, argv[ARGC_NUM], eventId, priority)) {
+            return nullptr;
+        } else {
+            auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            eventHandler->SendEvent(event, 0, priority);
+        }
+        return nullptr;
+    }
+
+    napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
+    {
+        HILOGD("enter");
+        size_t argc = ARGC_NUM + ARGC_ONE;
+        napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
+        if (argc < ARGC_ONE) {
+            HILOGE("Requires more than 1 parameter");
+            return nullptr;
+        }
+
+        napi_valuetype eventValueType;
+        napi_typeof(env, argv[0], &eventValueType);
+        if (eventValueType != napi_object && eventValueType != napi_string) {
+            HILOGE("Type mismatch for parameter 1");
+            return nullptr;
+        }
+
+        if (eventValueType == napi_string) {
+            return EmitWithEventIdString(env, argc, argv);
+        }
+        return EmitWithEventIdUint32(env, argc, argv);
     }
 
     napi_value EnumEventClassConstructor(napi_env env, napi_callback_info info)
@@ -542,6 +670,57 @@ namespace {
         return exports;
     }
 
+    napi_value CreateJsUndefined(napi_env env)
+    {
+        napi_value result = nullptr;
+        napi_get_undefined(env, &result);
+        return result;
+    }
+
+    napi_value CreateJsNumber(napi_env env, uint32_t value)
+    {
+        napi_value result = nullptr;
+        napi_create_uint32(env, value, &result);
+        return result;
+    }
+
+    napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
+    {
+        HILOGD("enter");
+        size_t argc = ARGC_NUM;
+        napi_value argv[ARGC_NUM] = {0};
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
+        if (argc < ARGC_ONE) {
+            HILOGE("Requires more than 1 parameter");
+            return CreateJsUndefined(env);
+        }
+
+        napi_valuetype eventValueType;
+        napi_typeof(env, argv[0], &eventValueType);
+        if (eventValueType != napi_number && eventValueType != napi_string) {
+            HILOGE("Type mismatch for parameter 1");
+            return CreateJsUndefined(env);
+        }
+
+        uint32_t cnt = 0u;
+        InnerEvent::EventId eventId = 0u;
+        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
+        if (!ret) {
+            HILOGE("Event id is empty for parameter 1.");
+            return CreateJsUndefined(env);
+        }
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        auto subscribe = emitterInstances.find(eventId);
+        if (subscribe != emitterInstances.end()) {
+            for (auto callbackInfo : subscribe->second) {
+                if (!callbackInfo->isDeleted) {
+                    ++cnt;
+                }
+            }
+        }
+        return CreateJsNumber(env, cnt);
+    }
+
     napi_value EmitterInit(napi_env env, napi_value exports)
     {
         HILOGD("enter");
@@ -550,6 +729,7 @@ namespace {
             DECLARE_NAPI_FUNCTION("once", JS_Once),
             DECLARE_NAPI_FUNCTION("off", JS_Off),
             DECLARE_NAPI_FUNCTION("emit", JS_Emit),
+            DECLARE_NAPI_FUNCTION("getListenerCount", JS_GetListenerCount),
         };
         NAPI_CALL(env, napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc));
 

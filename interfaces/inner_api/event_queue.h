@@ -40,7 +40,7 @@ struct CurrentRunningEvent {
     int64_t param_{0};
     bool hasTask_{false};
     std::string taskName_;
-    uint32_t innerEventId_{0};
+    InnerEvent::EventId innerEventId_ = 0u;
     CurrentRunningEvent();
     CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event);
 };
@@ -232,7 +232,7 @@ private:
     struct HistoryEvent {
         uint64_t senderKernelThreadId{0};
         std::string taskName;
-        uint32_t innerEventId{0};
+        InnerEvent::EventId innerEventId = 0u;
         bool hasTask{false};
         InnerEvent::TimePoint sendTime;
         InnerEvent::TimePoint handleTime;
@@ -264,6 +264,7 @@ private:
     bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
     std::string HistoryQueueDump(const HistoryEvent &historyEvent);
     std::string DumpCurrentRunning();
+    void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
