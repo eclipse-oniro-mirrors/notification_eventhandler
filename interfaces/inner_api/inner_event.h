@@ -418,7 +418,7 @@ private:
     template<typename T>
     inline void SaveSharedPtr(const T &object)
     {
-        smartPtr_ = new T(object);
+        smartPtr_ = new (std::nothrow) T(object);
         smartPtrDtor_ = ReleaseSmartPtr<T>;
         smartPtrTypeId_ = CalculateSmartPtrTypeId(object);
     }
@@ -426,7 +426,7 @@ private:
     template<typename T>
     inline void SaveUniquePtr(T &object)
     {
-        smartPtr_ = new T(std::move(object));
+        smartPtr_ = new (std::nothrow) T(std::move(object));
         smartPtrDtor_ = ReleaseSmartPtr<T>;
         smartPtrTypeId_ = CalculateSmartPtrTypeId(object);
     }

@@ -128,12 +128,12 @@ EventRunnerNativeImplement::~EventRunnerNativeImplement()
 
 const EventRunnerNativeImplement *EventRunnerNativeImplement::GetEventRunnerNativeObj()
 {
-    return new EventRunnerNativeImplement(true);
+    return new (std::nothrow) EventRunnerNativeImplement(true);
 }
 
 const EventRunnerNativeImplement *EventRunnerNativeImplement::CreateEventRunnerNativeObj()
 {
-    return new EventRunnerNativeImplement(false);
+    return new (std::nothrow) EventRunnerNativeImplement(false);
 }
 
 ErrCode EventRunnerNativeImplement::RunEventRunnerNativeObj() const
