@@ -762,6 +762,15 @@ std::string EventQueue::HistoryQueueDump(const HistoryEvent &historyEvent)
     return content;
 }
 
+std::string EventQueue::DumpCurrentQueueSize()
+{
+    return "Current queue size: IMMEDIATE = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::IMMEDIATE)].queue.size()) + ", HIGH = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::HIGH)].queue.size()) + ", LOW = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::LOW)].queue.size()) + ", IDLE = " +
+    std::to_string(idleEvents_.size()) + " ;";
+}
+
 CurrentRunningEvent::CurrentRunningEvent()
 {
     beginTime_ = InnerEvent::TimePoint::max();

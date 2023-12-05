@@ -321,8 +321,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     currentEventHandler = shared_from_this();
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
-        HILOGD("%{public}s", currentRunningInfo.c_str());
+        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump() +
+        eventRunner_->GetEventQueue()->DumpCurrentQueueSize();
     }
 
     auto spanId = event->GetTraceId();
