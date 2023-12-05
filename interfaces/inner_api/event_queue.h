@@ -225,6 +225,8 @@ public:
     void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event);
 
     void PushHistoryQueueAfterDistribute();
+
+    std::string DumpCurrentQueueSize();
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
