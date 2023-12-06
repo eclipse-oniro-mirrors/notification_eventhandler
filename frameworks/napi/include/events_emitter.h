@@ -62,6 +62,7 @@ struct AsyncCallbackInfo {
     napi_env env;
     bool once = false;
     bool isDeleted = false;
+    bool processed = false;
     napi_ref callback = 0;
 };
 
