@@ -66,9 +66,10 @@ struct AsyncCallbackInfo {
     napi_ref callback = 0;
 };
 
-using EventData = std::map<std::string, Val>;
+using EventData = napi_value;
 struct EventDataWorker {
     EventData data;
+    bool isLastCallback = false;
     AsyncCallbackInfo* callbackInfo;
 };
 

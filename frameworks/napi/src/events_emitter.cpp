@@ -15,9 +15,12 @@
 
 #include "events_emitter.h"
 
+#include <memory>
 #include <uv.h>
 
 #include "event_logger.h"
+#include "js_native_api_types.h"
+#include "napi/native_node_api.h"
 
 using namespace std;
 namespace OHOS {
@@ -48,36 +51,6 @@ namespace {
         return instance;
     }
 
-    void TransToEventData(napi_env env, EventData eventData, napi_value resultData)
-    {
-        napi_value data = nullptr;
-        napi_create_object(env, &data);
-        for (map<string, Val>::iterator it = eventData.begin(); it != eventData.end(); ++it) {
-            string key = it->first;
-            Val val = it->second;
-            napi_value napiValue = nullptr;
-            switch (val.type) {
-                case DataType::BOOL:
-                    HILOGD("ProcessEvent key:%{public}s value:%{public}d", key.c_str(), val.value.bValue);
-                    napi_get_boolean(env, val.value.bValue, &napiValue);
-                    break;
-                case DataType::INT:
-                    HILOGD("ProcessEvent key:%{public}s value:%{public}d", key.c_str(), val.value.nValue);
-                    napi_create_int32(env, val.value.nValue, &napiValue);
-                    break;
-                case DataType::STRING:
-                    HILOGD("ProcessEvent key:%{public}s value:%{public}s", key.c_str(), val.value.cValue);
-                    napi_create_string_utf8(env, val.value.cValue, NAPI_AUTO_LENGTH, &napiValue);
-                    break;
-                default:
-                    HILOGE("ProcessEvent unsupport type data");
-                    break;
-            }
-            napi_set_named_property(env, data, key.c_str(), napiValue);
-        }
-        napi_set_named_property(env, resultData, "data", data);
-    }
-
     void ProcessCallback(const EventDataWorker* eventDataInner)
     {
         HILOGD("enter");
@@ -95,13 +68,19 @@ namespace {
             }
         } else {
             napi_value resultData = nullptr;
-            napi_create_object(callbackInner->env, &resultData);
-            TransToEventData(callbackInner->env, eventDataInner->data, resultData);
-
+            if (eventDataInner->data != nullptr) {
+                if (napi_deserialize(callbackInner->env, eventDataInner->data, &resultData) != napi_ok || resultData == nullptr) {
+                    HILOGF("Deserialize fail.");
+                    return;
+                }
+            }
+            napi_value event = nullptr;
+            napi_create_object(callbackInner->env, &event);
+            napi_set_named_property(callbackInner->env, event, "data", resultData);
             napi_value callback = nullptr;
             napi_value returnVal = nullptr;
             napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
-            napi_call_function(callbackInner->env, nullptr, callback, 1, &resultData, &returnVal);
+            napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
             if (callbackInner->once) {
                 HILOGD("ProcessEvent delete once");
                 std::lock_guard<std::mutex> lock(emitterInsMutex);
@@ -111,6 +90,9 @@ namespace {
             }
         }
         callbackInner->processed = true;
+        if (eventDataInner->isLastCallback) {
+            napi_delete_serialization_data(callbackInner->env, eventDataInner->data);
+        }
     }
 
     void OutPutEventIdLog(const InnerEvent::EventId &eventId)
@@ -132,10 +114,13 @@ namespace {
             HILOGW("ProcessEvent has no callback");
             return;
         }
-
         auto& callbackInfos = subscribe->second;
         HILOGD("size = %{public}zu", callbackInfos.size());
-        EventData eventData = *(event->GetUniqueObject<EventData>());
+        napi_value eventData = nullptr;
+        auto value = event->GetUniqueObject<napi_value>();
+        if (value != nullptr) {
+            eventData = *value;
+        }
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
@@ -143,10 +128,12 @@ namespace {
                 HILOGE("new object failed");
                 continue;
             }
-
+            auto tempIter = iter + 1;
+            if (tempIter == callbackInfos.end()) {
+                eventDataWorker->isLastCallback = true;
+            }
             eventDataWorker->data = eventData;
             eventDataWorker->callbackInfo = callbackInfo;
-
             uv_loop_s *loop = nullptr;
             napi_get_uv_event_loop(callbackInfo->env, &loop);
             uv_work_t *work = new (std::nothrow) uv_work_t;
@@ -168,7 +155,6 @@ namespace {
             } else {
                 ++iter;
             }
-
             work->data = reinterpret_cast<void *>(eventDataWorker);
             uv_queue_work_with_qos(loop, work, [](uv_work_t *work) {},
                 [](uv_work_t *work, int status) {
@@ -401,39 +387,6 @@ namespace {
         return nullptr;
     }
 
-    bool ParseEventData(napi_env env, napi_value key, napi_value data, Val* &val, char keyChars[NAPI_VALUE_STRING_LEN])
-    {
-        napi_valuetype valueType;
-        napi_typeof(env, key, &valueType);
-        if (valueType != napi_valuetype::napi_string) {
-            HILOGE("param is discarded because the key type of the event params must be String.");
-            return false;
-        }
-
-        size_t keyLength = 0;
-        napi_get_value_string_utf8(env, key, keyChars, NAPI_VALUE_STRING_LEN, &keyLength);
-        napi_value value = nullptr;
-        napi_get_named_property(env, data, keyChars, &value);
-        napi_typeof(env, value, &valueType);
-        if (valueType == napi_valuetype::napi_boolean) {
-            val->type = DataType::BOOL;
-            napi_get_value_bool(env, value, &(val->value.bValue));
-            HILOGD("key:%{public}s value=%{public}d.", keyChars, val->value.bValue);
-        } else if (valueType == napi_valuetype::napi_number) {
-            val->type = DataType::INT;
-            napi_get_value_int32(env, value, &(val->value.nValue));
-            HILOGD("key:%{public}s value=%{public}d.", keyChars, val->value.nValue);
-        } else if (valueType == napi_valuetype::napi_string) {
-            napi_get_value_string_utf8(env, value, val->value.cValue, NAPI_VALUE_STRING_LEN, &keyLength);
-            val->type = DataType::STRING;
-            HILOGD("key:%{public}s value=%{public}s.", keyChars, val->value.cValue);
-        } else {
-            HILOGE("param=%{public}s is discarded because the value type is invalid.", keyChars);
-            return false;
-        }
-        return true;
-    }
-
     bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId &eventId, Priority priority)
     {
         HILOGD("enter");
@@ -443,53 +396,19 @@ namespace {
             HILOGE("type mismatch for parameter 2");
             return false;
         }
-
-        bool hasData = false;
-        napi_has_named_property(env, argv, "data", &hasData);
-        if (hasData) {
-            napi_value data = nullptr;
-            napi_get_named_property(env, argv, "data", &data);
-
-            napi_value keyArr = nullptr;
-            if (napi_get_property_names(env, data, &keyArr) != napi_ok) {
-                HILOGE("can not get property names");
-                return false;
-            }
-            uint32_t len = 0;
-            if (napi_get_array_length(env, keyArr, &len) != napi_ok) {
-                HILOGE("can not get array length");
-                return false;
-            }
-
-            EventData eventData;
-            bool hasEventData = false;
-            for (uint32_t i = 0; i < len; i++) {
-                napi_value key = nullptr;
-                napi_get_element(env, keyArr, i, &key);
-                char keyChars[NAPI_VALUE_STRING_LEN] = {0};
-                Val* val = new (std::nothrow) Val();
-                if (!val) {
-                    HILOGE("new object failed");
-                    return false;
-                }
-
-                if (!ParseEventData(env, key, data, val, keyChars)) {
-                    delete val;
-                    continue;
-                }
-                eventData.insert(make_pair(keyChars, *val));
-                hasEventData = true;
-                delete val;
-            }
-
-            if (hasEventData) {
-                OutPutEventIdLog(eventId);
-                auto event = InnerEvent::Get(eventId, make_unique<EventData>(eventData));
-                eventHandler->SendEvent(event, 0, priority);
-                return true;
-            }
+        napi_value data = nullptr;
+        napi_status serializeResult = napi_ok;
+        napi_value result = nullptr;
+        napi_get_undefined(env, &result);
+        serializeResult = napi_serialize(env, argv, result, &data);
+        if (serializeResult != napi_ok || data == nullptr) {
+            HILOGE("Serialize fail.");
+            return false;
         }
-        return false;
+        OutPutEventIdLog(eventId);
+        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(data));
+        eventHandler->SendEvent(event, 0, priority);
+        return true;
     }
 
     bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)
