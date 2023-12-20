@@ -29,8 +29,6 @@ namespace {
     DEFINE_EH_HILOG_LABEL("EventsEmitter");
     constexpr static uint32_t ARGC_ONE = 1u;
 }
-    static std::mutex callbackSzieMutex;
-    static std::map<InnerEvent::EventId, uint32_t> callbackSizeList;
     static std::mutex emitterInsMutex;
     static map<InnerEvent::EventId, std::vector<AsyncCallbackInfo *>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
@@ -71,7 +69,7 @@ namespace {
         } else {
             napi_value resultData = nullptr;
             if (eventDataInner->data != nullptr) {
-                if (napi_deserialize(callbackInner->env, eventDataInner->data, &resultData) != napi_ok ||
+                if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                     resultData == nullptr) {
                     HILOGF("Deserialize fail.");
                     return;
@@ -116,12 +114,12 @@ namespace {
         }
         auto& callbackInfos = subscribe->second;
         HILOGD("size = %{public}zu", callbackInfos.size());
-        napi_value eventData = nullptr;
         auto value = event->GetUniqueObject<napi_value>();
-        if (value != nullptr) {
-            eventData = *value;
-            callbackSizeList.insert(std::make_pair(eventId, callbackInfos.size()));
-        }
+        std::shared_ptr<napi_value> eventData(value.release(), [this](napi_value* pData) {
+            if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
+                napi_delete_serialization_data(deleteEnv, *pData);
+            }
+        });
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
@@ -129,6 +127,7 @@ namespace {
                 HILOGE("new object failed");
                 continue;
             }
+            deleteEnv = callbackInfo->env;
             eventDataWorker->data = eventData;
             eventDataWorker->callbackInfo = callbackInfo;
             eventDataWorker->eventId = eventId;
@@ -161,17 +160,6 @@ namespace {
                 napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
                 ProcessCallback(eventDataInner);
                 napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
-                {
-                    std::lock_guard<std::mutex> lock(callbackSzieMutex);
-                    auto iter = callbackSizeList.find(eventDataInner->eventId);
-                    if (iter != callbackSizeList.end()) {
-                        --(iter->second);
-                        if (iter->second == 0) {
-                            callbackSizeList.erase(iter);
-                            napi_delete_serialization_data(eventDataInner->callbackInfo->env, eventDataInner->data);
-                        }
-                    }
-                }
                 delete eventDataInner;
                 eventDataInner = nullptr;
                 delete work;

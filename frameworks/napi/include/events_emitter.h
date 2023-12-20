@@ -40,6 +40,7 @@ public:
     static std::shared_ptr<EventHandlerInstance> GetInstance();
     ~EventHandlerInstance();
     void ProcessEvent(const InnerEvent::Pointer& event) override;
+    napi_env deleteEnv = nullptr;
 };
 
 enum class DataType: uint32_t {
@@ -66,7 +67,7 @@ struct AsyncCallbackInfo {
     napi_ref callback = 0;
 };
 
-using EventData = napi_value;
+using EventData = std::shared_ptr<napi_value>;
 struct EventDataWorker {
     EventData data;
     InnerEvent::EventId eventId;
