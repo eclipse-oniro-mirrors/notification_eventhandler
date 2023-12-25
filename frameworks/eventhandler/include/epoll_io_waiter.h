@@ -62,7 +62,7 @@ private:
     int32_t awakenFd_{-1};
     std::mutex taskNameMapLock;
     FileDescriptorEventCallback callback_;
-    std::atomic<uint32_t> waitingCount_{0};
+    std::atomic<int32_t> waitingCount_{0};
     std::map<int32_t, std::string> taskNameMap_;
 };
 }  // namespace AppExecFwk
