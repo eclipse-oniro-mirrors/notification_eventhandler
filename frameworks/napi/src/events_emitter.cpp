@@ -16,6 +16,7 @@
 #include "events_emitter.h"
 
 #include <memory>
+#include <mutex>
 #include <uv.h>
 
 #include "event_logger.h"
@@ -32,6 +33,12 @@ namespace {
     static std::mutex emitterInsMutex;
     static map<InnerEvent::EventId, std::vector<AsyncCallbackInfo *>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
+
+    AsyncCallbackInfo::~AsyncCallbackInfo()
+    {
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        env = nullptr;
+    }
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
     {
         HILOGI("EventHandlerInstance constructed");
@@ -62,6 +69,10 @@ namespace {
         if (callbackInner->isDeleted) {
             HILOGD("ProcessEvent isDeleted");
             std::lock_guard<std::mutex> lock(emitterInsMutex);
+            napi_value callback = nullptr;
+            AsyncCallbackInfo* nativeCallback = nullptr;
+            napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
+            napi_remove_wrap(callbackInner->env, callback, (void**)&nativeCallback);
             if (callbackInner->callback != nullptr) {
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
                 callbackInner->callback = nullptr;
@@ -71,7 +82,7 @@ namespace {
             if (eventDataInner->data != nullptr) {
                 if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                     resultData == nullptr) {
-                    HILOGF("Deserialize fail.");
+                    HILOGE("Deserialize fail.");
                     return;
                 }
             }
@@ -86,6 +97,10 @@ namespace {
                 HILOGD("ProcessEvent delete once");
                 std::lock_guard<std::mutex> lock(emitterInsMutex);
                 callbackInner->isDeleted = true;
+                napi_value callback = nullptr;
+                AsyncCallbackInfo* nativeCallback = nullptr;
+                napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
+                napi_remove_wrap(callbackInner->env, callback, (void**)&nativeCallback);
                 napi_delete_reference(callbackInner->env, callbackInner->callback);
                 callbackInner->callback = nullptr;
             }
@@ -132,7 +147,14 @@ namespace {
             eventDataWorker->callbackInfo = callbackInfo;
             eventDataWorker->eventId = eventId;
             uv_loop_s *loop = nullptr;
-            napi_get_uv_event_loop(callbackInfo->env, &loop);
+
+            if (napi_get_uv_event_loop(callbackInfo->env, &loop) != napi_status::napi_ok) {
+                iter = callbackInfos.erase(iter);
+                delete callbackInfo;
+                callbackInfo = nullptr;
+                continue;
+            }
+
             uv_work_t *work = new (std::nothrow) uv_work_t;
             if (work == nullptr) {
                 HILOGE("uv_work_t instance is nullptr");
@@ -157,9 +179,17 @@ namespace {
                 [](uv_work_t *work, int status) {
                 napi_handle_scope scope;
                 EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(work->data);
-                napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
-                ProcessCallback(eventDataInner);
-                napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
+                if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr &&
+                    !eventDataInner->callbackInfo->isDeleted) {
+                    HILOGD("eventDataInner address: %{public}p", &eventDataInner);
+                    napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
+                    ProcessCallback(eventDataInner);
+                    napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
+                } else {
+                    std::lock_guard<std::mutex> lock(emitterInsMutex);
+                    eventDataInner->callbackInfo->processed = true;
+                    HILOGD("callback is delete.");
+                }
                 delete eventDataInner;
                 eventDataInner = nullptr;
                 delete work;
@@ -293,6 +323,14 @@ namespace {
             callbackInfo->env = env;
             callbackInfo->once = once;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
+            napi_wrap(env, argv[1], callbackInfo, [](napi_env env, void* data, void* hint) {
+                auto callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
+                if (callbackInfo != nullptr && !callbackInfo->isDeleted) {
+                    callbackInfo->isDeleted = true;
+                    callbackInfo->processed = true;
+                    callbackInfo->env = nullptr;
+                }
+            }, nullptr, nullptr);
             emitterInstances[eventIdValue].push_back(callbackInfo);
         }
         return nullptr;
