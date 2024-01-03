@@ -25,7 +25,6 @@
 #include "event_runner.h"
 #include "event_queue.h"
 #include "inner_event.h"
-
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
 
@@ -60,11 +59,12 @@ struct Val {
 };
 
 struct AsyncCallbackInfo {
-    napi_env env;
-    bool once = false;
-    bool isDeleted = false;
-    bool processed = false;
+    std::atomic<napi_env> env;
+    std::atomic<bool> once = false;
+    std::atomic<bool> isDeleted = false;
+    std::atomic<bool> processed = false;
     napi_ref callback = 0;
+    ~AsyncCallbackInfo();
 };
 
 using EventData = std::shared_ptr<napi_value>;
