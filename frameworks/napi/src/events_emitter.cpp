@@ -36,7 +36,6 @@ namespace {
 
     AsyncCallbackInfo::~AsyncCallbackInfo()
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
         env = nullptr;
     }
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
@@ -186,7 +185,6 @@ namespace {
                     ProcessCallback(eventDataInner);
                     napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
                 } else {
-                    std::lock_guard<std::mutex> lock(emitterInsMutex);
                     eventDataInner->callbackInfo->processed = true;
                     HILOGD("callback is delete.");
                 }
