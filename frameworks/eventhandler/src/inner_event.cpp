@@ -15,6 +15,7 @@
 
 #include "inner_event.h"
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <vector>
@@ -336,5 +337,13 @@ std::string InnerEvent::Dump()
 
     return content;
 }
+
+void InnerEvent::SetEventUniqueId()
+{
+    auto nowTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    eventId = std::to_string(nowTime);
+}
+
 }  // namespace AppExecFwk
 }  // namespace OHOS

@@ -202,7 +202,6 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t inn
         HILOGE("Invalid owner");
         return;
     }
-
     auto filter = [&owner, innerEventId](const InnerEvent::Pointer &p) {
         return (!p->HasTask()) && (p->GetOwner() == owner) && (p->GetInnerEventId() == innerEventId);
     };
@@ -235,6 +234,7 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::s
     }
 
     auto filter = [&owner, &name](const InnerEvent::Pointer &p) {
+        HILOGD("Event address: %{public}p .", &p);
         return (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
     };
 

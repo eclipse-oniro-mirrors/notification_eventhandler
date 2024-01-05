@@ -655,6 +655,21 @@ public:
      */
     std::string Dump();
 
+    /**
+     * Set uniqueId in event.
+     */
+    void SetEventUniqueId();
+
+    /**
+     * Get uniqueId for event.
+     *
+     * @return Returns uniqueId for event.
+     */
+    inline std::string GetEventUniqueId()
+    {
+        return eventId;
+    }
+
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -785,6 +800,9 @@ private:
 
     // use to store hitrace Id
     std::shared_ptr<HiTraceId> hiTraceId_;
+
+    // use to store event unique Id
+    std::string eventId;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
