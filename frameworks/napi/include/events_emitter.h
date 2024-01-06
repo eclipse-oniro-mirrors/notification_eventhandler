@@ -64,6 +64,7 @@ struct AsyncCallbackInfo {
     std::atomic<bool> isDeleted = false;
     std::atomic<bool> processed = false;
     napi_ref callback = 0;
+    napi_threadsafe_function tsfn = nullptr;
     ~AsyncCallbackInfo();
 };
 

@@ -15,6 +15,7 @@
 
 #include "events_emitter.h"
 
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <uv.h>
@@ -116,8 +117,28 @@ namespace {
         }
     }
 
+    void ThreadSafeCallback(napi_env env, napi_value jsCallback, void* context, void* data)
+    {
+        napi_handle_scope scope;
+        EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(data);
+        if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr &&
+            !eventDataInner->callbackInfo->isDeleted) {
+            HILOGD("eventDataInner address: %{public}p", &eventDataInner);
+            napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
+            ProcessCallback(eventDataInner);
+            napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
+        } else {
+            eventDataInner->callbackInfo->processed = true;
+            HILOGD("callback is delete.");
+        }
+        delete eventDataInner;
+        eventDataInner = nullptr;
+        data = nullptr;
+    }
+
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
+        HILOGF("ProcessEvent");
         InnerEvent::EventId eventId = event->GetInnerEventIdEx();
         OutPutEventIdLog(eventId);
         std::lock_guard<std::mutex> lock(emitterInsMutex);
@@ -145,23 +166,6 @@ namespace {
             eventDataWorker->data = eventData;
             eventDataWorker->callbackInfo = callbackInfo;
             eventDataWorker->eventId = eventId;
-            uv_loop_s *loop = nullptr;
-
-            if (napi_get_uv_event_loop(callbackInfo->env, &loop) != napi_status::napi_ok) {
-                iter = callbackInfos.erase(iter);
-                delete callbackInfo;
-                callbackInfo = nullptr;
-                continue;
-            }
-
-            uv_work_t *work = new (std::nothrow) uv_work_t;
-            if (work == nullptr) {
-                HILOGE("uv_work_t instance is nullptr");
-                delete eventDataWorker;
-                eventDataWorker = nullptr;
-                return;
-            }
-
             if (callbackInfo->once || callbackInfo->isDeleted) {
                 HILOGD("once callback or isDeleted callback");
                 iter = callbackInfos.erase(iter);
@@ -173,26 +177,8 @@ namespace {
             } else {
                 ++iter;
             }
-            work->data = reinterpret_cast<void *>(eventDataWorker);
-            uv_queue_work_with_qos(loop, work, [](uv_work_t *work) {},
-                [](uv_work_t *work, int status) {
-                napi_handle_scope scope;
-                EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(work->data);
-                if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr &&
-                    !eventDataInner->callbackInfo->isDeleted) {
-                    HILOGD("eventDataInner address: %{public}p", &eventDataInner);
-                    napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
-                    ProcessCallback(eventDataInner);
-                    napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
-                } else {
-                    eventDataInner->callbackInfo->processed = true;
-                    HILOGD("callback is delete.");
-                }
-                delete eventDataInner;
-                eventDataInner = nullptr;
-                delete work;
-                work = nullptr;
-            }, uv_qos_user_initiated);
+            napi_acquire_threadsafe_function(callbackInfo->tsfn);
+            napi_call_threadsafe_function(callbackInfo->tsfn, eventDataWorker, napi_tsfn_nonblocking);
         }
 
         if (callbackInfos.empty()) {
@@ -279,6 +265,15 @@ namespace {
         return true;
     }
 
+    void ThreadFinished(napi_env env, void* data, [[maybe_unused]] void* context)
+    {
+        HILOGF("ThreadFinished");
+        AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
+        if (callbackInfo != nullptr) {
+            napi_release_threadsafe_function(callbackInfo->tsfn, napi_tsfn_release);
+        }
+    }
+
     napi_value OnOrOnce(napi_env env, napi_callback_info cbinfo, bool once)
     {
         size_t argc = ARGC_NUM;
@@ -329,6 +324,10 @@ namespace {
                     callbackInfo->env = nullptr;
                 }
             }, nullptr, nullptr);
+            napi_value resourceName = nullptr;
+            napi_create_string_utf8(env, "Call thread-safe function", NAPI_AUTO_LENGTH, &resourceName);
+            napi_create_threadsafe_function(env, argv[1], nullptr, resourceName, 0, 1, callbackInfo, ThreadFinished,
+                nullptr, ThreadSafeCallback, &(callbackInfo->tsfn));
             emitterInstances[eventIdValue].push_back(callbackInfo);
         }
         return nullptr;
