@@ -129,6 +129,9 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
     int32_t retVal = epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, NanosecondsToTimeout(nanoseconds));
     // Decrease waiting count after block at once.
     --waitingCount_;
+    if (waitingCount_ < 0) {
+        HILOGE("WaitingCount_ become negative: %{public}d", waitingCount_.load());
+    }
 
     bool result = true;
     if (retVal < 0) {

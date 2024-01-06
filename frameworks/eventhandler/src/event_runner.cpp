@@ -535,7 +535,6 @@ std::shared_ptr<EventRunner> EventRunner::Current()
     if (runner) {
         return runner;
     }
-    HILOGW("current event runner is nullptr");
     return nullptr;
 }
 

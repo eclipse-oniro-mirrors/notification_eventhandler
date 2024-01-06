@@ -71,7 +71,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetSenderKernelThreadId(getproctid());
-
+    event->SetEventUniqueId();
     if (delayTime > 0) {
         event->SetHandleTime(now + std::chrono::milliseconds(delayTime));
     } else {
@@ -85,7 +85,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
         HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
     }
-
+    HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
     eventRunner_->GetEventQueue()->Insert(event, priority);
     return true;
 }
@@ -321,7 +321,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
     currentEventHandler = shared_from_this();
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump();
+        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump() +
+        eventRunner_->GetEventQueue()->DumpCurrentQueueSize();
         HILOGD("%{public}s", currentRunningInfo.c_str());
     }
 
@@ -335,7 +336,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
 
     InnerEvent::TimePoint nowStart = InnerEvent::Clock::now();
     DeliveryTimeAction(event, nowStart);
-    HILOGD("EventName is %{public}s.", GetEventName(event).c_str());
+    HILOGD("EventName is %{public}s, eventId is %{public}s .", GetEventName(event).c_str(),
+        (event->GetEventUniqueId()).c_str());
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
         (event->GetTaskCallback())();

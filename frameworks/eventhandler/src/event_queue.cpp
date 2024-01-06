@@ -29,7 +29,7 @@ namespace AppExecFwk {
 namespace {
 
 DEFINE_EH_HILOG_LABEL("EventQueue");
-
+constexpr uint32_t MAX_DUMP_SIZE = 500;
 // Help to insert events into the event queue sorted by handle time.
 inline void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event)
 {
@@ -202,7 +202,6 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t inn
         HILOGE("Invalid owner");
         return;
     }
-
     auto filter = [&owner, innerEventId](const InnerEvent::Pointer &p) {
         return (!p->HasTask()) && (p->GetOwner() == owner) && (p->GetInnerEventId() == innerEventId);
     };
@@ -235,6 +234,7 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::s
     }
 
     auto filter = [&owner, &name](const InnerEvent::Pointer &p) {
+        HILOGD("Event address: %{public}p .", &p);
         return (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
     };
 
@@ -628,10 +628,12 @@ void EventQueue::Dump(Dumper &dumper)
     dumper.Dump(dumper.GetTag() + " Current Running: " + DumpCurrentRunning() + LINE_SEPARATOR);
 
     dumper.Dump(dumper.GetTag() + " History event queue information:" + LINE_SEPARATOR);
+    uint32_t dumpMaxSize = MAX_DUMP_SIZE;
     for (uint8_t i = 0; i < HISTORY_EVENT_NUM_POWER; i++) {
         if (historyEvents_[i].senderKernelThreadId == 0) {
             continue;
         }
+        --dumpMaxSize;
         dumper.Dump(dumper.GetTag() + " No. " + std::to_string(i) + " : " + HistoryQueueDump(historyEvents_[i]));
     }
 
@@ -641,8 +643,10 @@ void EventQueue::Dump(Dumper &dumper)
         uint32_t n = 0;
         dumper.Dump(dumper.GetTag() + " " + priority[i] + " priority event queue information:" + LINE_SEPARATOR);
         for (auto it = subEventQueues_[i].queue.begin(); it != subEventQueues_[i].queue.end(); ++it) {
-            ++n;
-            dumper.Dump(dumper.GetTag() + " No." + std::to_string(n) + " : " + (*it)->Dump());
+            if (total < dumpMaxSize) {
+                ++n;
+                dumper.Dump(dumper.GetTag() + " No." + std::to_string(n) + " : " + (*it)->Dump());
+            }
             ++total;
         }
         dumper.Dump(
@@ -652,8 +656,10 @@ void EventQueue::Dump(Dumper &dumper)
     dumper.Dump(dumper.GetTag() + " Idle priority event queue information:" + LINE_SEPARATOR);
     int n = 0;
     for (auto it = idleEvents_.begin(); it != idleEvents_.end(); ++it) {
-        ++n;
-        dumper.Dump(dumper.GetTag() + " No." + std::to_string(n) + " : " + (*it)->Dump());
+        if (total < dumpMaxSize) {
+            ++n;
+            dumper.Dump(dumper.GetTag() + " No." + std::to_string(n) + " : " + (*it)->Dump());
+        }
         ++total;
     }
     dumper.Dump(dumper.GetTag() + " Total size of Idle events : " + std::to_string(n) + LINE_SEPARATOR);
@@ -760,6 +766,15 @@ std::string EventQueue::HistoryQueueDump(const HistoryEvent &historyEvent)
     content.append(" }" + LINE_SEPARATOR);
 
     return content;
+}
+
+std::string EventQueue::DumpCurrentQueueSize()
+{
+    return "Current queue size: IMMEDIATE = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::IMMEDIATE)].queue.size()) + ", HIGH = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::HIGH)].queue.size()) + ", LOW = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::LOW)].queue.size()) + ", IDLE = " +
+    std::to_string(idleEvents_.size()) + " ;";
 }
 
 CurrentRunningEvent::CurrentRunningEvent()

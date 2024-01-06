@@ -25,7 +25,6 @@
 #include "event_runner.h"
 #include "event_queue.h"
 #include "inner_event.h"
-
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
 
@@ -40,6 +39,7 @@ public:
     static std::shared_ptr<EventHandlerInstance> GetInstance();
     ~EventHandlerInstance();
     void ProcessEvent(const InnerEvent::Pointer& event) override;
+    napi_env deleteEnv = nullptr;
 };
 
 enum class DataType: uint32_t {
@@ -59,16 +59,18 @@ struct Val {
 };
 
 struct AsyncCallbackInfo {
-    napi_env env;
-    bool once = false;
-    bool isDeleted = false;
-    bool processed = false;
+    std::atomic<napi_env> env;
+    std::atomic<bool> once = false;
+    std::atomic<bool> isDeleted = false;
+    std::atomic<bool> processed = false;
     napi_ref callback = 0;
+    ~AsyncCallbackInfo();
 };
 
-using EventData = std::map<std::string, Val>;
+using EventData = std::shared_ptr<napi_value>;
 struct EventDataWorker {
     EventData data;
+    InnerEvent::EventId eventId;
     AsyncCallbackInfo* callbackInfo;
 };
 
