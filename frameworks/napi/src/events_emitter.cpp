@@ -436,9 +436,12 @@ namespace {
             napi_get_named_property(env, argv, "data", &data);
             napi_value serializeData = nullptr;
             napi_status serializeResult = napi_ok;
-            napi_value result = nullptr;
-            napi_get_undefined(env, &result);
-            serializeResult = napi_serialize(env, data, result, &serializeData);
+            napi_value undefined = nullptr;
+            napi_get_undefined(env, &undefined);
+            bool defaultTransfer = false;
+            bool defaultCloneSendable = true;
+            serializeResult = napi_serialize(env, data, undefined, undefined,
+                                             defaultTransfer, defaultCloneSendable, &serializeData);
             if (serializeResult != napi_ok || serializeData == nullptr) {
                 HILOGE("Serialize fail.");
                 return false;
