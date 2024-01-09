@@ -84,7 +84,8 @@ inline InnerEvent::Pointer PopFrontEventFromListLocked(std::list<InnerEvent::Poi
 }
 }  // unnamed namespace
 
-EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>())
+EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>()), historyEvents_(
+    std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
 {
     HILOGD("enter");
 }

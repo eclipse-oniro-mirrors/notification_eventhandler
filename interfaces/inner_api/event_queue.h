@@ -298,7 +298,7 @@ private:
     CurrentRunningEvent currentRunningEvent_;
 
     static const uint8_t HISTORY_EVENT_NUM_POWER = 32; // 必须是2的幂次，使用位运算取余
-    std::vector<HistoryEvent> historyEvents_ = std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER);
+    std::vector<HistoryEvent> historyEvents_;
     uint8_t historyEventIndex_ = 0;
 };
 }  // namespace AppExecFwk
