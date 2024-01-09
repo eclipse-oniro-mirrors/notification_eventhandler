@@ -44,7 +44,7 @@ EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRu
 
 EventHandler::~EventHandler()
 {
-    HILOGI("enter");
+    HILOGD("enter");
     if (eventRunner_) {
         HILOGI("eventRunner is alive");
         /*

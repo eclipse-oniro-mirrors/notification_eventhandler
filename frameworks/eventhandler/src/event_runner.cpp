@@ -242,7 +242,7 @@ private:
         Avatar() = default;
         ~Avatar()
         {
-            HILOGI("enter");
+            HILOGD("enter");
             if (avatarEnabled_) {
                 GetInstance().avatarDestructed_ = true;
                 GetInstance().Stop();
@@ -273,7 +273,7 @@ ThreadCollector::ThreadCollector()
 ThreadCollector::~ThreadCollector()
 {
     // If avatar is not destructed, stop collector by itself.
-    HILOGI("enter");
+    HILOGD("enter");
     if (!avatarDestructed_) {
         avatar_.Disable();
         Stop();
@@ -293,7 +293,7 @@ public:
 
     ~EventRunnerImpl() final
     {
-        HILOGI("enter");
+        HILOGD("enter");
         queue_->RemoveAll();
     }
     DISALLOW_COPY_AND_MOVE(EventRunnerImpl);
@@ -550,7 +550,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    HILOGI("deposit_ is %{public}d", deposit_);
+    HILOGD("deposit_ is %{public}d", deposit_);
     if (deposit_) {
         innerRunner_->Stop();
     }

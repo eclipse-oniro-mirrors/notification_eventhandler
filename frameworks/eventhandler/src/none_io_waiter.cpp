@@ -31,7 +31,7 @@ DEFINE_EH_HILOG_LABEL("NoneIoWaiter");
 // Nothing to do, but used to fix a codex warning.
 NoneIoWaiter::~NoneIoWaiter()
 {
-    HILOGI("enter");
+    HILOGD("enter");
 }
 
 bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)

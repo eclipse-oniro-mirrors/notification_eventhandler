@@ -74,28 +74,28 @@ private:
 #endif
 
 #define DEFINE_EH_HILOG_LABEL(name) \
-    static constexpr OHOS::HiviewDFX::HiLogLabel EH_LOG_LABEL = {LOG_CORE, EH_LOG_DOMAIN, name}
+    static const constexpr char* EH_LOG_LABEL = (name)
 
 #define HILOGD(fmt, ...) do { \
-    if (HiLogIsLoggable(OHOS::AppExecFwk::EH_LOG_DOMAIN, EH_LOG_LABEL.tag, LOG_DEBUG)) { \
-        ::OHOS::HiviewDFX::HiLog::Debug(EH_LOG_LABEL, EH_FUNC_FMT fmt, EH_FUNC_INFO, ##__VA_ARGS__); \
+    if (HiLogIsLoggable(OHOS::AppExecFwk::EH_LOG_DOMAIN, EH_LOG_LABEL, LOG_DEBUG)) { \
+        ((void)HILOG_IMPL(LOG_CORE, LOG_INFO, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
     } \
 } while (0)
 
 #define HILOGI(fmt, ...) do { \
-    ::OHOS::HiviewDFX::HiLog::Info(EH_LOG_LABEL, EH_FUNC_FMT fmt, EH_FUNC_INFO, ##__VA_ARGS__); \
+    ((void)HILOG_IMPL(LOG_CORE, LOG_INFO, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
 } while (0)
 
 #define HILOGW(fmt, ...) do { \
-    ::OHOS::HiviewDFX::HiLog::Warn(EH_LOG_LABEL, EH_FUNC_FMT fmt, EH_FUNC_INFO, ##__VA_ARGS__); \
+    ((void)HILOG_IMPL(LOG_CORE, LOG_WARN, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
 } while (0)
 
 #define HILOGE(fmt, ...) do { \
-    ::OHOS::HiviewDFX::HiLog::Error(EH_LOG_LABEL, EH_FUNC_FMT fmt, EH_FUNC_INFO, ##__VA_ARGS__); \
+    ((void)HILOG_IMPL(LOG_CORE, LOG_ERROR, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
 } while (0)
 
 #define HILOGF(fmt, ...) do { \
-    ::OHOS::HiviewDFX::HiLog::Fatal(EH_LOG_LABEL, EH_FUNC_FMT fmt, EH_FUNC_INFO, ##__VA_ARGS__); \
+    ((void)HILOG_IMPL(LOG_CORE, LOG_FATAL, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
 } while (0)
 
 #ifndef EH_CALL_DEBUG_ENTER
