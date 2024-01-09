@@ -45,7 +45,7 @@ inline int32_t EpollCtrl(int32_t epollFd, int32_t operation, int32_t fileDescrip
 
 EpollIoWaiter::~EpollIoWaiter()
 {
-    HILOGI("enter");
+    HILOGD("enter");
     // Close all valid file descriptors.
     if (epollFd_ >= 0) {
         close(epollFd_);

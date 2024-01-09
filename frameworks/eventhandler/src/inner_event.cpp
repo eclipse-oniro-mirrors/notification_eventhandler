@@ -148,7 +148,7 @@ private:
 
 InnerEventPool::InnerEventPool() : poolLock_(), events_()
 {
-    HILOGI("enter");
+    HILOGD("enter");
     // Reserve enough memory
     std::lock_guard<std::mutex> lock(poolLock_);
     events_.reserve(MAX_BUFFER_POOL_SIZE);
@@ -156,7 +156,7 @@ InnerEventPool::InnerEventPool() : poolLock_(), events_()
 
 InnerEventPool::~InnerEventPool()
 {
-    HILOGI("enter");
+    HILOGD("enter");
     // Release all memory in the poll
     std::lock_guard<std::mutex> lock(poolLock_);
     events_.clear();
@@ -251,7 +251,7 @@ void InnerEvent::ClearEvent()
 
 void InnerEvent::WarnSmartPtrCastMismatch()
 {
-    HILOGE("Type of the shared_ptr, weak_ptr or unique_ptr mismatched");
+    HILOGD("Type of the shared_ptr, weak_ptr or unique_ptr mismatched");
 }
 
 const std::shared_ptr<InnerEvent::Waiter> &InnerEvent::CreateWaiter()
