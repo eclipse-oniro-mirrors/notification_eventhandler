@@ -20,7 +20,7 @@
 
 #include <cstdint>
 
-uint32_t U32_AT(const uint8_t *ptr)
+static uint32_t U32_AT(const uint8_t *ptr)
 {
     // convert fuzz input data to an integer
     return (ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3];

@@ -2502,7 +2502,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler001, TestSize.Level1)
     auto myRunner = EventRunner::Create();
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler;
-    auto f = [&]() { myHandler = handler->Current(); };
+    auto f = [&myHandler, &handler]() { myHandler = handler->Current(); };
 
     handler->PostTask(f);
     uint32_t sleepTime = 20000;
@@ -2520,7 +2520,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler002, TestSize.Level1)
     auto myRunner = EventRunner::Create(true);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler;
-    auto f = [&]() { myHandler = handler->Current(); };
+    auto f = [&myHandler, &handler]() { myHandler = handler->Current(); };
 
     handler->PostTask(f);
     uint32_t sleepTime = 20000;
@@ -2538,7 +2538,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler003, TestSize.Level1)
     auto myRunner = EventRunner::Create(THREAD_NAME_TEST1);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler;
-    auto f = [&]() { myHandler = handler->Current(); };
+    auto f = [&myHandler, &handler]() { myHandler = handler->Current(); };
 
     handler->PostTask(f);
     uint32_t sleepTime = 20000;
@@ -2570,7 +2570,7 @@ HWTEST_F(EmsEventHandlerTest, CurrentHandler005, TestSize.Level1)
     auto myRunner = EventRunner::Create(THREAD_NAME_TEST2);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     std::shared_ptr<EventHandler> myHandler;
-    auto f = [&]() { myHandler = handler->Current(); };
+    auto f = [&myHandler, &handler]() { myHandler = handler->Current(); };
 
     handler->PostTask(f);
     uint32_t sleepTime = 20000;

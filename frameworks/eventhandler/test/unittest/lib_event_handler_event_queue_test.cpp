@@ -48,7 +48,7 @@ const uint32_t REMOVE_EVENT_ID = 0;
 const uint32_t HAS_EVENT_ID = 100;
 const int64_t HAS_EVENT_PARAM = 1000;
 const uint32_t INSERT_DELAY = 10;
-bool isDump = false;
+bool g_isDump = false;
 
 std::atomic<bool> eventRan(false);
 }  // namespace
@@ -61,7 +61,7 @@ public:
      */
     void Dump(const std::string &message)
     {
-        isDump = true;
+        g_isDump = true;
         GTEST_LOG_(INFO) << message;
     }
 
@@ -1319,12 +1319,12 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithID001, TestSize.Level1)
      * @tc.expected: step1. Has this event with event id.
      */
     handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::LOW);
-    bool HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
+    bool hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
     EXPECT_TRUE(HasInnerEvent);
     int64_t delayWaitTime = 100000;
     usleep(delayWaitTime);
-    HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
-    EXPECT_FALSE(HasInnerEvent);
+    hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1345,8 +1345,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithID002, TestSize.Level1)
      *
      * @tc.expected: step1. HasInnerEvent process fail.
      */
-    bool HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
-    EXPECT_FALSE(HasInnerEvent);
+    bool hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_ID);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1368,8 +1368,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithID003, TestSize.Level1)
      *
      * @tc.expected: step1. HasInnerEvent process fail.
      */
-    bool HasInnerEvent = runner->GetEventQueue()->HasInnerEvent(nullptr, HAS_EVENT_ID);
-    EXPECT_FALSE(HasInnerEvent);
+    bool hasInnerEvent = runner->GetEventQueue()->HasInnerEvent(nullptr, HAS_EVENT_ID);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1394,12 +1394,12 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithParam001, TestSize.Level1)
      * @tc.expected: step1. Has this event with event param.
      */
     handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::LOW);
-    bool HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
+    bool hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
     EXPECT_TRUE(HasInnerEvent);
     int64_t delayWaitTime = 100000;
     usleep(delayWaitTime);
-    HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
-    EXPECT_FALSE(HasInnerEvent);
+    hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1420,8 +1420,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithParam002, TestSize.Level1)
      *
      * @tc.expected: step1. HasInnerEvent process fail.
      */
-    bool HasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
-    EXPECT_FALSE(HasInnerEvent);
+    bool hasInnerEvent = handler->HasInnerEvent(HAS_EVENT_PARAM);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1443,8 +1443,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasEventWithParam003, TestSize.Level1)
      *
      * @tc.expected: step1. HasInnerEvent process fail.
      */
-    bool HasInnerEvent = runner->GetEventQueue()->HasInnerEvent(nullptr, HAS_EVENT_PARAM);
-    EXPECT_FALSE(HasInnerEvent);
+    bool hasInnerEvent = runner->GetEventQueue()->HasInnerEvent(nullptr, HAS_EVENT_PARAM);
+    EXPECT_FALSE(hasInnerEvent);
 }
 
 /*
@@ -1536,7 +1536,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump001, TestSize.Level1)
      */
     usleep(100 * 1000);
     handler->Dump(dumptest);
-    EXPECT_TRUE(isDump);
+    EXPECT_TRUE(g_isDump);
 }
 
 /*
@@ -1546,7 +1546,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump001, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, Dump002, TestSize.Level1)
 {
-    isDump = false;
+    g_isDump = false;
     /**
      * @tc.setup: init runner and handler
      */
@@ -1561,7 +1561,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump002, TestSize.Level1)
     handler->PostTask(task, HAS_DELAY_TIME, EventQueue::Priority::LOW);
     usleep(100 * 1000);
     handler->Dump(dumptest);
-    EXPECT_TRUE(isDump);
+    EXPECT_TRUE(g_isDump);
 }
 
 /*
@@ -1571,7 +1571,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump002, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, Dump003, TestSize.Level1)
 {
-    isDump = false;
+    g_isDump = false;
     /**
      * @tc.setup: init runner and handler
      */
@@ -1586,7 +1586,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump003, TestSize.Level1)
     handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::LOW);
     usleep(100 * 1000);
     handler->Dump(dumptest);
-    EXPECT_TRUE(isDump);
+    EXPECT_TRUE(g_isDump);
 }
 
 /*
@@ -1596,7 +1596,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump003, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, Dump004, TestSize.Level1)
 {
-    isDump = false;
+    g_isDump = false;
     /**
      * @tc.setup: init runner and handler
      */
@@ -1611,7 +1611,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump004, TestSize.Level1)
     handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::LOW);
     usleep(100 * 1000);
     handler->Dump(dumptest);
-    EXPECT_TRUE(isDump);
+    EXPECT_TRUE(g_isDump);
 }
 
 /*
@@ -1621,7 +1621,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump004, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, Dump005, TestSize.Level1)
 {
-    isDump = false;
+    g_isDump = false;
     /**
      * @tc.setup: init runner and handler
      */
@@ -1639,7 +1639,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Dump005, TestSize.Level1)
     handler->PostTask(task, HAS_DELAY_TIME * 2, EventQueue::Priority::LOW);
     usleep(100 * 1000);
     handler->Dump(dumptest);
-    EXPECT_TRUE(isDump);
+    EXPECT_TRUE(g_isDump);
 }
 
 /*

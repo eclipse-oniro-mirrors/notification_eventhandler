@@ -25,27 +25,27 @@
 #include "file_descriptor_listener.h"
 
 struct FileDescriptorCallbacks {
-    const FileFDCallback readableCallback_;
-    const FileFDCallback writableCallback_;
-    const FileFDCallback shutdownCallback_;
-    const FileFDCallback exceptionCallback_;
+    const FileFDCallback readableCallback;
+    const FileFDCallback writableCallback;
+    const FileFDCallback shutdownCallback;
+    const FileFDCallback exceptionCallback;
 };
 
 class NativeFileDescriptorListener : public OHOS::AppExecFwk::FileDescriptorListener {
 public:
     explicit NativeFileDescriptorListener(const struct FileDescriptorCallbacks *fileDescriptorCallbacks)
     {
-        if (fileDescriptorCallbacks->readableCallback_ != nullptr) {
-            onReadableCallback_ = fileDescriptorCallbacks->readableCallback_;
+        if (fileDescriptorCallbacks->readableCallback != nullptr) {
+            onReadableCallback_ = fileDescriptorCallbacks->readableCallback;
         }
-        if (fileDescriptorCallbacks->writableCallback_ != nullptr) {
-            onWritableCallback_ = fileDescriptorCallbacks->writableCallback_;
+        if (fileDescriptorCallbacks->writableCallback != nullptr) {
+            onWritableCallback_ = fileDescriptorCallbacks->writableCallback;
         }
-        if (fileDescriptorCallbacks->shutdownCallback_ != nullptr) {
-            onShutdownCallback_ = fileDescriptorCallbacks->shutdownCallback_;
+        if (fileDescriptorCallbacks->shutdownCallback != nullptr) {
+            onShutdownCallback_ = fileDescriptorCallbacks->shutdownCallback;
         }
-        if (fileDescriptorCallbacks->exceptionCallback_ != nullptr) {
-            onExceptionCallback_ = fileDescriptorCallbacks->exceptionCallback_;
+        if (fileDescriptorCallbacks->exceptionCallback != nullptr) {
+            onExceptionCallback_ = fileDescriptorCallbacks->exceptionCallback;
         }
     }
 

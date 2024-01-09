@@ -35,10 +35,10 @@ const size_t MAX_POOL_SIZE = 64;
 typedef void (*FileFDCallback)(int32_t filedescriptor);
 
 struct FileDescriptorCallbacks {
-    FileFDCallback readableCallback_;
-    FileFDCallback writableCallback_;
-    FileFDCallback shutdownCallback_;
-    FileFDCallback exceptionCallback_;
+    FileFDCallback readableCallback;
+    FileFDCallback writableCallback;
+    FileFDCallback shutdownCallback;
+    FileFDCallback exceptionCallback;
 };
 
 /**
@@ -236,15 +236,15 @@ HWTEST_F(LibEventHandlerEventTest, GetEvent007, TestSize.Level1)
      *            unique_ptr<T, D> type unique object and param from event.
      * @tc.expected: step1. the event id, object and param is the same as we set.
      */
-    using deleter = void (*)(uint32_t *);
+    using Delete = void (*)(uint32_t *);
     uint32_t eventId = 0;
     int64_t eventParam = 0;
     uint32_t number = 1;
-    std::unique_ptr<uint32_t, deleter> object(new uint32_t(number), Deleter);
+    std::unique_ptr<uint32_t, Delete> object(new uint32_t(number), Deleter);
     auto event = InnerEvent::Get(eventId, object, eventParam);
     auto id = event->GetInnerEventId();
     auto param = event->GetParam();
-    auto uniqueNumber = *(event->GetUniqueObject<uint32_t, deleter>());
+    auto uniqueNumber = *(event->GetUniqueObject<uint32_t, Delete>());
     EXPECT_EQ(eventId, id);
     EXPECT_EQ(eventParam, param);
     EXPECT_EQ(number, uniqueNumber);
@@ -523,7 +523,7 @@ HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement004, TestSize.Level
     eventRunnerNativeImplement->eventRunner_ = EventRunner::Create(false);
     int32_t fileDescriptor = 1;
     uint32_t events = 2;
-    struct FileDescriptorCallbacks P1;
-    FileDescriptorCallbacks *fdCallbacks = &P1;
+    struct FileDescriptorCallbacks p1;
+    FileDescriptorCallbacks *fdCallbacks = &p1;
     eventRunnerNativeImplement->AddFileDescriptorListener(fileDescriptor, events, fdCallbacks);
 }

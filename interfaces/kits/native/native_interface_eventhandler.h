@@ -58,13 +58,13 @@ using FileFDCallback = void (*)(int);
  */
 struct FileDescriptorCallbacks {
     /** Callback invoked when the file descriptor is readable */
-    FileFDCallback readableCallback_;
+    FileFDCallback readableCallback;
     /** Callback invoked when the file descriptor is writable */
-    FileFDCallback writableCallback_;
+    FileFDCallback writableCallback;
     /** Callback invoked when the file descriptor is closed */
-    FileFDCallback shutdownCallback_;
+    FileFDCallback shutdownCallback;
     /** Callback invoked when the file descriptor encounters an exception */
-    FileFDCallback exceptionCallback_;
+    FileFDCallback exceptionCallback;
 };
 
 /**

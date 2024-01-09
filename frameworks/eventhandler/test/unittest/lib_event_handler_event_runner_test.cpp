@@ -30,7 +30,7 @@ using namespace OHOS::AppExecFwk;
 
 static const uint32_t HAS_EVENT_ID = 100;
 static const int64_t HAS_EVENT_PARAM = 1000;
-bool isSetLogger = false;
+bool g_isSetLogger = false;
 
 /**
  * Wait until task is executed.
@@ -106,7 +106,7 @@ public:
      */
     void Log(const std::string &line)
     {
-        isSetLogger = true;
+        g_isSetLogger = true;
         GTEST_LOG_(INFO) << line;
     };
     virtual ~LoggerTest()
@@ -368,5 +368,5 @@ HWTEST_F(LibEventHandlerEventRunnerTest, SetLogger001, TestSize.Level1)
     handler->PostTask(task, "task1");
     handler->PostTask(task);
     usleep(100 * 1000);
-    EXPECT_TRUE(isSetLogger);
+    EXPECT_TRUE(g_isSetLogger);
 }
