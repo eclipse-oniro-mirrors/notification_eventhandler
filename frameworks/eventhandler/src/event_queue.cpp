@@ -106,6 +106,7 @@ EventQueue::~EventQueue()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
+    ioWaiter_ = nullptr;
     HILOGI("EventQueue is unavailable hence");
 }
 
@@ -115,7 +116,7 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
         HILOGE("Could not insert an invalid event");
         return;
     }
-
+    HILOGD("Insert task: %{public}s .", (event->GetEventUniqueId()).c_str());
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
