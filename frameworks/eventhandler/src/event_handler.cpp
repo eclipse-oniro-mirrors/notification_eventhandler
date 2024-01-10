@@ -70,7 +70,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
 
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
-    event->SetSenderKernelThreadId(syscall(__NR_gettid));
+    event->SetSenderKernelThreadId(getproctid());
     event->SetEventUniqueId();
     if (delayTime > 0) {
         event->SetHandleTime(now + std::chrono::milliseconds(delayTime));
@@ -263,7 +263,7 @@ void EventHandler::DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEve
     if (deliveryTimeout > 0) {
         std::string threadName = eventRunner_->GetRunnerThreadName();
         std::string eventName = GetEventName(event);
-        int64_t threadId = gettid();
+        int64_t threadId = getproctid();
         std::string threadIdCharacter = std::to_string(threadId);
         std::chrono::duration<double> deliveryTime = nowStart - event->GetSendTime();
         std::string deliveryTimeCharacter = std::to_string((deliveryTime).count());
@@ -292,7 +292,7 @@ void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerE
     if (distributeTimeout > 0) {
         std::string threadName = eventRunner_->GetRunnerThreadName();
         std::string eventName = GetEventName(event);
-        int64_t threadId = gettid();
+        int64_t threadId = getproctid();
         std::string threadIdCharacter = std::to_string(threadId);
         InnerEvent::TimePoint nowEnd = InnerEvent::Clock::now();
         std::chrono::duration<double> distributeTime = nowEnd - nowStart;

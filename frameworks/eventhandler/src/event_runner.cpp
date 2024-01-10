@@ -335,7 +335,7 @@ public:
         }
 
         threadId_ = std::this_thread::get_id();
-        kernelThreadId_ = syscall(__NR_gettid);
+        kernelThreadId_ = getproctid();
 
         // Save old event runner.
         std::weak_ptr<EventRunner> oldRunner = currentEventRunner;
