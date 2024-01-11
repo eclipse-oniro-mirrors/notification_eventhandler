@@ -121,15 +121,16 @@ namespace {
     {
         napi_handle_scope scope;
         EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(data);
-        if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr &&
-            !eventDataInner->callbackInfo->isDeleted) {
-            HILOGD("eventDataInner address: %{public}p", &eventDataInner);
-            napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
-            ProcessCallback(eventDataInner);
-            napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
-        } else {
-            eventDataInner->callbackInfo->processed = true;
-            HILOGD("callback is delete.");
+        if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr) {
+            if (!eventDataInner->callbackInfo->isDeleted) {
+                HILOGD("eventDataInner address: %{public}p", &eventDataInner);
+                napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
+                ProcessCallback(eventDataInner);
+                napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
+            } else {
+                eventDataInner->callbackInfo->processed = true;
+                HILOGD("callback is delete.");
+            }
         }
         delete eventDataInner;
         eventDataInner = nullptr;
