@@ -46,7 +46,7 @@ EventHandler::~EventHandler()
 {
     HILOGD("enter");
     if (eventRunner_) {
-        HILOGI("eventRunner is alive");
+        HILOGD("eventRunner is alive");
         /*
          * This handler is finishing, need to remove all events belong to it.
          * But events only have weak pointer of this handler,
