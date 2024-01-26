@@ -137,36 +137,11 @@ namespace {
         data = nullptr;
     }
 
-    void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
+    void CheckCallbackInfo(std::vector<AsyncCallbackInfo *>& callbackInfos,
+        std::vector<AsyncCallbackInfo *>& outCallbackInfos)
     {
-        HILOGF("ProcessEvent");
-        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
-        OutPutEventIdLog(eventId);
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
-        auto subscribe = emitterInstances.find(eventId);
-        if (subscribe == emitterInstances.end()) {
-            HILOGW("ProcessEvent has no callback");
-            return;
-        }
-        auto& callbackInfos = subscribe->second;
-        HILOGD("size = %{public}zu", callbackInfos.size());
-        auto value = event->GetUniqueObject<napi_value>();
-        std::shared_ptr<napi_value> eventData(value.release(), [this](napi_value* pData) {
-            if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
-                napi_delete_serialization_data(deleteEnv, *pData);
-            }
-        });
         for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
             AsyncCallbackInfo* callbackInfo = *iter;
-            EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
-            if (!eventDataWorker) {
-                HILOGE("new object failed");
-                continue;
-            }
-            deleteEnv = callbackInfo->env;
-            eventDataWorker->data = eventData;
-            eventDataWorker->callbackInfo = callbackInfo;
-            eventDataWorker->eventId = eventId;
             if (callbackInfo->once || callbackInfo->isDeleted) {
                 HILOGD("once callback or isDeleted callback");
                 iter = callbackInfos.erase(iter);
@@ -178,13 +153,50 @@ namespace {
             } else {
                 ++iter;
             }
-            napi_acquire_threadsafe_function(callbackInfo->tsfn);
-            napi_call_threadsafe_function(callbackInfo->tsfn, eventDataWorker, napi_tsfn_nonblocking);
+            outCallbackInfos.emplace_back(callbackInfo);
+        }
+    }
+
+    void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
+    {
+        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+        OutPutEventIdLog(eventId);
+        std::vector<AsyncCallbackInfo *> callbackInfos;
+        {
+            std::lock_guard<std::mutex> lock(emitterInsMutex);
+            auto subscribe = emitterInstances.find(eventId);
+            if (subscribe == emitterInstances.end()) {
+                HILOGW("ProcessEvent has no callback");
+                return;
+            }
+            CheckCallbackInfo(subscribe->second, callbackInfos);
+
+            if (callbackInfos.empty()) {
+                emitterInstances.erase(eventId);
+                HILOGD("ProcessEvent delete the last callback");
+            }
         }
 
-        if (callbackInfos.empty()) {
-            emitterInstances.erase(eventId);
-            HILOGD("ProcessEvent delete the last callback");
+        HILOGD("size = %{public}zu", callbackInfos.size());
+        auto value = event->GetUniqueObject<napi_value>();
+        std::shared_ptr<napi_value> eventData(value.release(), [this](napi_value* pData) {
+            if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
+                napi_delete_serialization_data(deleteEnv, *pData);
+            }
+        });
+        for (auto iter = callbackInfos.begin(); iter != callbackInfos.end(); ++iter) {
+            AsyncCallbackInfo* callbackInfo = *iter;
+            EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
+            if (!eventDataWorker) {
+                HILOGE("new object failed");
+                continue;
+            }
+            deleteEnv = callbackInfo->env;
+            eventDataWorker->data = eventData;
+            eventDataWorker->callbackInfo = callbackInfo;
+            eventDataWorker->eventId = eventId;
+            napi_acquire_threadsafe_function(callbackInfo->tsfn);
+            napi_call_threadsafe_function(callbackInfo->tsfn, eventDataWorker, napi_tsfn_nonblocking);
         }
     }
 
