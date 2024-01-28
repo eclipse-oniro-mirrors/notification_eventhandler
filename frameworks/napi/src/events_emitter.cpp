@@ -321,7 +321,6 @@ namespace {
             HILOGE("type mismatch for parameter 2");
             return nullptr;
         }
-
         InnerEvent::EventId eventIdValue = 0u;
         bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, eventIdValue);
         if (!ret) {
