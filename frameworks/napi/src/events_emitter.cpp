@@ -18,8 +18,9 @@
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <uv.h>
-
+#include <unordered_set>
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
@@ -32,9 +33,8 @@ namespace {
     constexpr static uint32_t ARGC_ONE = 1u;
 }
     static std::mutex emitterInsMutex;
-    static map<InnerEvent::EventId, std::vector<AsyncCallbackInfo *>> emitterInstances;
+    static map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
-
     AsyncCallbackInfo::~AsyncCallbackInfo()
     {
         env = nullptr;
@@ -61,48 +61,32 @@ namespace {
     void ProcessCallback(const EventDataWorker* eventDataInner)
     {
         HILOGD("enter");
-        if (eventDataInner == nullptr) {
-            HILOGW("EventDataWorkder instance(uv_work_t) is nullptr");
-            return;
+
+        std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
+        napi_value resultData = nullptr;
+        if (eventDataInner->data != nullptr) {
+            if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
+                resultData == nullptr) {
+                HILOGE("Deserialize fail.");
+                return;
+            }
         }
-        AsyncCallbackInfo* callbackInner = eventDataInner->callbackInfo;
-        if (callbackInner->isDeleted) {
-            HILOGD("ProcessEvent isDeleted");
+        napi_value event = nullptr;
+        napi_create_object(callbackInner->env, &event);
+        napi_set_named_property(callbackInner->env, event, "data", resultData);
+        napi_value callback = nullptr;
+        napi_value returnVal = nullptr;
+        napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
+        napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
+        if (callbackInner->once) {
+            HILOGD("ProcessEvent delete once");
             std::lock_guard<std::mutex> lock(emitterInsMutex);
-            napi_value callback = nullptr;
-            AsyncCallbackInfo* nativeCallback = nullptr;
-            napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
-            napi_remove_wrap(callbackInner->env, callback, (void**)&nativeCallback);
-            if (callbackInner->callback != nullptr) {
-                napi_delete_reference(callbackInner->env, callbackInner->callback);
-                callbackInner->callback = nullptr;
-            }
-        } else {
-            napi_value resultData = nullptr;
-            if (eventDataInner->data != nullptr) {
-                if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
-                    resultData == nullptr) {
-                    HILOGE("Deserialize fail.");
-                    return;
+            auto iter = emitterInstances.find(callbackInner->eventId);
+            if (iter != emitterInstances.end()) {
+                auto callback = iter->second.find(callbackInner);
+                if (callback != iter->second.end()) {
+                    iter->second.erase(callback);
                 }
-            }
-            napi_value event = nullptr;
-            napi_create_object(callbackInner->env, &event);
-            napi_set_named_property(callbackInner->env, event, "data", resultData);
-            napi_value callback = nullptr;
-            napi_value returnVal = nullptr;
-            napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
-            napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
-            if (callbackInner->once) {
-                HILOGD("ProcessEvent delete once");
-                std::lock_guard<std::mutex> lock(emitterInsMutex);
-                callbackInner->isDeleted = true;
-                napi_value callback = nullptr;
-                AsyncCallbackInfo* nativeCallback = nullptr;
-                napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
-                napi_remove_wrap(callbackInner->env, callback, (void**)&nativeCallback);
-                napi_delete_reference(callbackInner->env, callbackInner->callback);
-                callbackInner->callback = nullptr;
             }
         }
         callbackInner->processed = true;
@@ -121,15 +105,13 @@ namespace {
     {
         napi_handle_scope scope;
         EventDataWorker* eventDataInner = static_cast<EventDataWorker*>(data);
-        if (eventDataInner != nullptr && eventDataInner->callbackInfo != nullptr) {
-            if (!eventDataInner->callbackInfo->isDeleted) {
+        if (eventDataInner != nullptr) {
+            auto callbackInfoInner = eventDataInner->callbackInfo;
+            if (callbackInfoInner && !(callbackInfoInner->isDeleted)) {
                 HILOGD("eventDataInner address: %{public}p", &eventDataInner);
-                napi_open_handle_scope(eventDataInner->callbackInfo->env, &scope);
+                napi_open_handle_scope(callbackInfoInner->env, &scope);
                 ProcessCallback(eventDataInner);
-                napi_close_handle_scope(eventDataInner->callbackInfo->env, scope);
-            } else {
-                eventDataInner->callbackInfo->processed = true;
-                HILOGD("callback is delete.");
+                napi_close_handle_scope(callbackInfoInner->env, scope);
             }
         }
         delete eventDataInner;
@@ -137,44 +119,20 @@ namespace {
         data = nullptr;
     }
 
-    void CheckCallbackInfo(std::vector<AsyncCallbackInfo *>& callbackInfos,
-        std::vector<AsyncCallbackInfo *>& outCallbackInfos)
-    {
-        for (auto iter = callbackInfos.begin(); iter != callbackInfos.end();) {
-            AsyncCallbackInfo* callbackInfo = *iter;
-            if (callbackInfo->once || callbackInfo->isDeleted) {
-                HILOGD("once callback or isDeleted callback");
-                iter = callbackInfos.erase(iter);
-                if (callbackInfo->processed) {
-                    delete callbackInfo;
-                    callbackInfo = nullptr;
-                    continue;
-                }
-            } else {
-                ++iter;
-            }
-            outCallbackInfos.emplace_back(callbackInfo);
-        }
-    }
-
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
         InnerEvent::EventId eventId = event->GetInnerEventIdEx();
         OutPutEventIdLog(eventId);
-        std::vector<AsyncCallbackInfo *> callbackInfos;
+        std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> callbackInfos;
         {
             std::lock_guard<std::mutex> lock(emitterInsMutex);
-            auto subscribe = emitterInstances.find(eventId);
-            if (subscribe == emitterInstances.end()) {
+            auto iter = emitterInstances.find(eventId);
+            if (iter == emitterInstances.end()) {
                 HILOGW("ProcessEvent has no callback");
                 return;
             }
-            CheckCallbackInfo(subscribe->second, callbackInfos);
 
-            if (callbackInfos.empty()) {
-                emitterInstances.erase(eventId);
-                HILOGD("ProcessEvent delete the last callback");
-            }
+            callbackInfos = iter->second;
         }
 
         HILOGD("size = %{public}zu", callbackInfos.size());
@@ -184,23 +142,22 @@ namespace {
                 napi_delete_serialization_data(deleteEnv, *pData);
             }
         });
-        for (auto iter = callbackInfos.begin(); iter != callbackInfos.end(); ++iter) {
-            AsyncCallbackInfo* callbackInfo = *iter;
+        for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
             if (!eventDataWorker) {
                 HILOGE("new object failed");
                 continue;
             }
-            deleteEnv = callbackInfo->env;
+            deleteEnv = (*it)->env;
             eventDataWorker->data = eventData;
-            eventDataWorker->callbackInfo = callbackInfo;
-            eventDataWorker->eventId = eventId;
-            napi_acquire_threadsafe_function(callbackInfo->tsfn);
-            napi_call_threadsafe_function(callbackInfo->tsfn, eventDataWorker, napi_tsfn_nonblocking);
+            eventDataWorker->callbackInfo = (*it);
+            napi_acquire_threadsafe_function((*it)->tsfn);
+            napi_call_threadsafe_function((*it)->tsfn, eventDataWorker, napi_tsfn_nonblocking);
+            napi_release_threadsafe_function((*it)->tsfn, napi_tsfn_release);
         }
     }
 
-    static void UpdateOnceFlag(AsyncCallbackInfo *callbackInfo, bool once)
+    static void UpdateOnceFlag(std::shared_ptr<AsyncCallbackInfo>callbackInfo, bool once)
     {
         if (!once) {
             if (callbackInfo->once) {
@@ -219,7 +176,35 @@ namespace {
         }
     }
 
-    AsyncCallbackInfo *SearchCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
+    void DeleteCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
+    {
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        auto iter = emitterInstances.find(eventIdValue);
+        if (iter == emitterInstances.end()) {
+            return;
+        }
+        for (auto callbackInfo = iter->second.begin(); callbackInfo != iter->second.end();) {
+            napi_value callback = nullptr;
+            if ((*callbackInfo)->env != env) {
+                ++callbackInfo;
+                continue;
+            }
+            napi_get_reference_value((*callbackInfo)->env, (*callbackInfo)->callback, &callback);
+            bool isEq = false;
+            napi_strict_equals(env, argv, callback, &isEq);
+            if (!isEq) {
+                ++callbackInfo;
+                continue;
+            }
+            (*callbackInfo)->isDeleted = true;
+            callbackInfo = iter->second.erase(callbackInfo);
+            return;
+        }
+        return;
+    }
+
+    std::shared_ptr<AsyncCallbackInfo> SearchCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue,
+        napi_value argv)
     {
         auto subscribe = emitterInstances.find(eventIdValue);
         if (subscribe == emitterInstances.end()) {
@@ -280,10 +265,36 @@ namespace {
 
     void ThreadFinished(napi_env env, void* data, [[maybe_unused]] void* context)
     {
-        HILOGF("ThreadFinished");
-        AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
+        HILOGD("ThreadFinished");
+    }
+
+    void ReleaseCallbackInfo(AsyncCallbackInfo* callbackInfo)
+    {
         if (callbackInfo != nullptr) {
-            napi_release_threadsafe_function(callbackInfo->tsfn, napi_tsfn_release);
+            uv_loop_s *loop = nullptr;
+            if (napi_get_uv_event_loop(callbackInfo->env, &loop) != napi_ok) {
+                return;
+            }
+            uv_work_t *work = new (std::nothrow) uv_work_t;
+            if (work == nullptr) {
+                return;
+            }
+            work->data = reinterpret_cast<void*>(callbackInfo);
+            uv_queue_work_with_qos(loop, work, [](uv_work_t* work) {}, [](uv_work_t *work, int status) {
+                AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(work->data);
+                if (napi_delete_reference(callbackInfo->env, callbackInfo->callback) != napi_ok) {
+                    HILOGE("napi_delete_reference fail.");
+                }
+                napi_value callback = nullptr;
+                AsyncCallbackInfo* nativeCallback = nullptr;
+                napi_get_reference_value(callbackInfo->env, callbackInfo->callback, &callback);
+                napi_remove_wrap(callbackInfo->env, callback, (void**)&nativeCallback);
+                napi_release_threadsafe_function(callbackInfo->tsfn, napi_tsfn_release);
+                delete callbackInfo;
+                callbackInfo = nullptr;
+                delete work;
+                work = nullptr;
+            }, uv_qos_user_initiated);
         }
     }
 
@@ -321,7 +332,10 @@ namespace {
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
         } else {
-            callbackInfo = new (std::nothrow) AsyncCallbackInfo();
+            callbackInfo = std::shared_ptr<AsyncCallbackInfo>(new (std::nothrow) AsyncCallbackInfo(),
+                [](AsyncCallbackInfo* callbackInfo) {
+                ReleaseCallbackInfo(callbackInfo);
+            });
             if (!callbackInfo) {
                 HILOGE("new object failed");
                 return nullptr;
@@ -329,19 +343,19 @@ namespace {
             callbackInfo->env = env;
             callbackInfo->once = once;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
-            napi_wrap(env, argv[1], callbackInfo, [](napi_env env, void* data, void* hint) {
+            AsyncCallbackInfo* callbackInfoPtr = callbackInfo.get();
+            napi_wrap(env, argv[1], callbackInfoPtr, [](napi_env env, void* data, void* hint) {
                 auto callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
-                if (callbackInfo != nullptr && !callbackInfo->isDeleted) {
+                if (callbackInfo != nullptr) {
                     callbackInfo->isDeleted = true;
-                    callbackInfo->processed = true;
                     callbackInfo->env = nullptr;
                 }
             }, nullptr, nullptr);
             napi_value resourceName = nullptr;
             napi_create_string_utf8(env, "Call thread-safe function", NAPI_AUTO_LENGTH, &resourceName);
-            napi_create_threadsafe_function(env, argv[1], nullptr, resourceName, 0, 1, callbackInfo, ThreadFinished,
+            napi_create_threadsafe_function(env, argv[1], nullptr, resourceName, 0, 1, nullptr, ThreadFinished,
                 nullptr, ThreadSafeCallback, &(callbackInfo->tsfn));
-            emitterInstances[eventIdValue].push_back(callbackInfo);
+            emitterInstances[eventIdValue].insert(callbackInfo);
         }
         return nullptr;
     }
@@ -406,7 +420,6 @@ namespace {
             HILOGE("Event id is empty for parameter 1.");
             return nullptr;
         }
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
 
         if (argc == ARGC_NUM) {
             napi_valuetype eventHandleType;
@@ -415,20 +428,17 @@ namespace {
                 HILOGE("type mismatch for parameter 2");
                 return nullptr;
             }
-
-            auto callbackInfo = SearchCallbackInfo(env, eventId, argv[1]);
-            if (callbackInfo != nullptr) {
-                callbackInfo->isDeleted = true;
-            }
+            DeleteCallbackInfo(env, eventId, argv[1]);
             return nullptr;
         }
-
-        auto subscribe = emitterInstances.find(eventId);
-        if (subscribe != emitterInstances.end()) {
-            for (auto callbackInfo : subscribe->second) {
+        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        auto iter = emitterInstances.find(eventId);
+        if (iter != emitterInstances.end()) {
+            for (auto callbackInfo : iter->second) {
                 callbackInfo->isDeleted = true;
             }
         }
+        emitterInstances.erase(eventId);
         return nullptr;
     }
 
@@ -474,12 +484,8 @@ namespace {
             HILOGW("JS_Emit has no callback");
             return false;
         }
-        vector<AsyncCallbackInfo *> callbackInfo = subscribe->second;
-        size_t callbackSize = callbackInfo.size();
-        for (size_t i = 0; i < callbackSize; i++) {
-            if (!callbackInfo[i]->isDeleted) {
-                return true;
-            }
+        if (subscribe->second.size() != 0) {
+            return true;
         }
         return false;
     }
@@ -687,9 +693,7 @@ namespace {
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
             for (auto callbackInfo : subscribe->second) {
-                if (!callbackInfo->isDeleted) {
-                    ++cnt;
-                }
+                ++cnt;
             }
         }
         return CreateJsNumber(env, cnt);
