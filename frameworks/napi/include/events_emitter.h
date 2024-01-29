@@ -65,14 +65,14 @@ struct AsyncCallbackInfo {
     std::atomic<bool> processed = false;
     napi_ref callback = 0;
     napi_threadsafe_function tsfn = nullptr;
+    InnerEvent::EventId eventId;
     ~AsyncCallbackInfo();
 };
 
 using EventData = std::shared_ptr<napi_value>;
 struct EventDataWorker {
     EventData data;
-    InnerEvent::EventId eventId;
-    AsyncCallbackInfo* callbackInfo;
+    std::shared_ptr<AsyncCallbackInfo> callbackInfo;
 };
 
 napi_value EmitterInit(napi_env env, napi_value exports);
