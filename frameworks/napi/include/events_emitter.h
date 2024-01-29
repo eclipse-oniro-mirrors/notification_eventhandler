@@ -80,6 +80,13 @@ napi_value JS_On(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Off(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Once(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Emit(napi_env env, napi_callback_info cbinfo);
+
+static inline napi_valuetype GetNapiType(napi_env env, napi_value param)
+{
+    napi_valuetype type;
+    napi_typeof(env, param, &type);
+    return type;
+}
 } // namespace AppExecFwk
 } // namespace OHOS
 

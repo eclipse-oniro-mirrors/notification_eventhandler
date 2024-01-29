@@ -32,7 +32,7 @@ namespace {
     DEFINE_EH_HILOG_LABEL("EventsEmitter");
     constexpr static uint32_t ARGC_ONE = 1u;
 }
-    static std::mutex emitterInsMutex;
+    static std::mutex g_emitterInsMutex;
     static map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
     std::shared_ptr<EventHandlerInstance> eventHandler;
     AsyncCallbackInfo::~AsyncCallbackInfo()
@@ -80,7 +80,7 @@ namespace {
         napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
         if (callbackInner->once) {
             HILOGD("ProcessEvent delete once");
-            std::lock_guard<std::mutex> lock(emitterInsMutex);
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
             auto iter = emitterInstances.find(callbackInner->eventId);
             if (iter != emitterInstances.end()) {
                 auto callback = iter->second.find(callbackInner);
@@ -125,7 +125,7 @@ namespace {
         OutPutEventIdLog(eventId);
         std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> callbackInfos;
         {
-            std::lock_guard<std::mutex> lock(emitterInsMutex);
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
             auto iter = emitterInstances.find(eventId);
             if (iter == emitterInstances.end()) {
                 HILOGW("ProcessEvent has no callback");
@@ -178,7 +178,7 @@ namespace {
 
     void DeleteCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto iter = emitterInstances.find(eventIdValue);
         if (iter == emitterInstances.end()) {
             return;
@@ -308,16 +308,13 @@ namespace {
             return nullptr;
         }
 
-        napi_valuetype eventValueType;
-        napi_typeof(env, argv[0], &eventValueType);
+        napi_valuetype eventValueType = GetNapiType(env, argv[0]);
         if (eventValueType != napi_object && eventValueType != napi_string) {
             HILOGE("type mismatch for parameter 1");
             return nullptr;
         }
 
-        napi_valuetype eventHandleType;
-        napi_typeof(env, argv[1], &eventHandleType);
-        if (eventHandleType != napi_function) {
+        if (GetNapiType(env, argv[1]) != napi_function) {
             HILOGE("type mismatch for parameter 2");
             return nullptr;
         }
@@ -327,7 +324,7 @@ namespace {
         if (!ret) {
             return nullptr;
         }
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(env, eventIdValue, argv[1]);
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
@@ -431,7 +428,7 @@ namespace {
             DeleteCallbackInfo(env, eventId, argv[1]);
             return nullptr;
         }
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto iter = emitterInstances.find(eventId);
         if (iter != emitterInstances.end()) {
             for (auto callbackInfo : iter->second) {
@@ -478,7 +475,7 @@ namespace {
 
     bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
             HILOGW("JS_Emit has no callback");
@@ -689,7 +686,7 @@ namespace {
             HILOGE("Event id is empty for parameter 1.");
             return CreateJsUndefined(env);
         }
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
             for (auto callbackInfo : subscribe->second) {
