@@ -282,13 +282,15 @@ namespace {
             work->data = reinterpret_cast<void*>(callbackInfo);
             uv_queue_work_with_qos(loop, work, [](uv_work_t* work) {}, [](uv_work_t *work, int status) {
                 AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(work->data);
+                napi_value callback = nullptr;
+                napi_get_reference_value(callbackInfo->env, callbackInfo->callback, &callback);
                 if (napi_delete_reference(callbackInfo->env, callbackInfo->callback) != napi_ok) {
                     HILOGE("napi_delete_reference fail.");
                 }
-                napi_value callback = nullptr;
-                AsyncCallbackInfo* nativeCallback = nullptr;
-                napi_get_reference_value(callbackInfo->env, callbackInfo->callback, &callback);
-                napi_remove_wrap(callbackInfo->env, callback, (void**)&nativeCallback);
+                if (callback != nullptr) {
+                    AsyncCallbackInfo* nativeCallback = nullptr;
+                    napi_remove_wrap(callbackInfo->env, callback, (void**)&nativeCallback);
+                }
                 napi_release_threadsafe_function(callbackInfo->tsfn, napi_tsfn_release);
                 delete callbackInfo;
                 callbackInfo = nullptr;
