@@ -91,7 +91,8 @@ EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>()), historyE
 }
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
-    : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>())
+    : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>()), historyEvents_(
+    std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
 {
     HILOGD("enter");
     if (ioWaiter_->SupportListeningFileDescriptor()) {
