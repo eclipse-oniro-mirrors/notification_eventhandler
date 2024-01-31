@@ -333,7 +333,7 @@ std::string InnerEvent::Dump()
     } else {
         content.append("No handler");
     }
-    content.append(" }" + LINE_SEPARATOR);
+    content.append(" }" + std::string(LINE_SEPARATOR));
 
     return content;
 }
