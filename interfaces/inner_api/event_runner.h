@@ -21,6 +21,7 @@
 #include "event_queue.h"
 #include "dumper.h"
 #include "logger.h"
+#include "inner_event.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -31,6 +32,13 @@ public:
     EventRunner() = delete;
     ~EventRunner();
     DISALLOW_COPY_AND_MOVE(EventRunner);
+
+    using DistributeBeginTime = std::function<InnerEvent::TimePoint(std::string)>;
+    using DistributeEndTime = std::function<void(std::string, InnerEvent::TimePoint)>;
+    using CallbackTime = std::function<void(int64_t)>;
+    static DistributeBeginTime distributeBegin_;
+    static DistributeEndTime distributeEnd_;
+    static CallbackTime distributeCallback_;
 
     /**
      * Create new 'EventRunner'.
@@ -193,6 +201,49 @@ public:
     }
 
     /**
+     * Set the main thread timeout period.
+     *
+     * @param distributeTimeout the distribution standard expiration time.
+     */
+    void SetTimeout(int64_t distributeTimeout)
+    {
+        timeout_ = distributeTimeout;
+    }
+
+    /**
+     * Set distribute time out callback.
+     *
+     * @param callback Distribute Time out callback.
+     */
+    void SetTimeoutCallback(CallbackTime callback)
+    {
+        distributeCallback_ = callback;
+    }
+
+    /**
+     * Get the execution standard timeout period.
+     *
+     * @return the distribution standard expiration time.
+     */
+    int64_t GetTimeout() const
+    {
+        return timeout_;
+    }
+
+    /**
+     * Check if the current application is the main thread.
+     */
+    static bool IsAppMainThread();
+
+    /**
+     * Set app main thread watcher.
+     *
+     * @param callback Distribute Start Time callback.
+     * @param callback Distribute End Time callback.
+     */
+    void SetMainLooperWatcher(const DistributeBeginTime begin, const DistributeEndTime end);
+
+    /**
      * Obtains the EventRunner for the main thread of the application.
      *
      * @return Returns the EventRunner for the main thread of the application.
@@ -217,6 +268,7 @@ private:
 
     int64_t deliveryTimeout_ = 0;
     int64_t distributeTimeout_ = 0;
+    int64_t timeout_ = 0;
     bool deposit_{true};
     std::atomic<bool> running_{false};
     std::shared_ptr<EventQueue> queue_;

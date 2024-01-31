@@ -920,6 +920,13 @@ public:
     }
 
     /**
+     * Distribute time out handler.
+     *
+     * @param beginTime Dotting before distribution.
+     */
+    void DistributeTimeoutHandler(const InnerEvent::TimePoint& beginTime);
+
+    /**
      * Distribute the event.
      *
      * @param event The event should be distributed.
