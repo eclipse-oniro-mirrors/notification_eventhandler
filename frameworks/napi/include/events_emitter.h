@@ -62,7 +62,6 @@ struct AsyncCallbackInfo {
     std::atomic<napi_env> env;
     std::atomic<bool> once = false;
     std::atomic<bool> isDeleted = false;
-    std::atomic<bool> processed = false;
     napi_ref callback = 0;
     napi_threadsafe_function tsfn = nullptr;
     InnerEvent::EventId eventId;
