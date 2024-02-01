@@ -89,7 +89,6 @@ namespace {
                 }
             }
         }
-        callbackInner->processed = true;
     }
 
     void OutPutEventIdLog(const InnerEvent::EventId &eventId)
@@ -337,12 +336,12 @@ namespace {
             callbackInfo->once = once;
             callbackInfo->eventId = eventIdValue;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
-            AsyncCallbackInfo* callbackInfoPtr = callbackInfo.get();
-            napi_wrap(env, argv[1], callbackInfoPtr, [](napi_env env, void* data, void* hint) {
-                auto callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
-                if (callbackInfo != nullptr) {
-                    callbackInfo->isDeleted = true;
-                    callbackInfo->env = nullptr;
+            napi_wrap(env, argv[1], new (std::nothrow) std::weak_ptr<AsyncCallbackInfo>(callbackInfo),
+                [](napi_env env, void* data, void* hint) {
+                auto callbackInfoPtr = static_cast<std::weak_ptr<AsyncCallbackInfo>*>(data);
+                if (callbackInfoPtr != nullptr && (*callbackInfoPtr).lock() != nullptr) {
+                    (*callbackInfoPtr).lock()->isDeleted = true;
+                    (*callbackInfoPtr).lock()->env = nullptr;
                 }
             }, nullptr, nullptr);
             napi_value resourceName = nullptr;
