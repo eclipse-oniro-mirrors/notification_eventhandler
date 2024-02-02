@@ -64,7 +64,7 @@ namespace {
 
         std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
         napi_value resultData = nullptr;
-        if (eventDataInner->data != nullptr) {
+        if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
             if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                 resultData == nullptr) {
                 HILOGE("Deserialize fail.");
@@ -445,11 +445,11 @@ namespace {
             return false;
         }
         bool hasData = false;
+        napi_value serializeData = nullptr;
         napi_has_named_property(env, argv, "data", &hasData);
         if (hasData) {
             napi_value data = nullptr;
             napi_get_named_property(env, argv, "data", &data);
-            napi_value serializeData = nullptr;
             napi_status serializeResult = napi_ok;
             napi_value undefined = nullptr;
             napi_get_undefined(env, &undefined);
@@ -461,12 +461,11 @@ namespace {
                 HILOGE("Serialize fail.");
                 return false;
             }
-            OutPutEventIdLog(eventId);
-            auto event = InnerEvent::Get(eventId, make_unique<napi_value>(serializeData));
-            eventHandler->SendEvent(event, 0, priority);
-            return true;
         }
-        return false;
+        OutPutEventIdLog(eventId);
+        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(serializeData));
+        eventHandler->SendEvent(event, 0, priority);
+        return true;
     }
 
     bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)
