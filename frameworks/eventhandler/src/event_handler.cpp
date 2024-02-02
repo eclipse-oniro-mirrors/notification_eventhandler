@@ -311,7 +311,7 @@ void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerE
 #endif // HAS_HICHECKER_NATIVE_PART
 }
 
-void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
+void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute__((no_sanitize("cfi")))
 {
     if (!event) {
         HILOGE("Could not distribute an invalid event");
