@@ -340,6 +340,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         (event->GetEventUniqueId()).c_str());
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
+        HILOGD("excute event taskCallback, event address: %{public}p ", &(event->GetTaskCallback()));
         (event->GetTaskCallback())();
     } else {
         // Otherwise let developers to handle it.
