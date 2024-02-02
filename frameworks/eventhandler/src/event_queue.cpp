@@ -158,6 +158,7 @@ void EventQueue::RemoveOrphan()
         if (!listener) {
             return true;
         }
+        HILOGD("Start get to GetOwner");
         return !listener->GetOwner();
     };
 
