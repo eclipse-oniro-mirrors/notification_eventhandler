@@ -258,6 +258,7 @@ private:
     };
 
     void Remove(const RemoveFilter &filter);
+    void RemoveOrphan(const RemoveFilter &filter);
     bool HasInnerEvent(const HasFilter &filter);
     InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime);
     InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
