@@ -27,6 +27,7 @@
 namespace OHOS {
 namespace AppExecFwk {
 inline constexpr uint32_t EH_LOG_DOMAIN = 0xD001200;
+#define EH_LOG_LIMIT_INTERVALS 10000 //ms
 
 class InnerFunctionTracer {
 public:
@@ -96,6 +97,73 @@ private:
 
 #define HILOGF(fmt, ...) do { \
     ((void)HILOG_IMPL(LOG_CORE, LOG_FATAL, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
+} while (0)
+
+#define EH_PRINT_LIMIT(type, level, intervals, canPrint)                               \
+do {                                                                                    \
+    static auto last = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>();   \
+    static uint32_t supressed = 0;                                                      \
+    auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()); \
+    auto duration = now - last;                                                         \
+    if (duration.count() >= (intervals)) {                                              \
+        last = now;                                                                     \
+        uint32_t supressedCnt = supressed;                                              \
+        supressed = 0;                                                                  \
+        if (supressedCnt != 0) {                                                        \
+            ((void)HILOG_IMPL((type), (level), EH_LOG_DOMAIN, EH_LOG_LABEL,    \
+            "[(%{public}s:%{public}d)]log suppressed cnt %{public}u",         \
+            __FUNCTION__, __LINE__, supressedCnt));                       \
+        }                                                                               \
+        (canPrint) = true;                                                              \
+    } else {                                                                            \
+        supressed++;                                                                    \
+        (canPrint) = false;                                                             \
+    }                                                                                   \
+} while (0)
+
+#define EH_LOGF_LIMIT(fmt, ...)                                        \
+do {                                                                    \
+    bool can = true;                                                    \
+    EH_PRINT_LIMIT(LOG_CORE, LOG_FATAL, EH_LOG_LIMIT_INTERVALS, can); \
+    if (can) {                                                          \
+        HILOGF(fmt, ##__VA_ARGS__);                                   \
+    }                                                                   \
+} while (0)
+
+#define EH_LOGE_LIMIT(fmt, ...)                                        \
+do {                                                                    \
+    bool can = true;                                                    \
+    EH_PRINT_LIMIT(LOG_CORE, LOG_ERROR, EH_LOG_LIMIT_INTERVALS, can); \
+    if (can) {                                                          \
+        HILOGE(fmt, ##__VA_ARGS__);                                   \
+    }                                                                   \
+} while (0)
+
+#define EH_LOGW_LIMIT(fmt, ...)                                        \
+do {                                                                    \
+    bool can = true;                                                    \
+    EH_PRINT_LIMIT(LOG_CORE, LOG_WARN, EH_LOG_LIMIT_INTERVALS, can);  \
+    if (can) {                                                          \
+        HILOGW(fmt, ##__VA_ARGS__);                                   \
+    }                                                                   \
+} while (0)
+
+#define EH_LOGI_LIMIT(fmt, ...)                                        \
+do {                                                                    \
+    bool can = true;                                                    \
+    EH_PRINT_LIMIT(LOG_CORE, LOG_INFO, EH_LOG_LIMIT_INTERVALS, can);  \
+    if (can) {                                                          \
+        HILOGI(fmt, ##__VA_ARGS__);                                   \
+    }                                                                   \
+} while (0)
+
+#define EH_LOGD_LIMIT(fmt, ...)                                        \
+do {                                                                    \
+    bool can = true;                                                    \
+    EH_PRINT_LIMIT(LOG_CORE, LOG_DEBUG, EH_LOG_LIMIT_INTERVALS, can); \
+    if (can) {                                                          \
+        HILOGD(fmt, ##__VA_ARGS__);                                   \
+    }                                                                   \
 } while (0)
 
 #ifndef EH_CALL_DEBUG_ENTER
