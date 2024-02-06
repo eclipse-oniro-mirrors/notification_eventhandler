@@ -529,7 +529,7 @@ void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_
     }
 }
 
-void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &taskName)
+void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &taskName ) __attribute__((no_sanitize("cfi")))
 {
     std::shared_ptr<FileDescriptorListener> listener;
     {
