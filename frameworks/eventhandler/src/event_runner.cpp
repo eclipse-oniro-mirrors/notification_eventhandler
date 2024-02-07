@@ -555,7 +555,7 @@ std::string EventRunner::GetRunnerThreadName() const
 EventRunner::~EventRunner()
 {
     HILOGD("deposit_ is %{public}d", deposit_);
-    if (deposit_) {
+    if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
 }

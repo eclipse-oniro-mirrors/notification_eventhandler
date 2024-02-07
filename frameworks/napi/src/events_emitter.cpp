@@ -64,7 +64,7 @@ namespace {
 
         std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
         napi_value resultData = nullptr;
-        if (eventDataInner->data != nullptr) {
+        if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
             if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                 resultData == nullptr) {
                 HILOGE("Deserialize fail.");
@@ -89,7 +89,6 @@ namespace {
                 }
             }
         }
-        callbackInner->processed = true;
     }
 
     void OutPutEventIdLog(const InnerEvent::EventId &eventId)
@@ -282,14 +281,8 @@ namespace {
             work->data = reinterpret_cast<void*>(callbackInfo);
             uv_queue_work_with_qos(loop, work, [](uv_work_t* work) {}, [](uv_work_t *work, int status) {
                 AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(work->data);
-                napi_value callback = nullptr;
-                napi_get_reference_value(callbackInfo->env, callbackInfo->callback, &callback);
                 if (napi_delete_reference(callbackInfo->env, callbackInfo->callback) != napi_ok) {
                     HILOGE("napi_delete_reference fail.");
-                }
-                if (callback != nullptr) {
-                    AsyncCallbackInfo* nativeCallback = nullptr;
-                    napi_remove_wrap(callbackInfo->env, callback, (void**)&nativeCallback);
                 }
                 napi_release_threadsafe_function(callbackInfo->tsfn, napi_tsfn_release);
                 delete callbackInfo;
@@ -341,13 +334,14 @@ namespace {
             }
             callbackInfo->env = env;
             callbackInfo->once = once;
+            callbackInfo->eventId = eventIdValue;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
-            AsyncCallbackInfo* callbackInfoPtr = callbackInfo.get();
-            napi_wrap(env, argv[1], callbackInfoPtr, [](napi_env env, void* data, void* hint) {
-                auto callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(data);
-                if (callbackInfo != nullptr) {
-                    callbackInfo->isDeleted = true;
-                    callbackInfo->env = nullptr;
+            napi_wrap(env, argv[1], new (std::nothrow) std::weak_ptr<AsyncCallbackInfo>(callbackInfo),
+                [](napi_env env, void* data, void* hint) {
+                auto callbackInfoPtr = static_cast<std::weak_ptr<AsyncCallbackInfo>*>(data);
+                if (callbackInfoPtr != nullptr && (*callbackInfoPtr).lock() != nullptr) {
+                    (*callbackInfoPtr).lock()->isDeleted = true;
+                    (*callbackInfoPtr).lock()->env = nullptr;
                 }
             }, nullptr, nullptr);
             napi_value resourceName = nullptr;
@@ -451,11 +445,11 @@ namespace {
             return false;
         }
         bool hasData = false;
+        napi_value serializeData = nullptr;
         napi_has_named_property(env, argv, "data", &hasData);
         if (hasData) {
             napi_value data = nullptr;
             napi_get_named_property(env, argv, "data", &data);
-            napi_value serializeData = nullptr;
             napi_status serializeResult = napi_ok;
             napi_value undefined = nullptr;
             napi_get_undefined(env, &undefined);
@@ -467,12 +461,11 @@ namespace {
                 HILOGE("Serialize fail.");
                 return false;
             }
-            OutPutEventIdLog(eventId);
-            auto event = InnerEvent::Get(eventId, make_unique<napi_value>(serializeData));
-            eventHandler->SendEvent(event, 0, priority);
-            return true;
         }
-        return false;
+        OutPutEventIdLog(eventId);
+        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(serializeData));
+        eventHandler->SendEvent(event, 0, priority);
+        return true;
     }
 
     bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)

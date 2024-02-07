@@ -326,7 +326,7 @@ void EventHandler::DistributeTimeoutHandler(const InnerEvent::TimePoint& beginTi
     }
 }
 
-void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
+void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute__((no_sanitize("cfi")))
 {
     if (!event) {
         HILOGE("Could not distribute an invalid event");
@@ -363,6 +363,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event)
 
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
+        HILOGD("excute event taskCallback, event address: %{public}p ", &(event->GetTaskCallback()));
         (event->GetTaskCallback())();
     } else {
         // Otherwise let developers to handle it.

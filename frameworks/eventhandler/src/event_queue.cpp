@@ -16,6 +16,8 @@
 #include "event_queue.h"
 
 #include <algorithm>
+#include <iterator>
+#include <mutex>
 
 #include "epoll_io_waiter.h"
 #include "event_handler.h"
@@ -91,7 +93,8 @@ EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>()), historyE
 }
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
-    : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>())
+    : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>()), historyEvents_(
+    std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
 {
     HILOGD("enter");
     if (ioWaiter_->SupportListeningFileDescriptor()) {
@@ -151,13 +154,14 @@ void EventQueue::RemoveOrphan()
     // Remove all events which lost its owner.
     auto filter = [](const InnerEvent::Pointer &p) { return !p->GetOwner(); };
 
-    Remove(filter);
+    RemoveOrphan(filter);
 
     // Remove all listeners which lost its owner.
     auto listenerFilter = [](const std::shared_ptr<FileDescriptorListener> &listener) {
         if (!listener) {
             return true;
         }
+        HILOGD("Start get to GetOwner");
         return !listener->GetOwner();
     };
 
@@ -258,6 +262,27 @@ void EventQueue::Remove(const RemoveFilter &filter)
         subEventQueues_[i].queue.remove_if(filter);
     }
     idleEvents_.remove_if(filter);
+}
+
+void EventQueue::RemoveOrphan(const RemoveFilter &filter)
+{
+    std::list<InnerEvent::Pointer> releaseIdleEvents;
+    std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> releaseEventsQueue;
+    {
+        std::lock_guard<std::mutex> lock(queueLock_);
+        if (!usable_.load()) {
+            HILOGW("EventQueue is unavailable.");
+            return;
+        }
+        for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
+            auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
+            std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
+            subEventQueues_[i].queue.erase(subEventQueues_[i].queue.begin(), it);
+        }
+        auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
+        std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
+        idleEvents_.erase(idleEvents_.begin(), idleEventIt);
+    }
 }
 
 bool EventQueue::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId)
