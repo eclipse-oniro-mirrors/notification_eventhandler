@@ -311,6 +311,21 @@ void EventHandler::DistributeTimeAction(const InnerEvent::Pointer &event, InnerE
 #endif // HAS_HICHECKER_NATIVE_PART
 }
 
+void EventHandler::DistributeTimeoutHandler(const InnerEvent::TimePoint& beginTime)
+{
+    int64_t distributeTimeout = EventRunner::GetMainEventRunner()->GetTimeout();
+    if (distributeTimeout > 0) {
+        InnerEvent::TimePoint endTime = InnerEvent::Clock::now();
+        if ((endTime - std::chrono::milliseconds(distributeTimeout)) > beginTime &&
+            EventRunner::distributeCallback_) {
+            HILOGI("AppMainThread Callback.");
+            auto diff = endTime - beginTime;
+            int64_t durationTime = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+            EventRunner::distributeCallback_(durationTime);
+        }
+    }
+}
+
 void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute__((no_sanitize("cfi")))
 {
     if (!event) {
@@ -338,6 +353,14 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     DeliveryTimeAction(event, nowStart);
     HILOGD("EventName is %{public}s, eventId is %{public}s .", GetEventName(event).c_str(),
         (event->GetEventUniqueId()).c_str());
+
+    std::string eventName = GetEventName(event);
+    InnerEvent::TimePoint beginTime;
+    bool isAppMainThread = EventRunner::IsAppMainThread();
+    if (EventRunner::distributeBegin_ && isAppMainThread) {
+        beginTime = EventRunner::distributeBegin_(eventName);
+    }
+
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
         HILOGD("excute event taskCallback, event address: %{public}p ", &(event->GetTaskCallback()));
@@ -345,6 +368,11 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     } else {
         // Otherwise let developers to handle it.
         ProcessEvent(event);
+    }
+
+    if (EventRunner::distributeBegin_ && EventRunner::distributeEnd_ && isAppMainThread) {
+        EventRunner::distributeEnd_(eventName, beginTime);
+        DistributeTimeoutHandler(beginTime);
     }
 
     DistributeTimeAction(event, nowStart);

@@ -38,6 +38,7 @@ namespace AppExecFwk {
 namespace {
 const char *g_crashEmptyDumpInfo = "Current Event Caller is empty. Nothing to dump";
 const int CRASH_BUF_MIN_LEN = 2;
+constexpr int64_t MIN_APP_UID = 20000;
 thread_local static Caller g_currentEventCaller = {};
 thread_local static std::string g_currentEventName = {};
 
@@ -485,6 +486,9 @@ ThreadCollector::Avatar ThreadCollector::avatar_;
 }  // unnamed namespace
 
 std::shared_ptr<EventRunner> EventRunner::mainRunner_;
+EventRunner::DistributeBeginTime EventRunner::distributeBegin_ = nullptr;
+EventRunner::DistributeEndTime EventRunner::distributeEnd_ = nullptr;
+EventRunner::CallbackTime EventRunner::distributeCallback_ = nullptr;
 
 std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
 {
@@ -671,6 +675,34 @@ std::shared_ptr<EventRunner> EventRunner::GetMainEventRunner()
     }
 
     return mainRunner_;
+}
+
+bool EventRunner::IsAppMainThread()
+{
+    static int pid = -1;
+    static int uid = -1;
+
+    if (pid == -1) {
+        pid = getpid();
+    }
+    if (uid == -1) {
+        uid = getuid();
+    }
+    if (pid == gettid() && uid >= MIN_APP_UID) {
+        return true;
+    }
+    return false;
+}
+
+void EventRunner::SetMainLooperWatcher(const DistributeBeginTime begin,
+    const DistributeEndTime end)
+{
+    if (begin != nullptr && end != nullptr) {
+        distributeBegin_ = begin;
+        distributeEnd_ = end;
+    } else {
+        HILOGE("SetMainLooperWatcher Error, invaild parameter");
+    }
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS
