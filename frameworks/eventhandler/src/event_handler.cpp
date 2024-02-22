@@ -23,6 +23,7 @@
 #include "hichecker.h"
 #endif // HAS_HICHECKER_NATIVE_PART
 #include "thread_local_data.h"
+#include "event_hitrace_meter_adapter.h"
 
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
@@ -341,6 +342,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         HILOGD("%{public}s", currentRunningInfo.c_str());
     }
 
+    StartTraceAdapter(event);
+
     auto spanId = event->GetTraceId();
     auto traceId = HiTraceChain::GetId();
     bool allowTraceOutPut = AllowHiTraceOutPut(spanId, event->HasWaiter());
@@ -388,6 +391,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         auto now = InnerEvent::Clock::now();
         HILOGD("end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
     }
+    FinishTraceAdapter();
 }
 
 void EventHandler::Dump(Dumper &dumper)
