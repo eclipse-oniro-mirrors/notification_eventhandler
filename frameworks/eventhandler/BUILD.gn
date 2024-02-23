@@ -55,6 +55,12 @@ ohos_shared_library("libeventhandler") {
     cflags_cc += [ "-DHAS_HICHECKER_NATIVE_PART" ]
     external_deps += [ "hichecker:libhichecker" ]
   }
+
+  if (eh_hitrace_usage) {
+    cflags_cc += [ "-DEH_HITRACE_METER_ENABLE" ]
+    external_deps += [ "hitrace:hitrace_meter" ]
+  }
+
   install_images = [ system_base_dir ]
   subsystem_name = "notification"
   innerapi_tags = [
