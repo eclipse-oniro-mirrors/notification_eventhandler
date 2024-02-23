@@ -34,7 +34,7 @@ using namespace OHOS;
 using namespace OHOS::AppExecFwk;
 
 namespace {
-const size_t MAX_PRIORITY_NUM = 4;
+const size_t MAX_PRIORITY_NUM = 5;
 const size_t MAX_HIGH_PRIORITY_COUNT = 5;
 const uint32_t NUM = 2;
 const uint32_t HIGH_PRIORITY_COUNT = 12;
@@ -507,6 +507,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent001, TestSize.Level1)
         EventQueue::Priority::LOW,
         EventQueue::Priority::HIGH,
         EventQueue::Priority::IMMEDIATE,
+        EventQueue::Priority::VIP,
     };
 
     /**
@@ -529,6 +530,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent002, TestSize.Level1)
      * @tc.setup: init priority array, insert event with the order int the array.
      */
     const EventQueue::Priority priorities[MAX_PRIORITY_NUM] = {
+        EventQueue::Priority::VIP,
         EventQueue::Priority::IMMEDIATE,
         EventQueue::Priority::HIGH,
         EventQueue::Priority::LOW,
@@ -1714,6 +1716,29 @@ HWTEST_F(LibEventHandlerEventQueueTest, IsQueueEmpty003, TestSize.Level1)
      * @tc.expected: step1. when queue is not empty has idle event IsQueueEmpty return false
      */
     handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::IDLE);
+    bool ret = runner->GetEventQueue()->IsQueueEmpty();
+    EXPECT_FALSE(ret);
+}
+
+/*
+ * @tc.name: IsQueueEmpty004
+ * @tc.desc: check when queue is not empty has vip event IsQueueEmpty return false
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, IsQueueEmpty004, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init runner and handler
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    auto event = InnerEvent::Get(HAS_EVENT_ID, HAS_EVENT_PARAM);
+
+    /**
+     * @tc.steps: step1. send event and IsQueueEmpty
+     * @tc.expected: step1. when queue is not empty has vip event IsQueueEmpty return false
+     */
+    handler->SendEvent(event, HAS_DELAY_TIME, EventQueue::Priority::VIP);
     bool ret = runner->GetEventQueue()->IsQueueEmpty();
     EXPECT_FALSE(ret);
 }

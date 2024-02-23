@@ -57,6 +57,8 @@ public:
         LOW,
         // Event that should be distributed only if no other event right now.
         IDLE,
+        // The highest priority queue, should be distributed until the tasks in the queue are completed.
+        VIP,
     };
 
     EventQueue();
@@ -268,6 +270,7 @@ private:
     std::string HistoryQueueDump(const HistoryEvent &historyEvent);
     std::string DumpCurrentRunning();
     void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
+    void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -277,6 +280,8 @@ private:
 
     // Event queue for IDLE events.
     std::list<InnerEvent::Pointer> idleEvents_;
+    // Event queue for VIP events.
+    std::list<InnerEvent::Pointer> vipEvents_;
 
     // Next wake up time when block in 'GetEvent'.
     InnerEvent::TimePoint wakeUpTime_ { InnerEvent::TimePoint::max() };

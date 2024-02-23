@@ -231,3 +231,57 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post007, TestSize.Level1)
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_TRUE(runResult);
 }
+
+/**
+ * @tc.name: Post008
+ * @tc.desc: Post a task with callback, name, delayTime and priority
+ * @tc.type: FUNC
+ * @tc.require: SR000BTOPD SR000BTOPJ
+ */
+HWTEST_F(EventHandlerPostTaskModuleTest, Post008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Post a task with callback, name, delayTime and priority.
+     * @tc.expected: step1. Post successfully and the task handled.
+     */
+    int64_t delayTime = 1;
+    string taskName = std::to_string(Random());
+    auto f = []() { CommonUtils::TaskCalledSet(true); };
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+
+    bool postResult = handler->PostTask(f, taskName, delayTime, EventQueue::Priority::VIP);
+    EXPECT_TRUE(postResult);
+    int64_t param = 0;
+    handler->SendEvent(STOP_EVENT_ID, param, delayTime + 1);
+    myRunner->Run();
+    bool runResult = CommonUtils::TaskCalledGet();
+    EXPECT_TRUE(runResult);
+}
+
+/**
+ * @tc.name: Post009
+ * @tc.desc: Post a task with callback, name, delayTime and priority
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(EventHandlerPostTaskModuleTest, Post009, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Post a task with callback, name, delayTime and priority.
+     * @tc.expected: step1. Post successfully and the task handled.
+     */
+    int64_t delayTime = 1;
+    string taskName = std::to_string(Random());
+    auto f = []() { CommonUtils::TaskCalledSet(true); };
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+
+    bool postResult = handler->PostTask(f, taskName, delayTime, EventQueue::Priority::VIP);
+    EXPECT_TRUE(postResult);
+    int64_t param = 0;
+    handler->SendEvent(STOP_EVENT_ID, param, delayTime + 1);
+    myRunner->Run();
+    bool runResult = CommonUtils::TaskCalledGet();
+    EXPECT_TRUE(runResult);
+}
