@@ -33,8 +33,21 @@ namespace {
 DEFINE_EH_HILOG_LABEL("EventQueue");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
 // Help to insert events into the event queue sorted by handle time.
-inline void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event)
+void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
+    EventInsertType insertType)
 {
+    if (insertType == EventInsertType::AT_FRONT) {
+        if (!events.empty()) {
+            // Ensure that events queue is in ordered
+            auto headEvent = events.begin();
+            if ((*headEvent)->GetHandleTime() < event->GetHandleTime()) {
+                event->SetHandleTime((*headEvent)->GetHandleTime());
+            }
+        }
+        events.emplace_front(std::move(event));
+        return;
+    }
+
     auto f = [](const InnerEvent::Pointer &first, const InnerEvent::Pointer &second) {
         if (!first || !second) {
             return false;
@@ -113,7 +126,7 @@ EventQueue::~EventQueue()
     HILOGI("EventQueue is unavailable hence");
 }
 
-void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
+void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
     if (!event) {
         HILOGE("Could not insert an invalid event");
@@ -131,12 +144,12 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority)
         case Priority::HIGH:
         case Priority::LOW: {
             needNotify = (event->GetHandleTime() < wakeUpTime_);
-            InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event);
+            InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             break;
         }
         case Priority::IDLE: {
             // Never wake up thread if insert an idle event.
-            InsertEventsLocked(idleEvents_, event);
+            InsertEventsLocked(idleEvents_, event, insertType);
             break;
         }
         default:
