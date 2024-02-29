@@ -20,7 +20,6 @@ if (is_arkui_x) {
     include_dirs = [
       "include",
       "//third_party/node/src",
-      "//third_party/libuv/include",
     ]
     include_dirs += emitter_include
     sources = [
@@ -44,7 +43,6 @@ if (is_arkui_x) {
       "include",
       "${inner_api_path}",
       "//third_party/node/src",
-      "//third_party/libuv/include",
     ]
 
     sources = [
@@ -52,10 +50,7 @@ if (is_arkui_x) {
       "src/init.cpp",
     ]
 
-    deps = [
-      "${frameworks_path}/eventhandler:libeventhandler",
-      "//third_party/libuv:uv",
-    ]
+    deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
     external_deps = [
       "hilog:libhilog",
