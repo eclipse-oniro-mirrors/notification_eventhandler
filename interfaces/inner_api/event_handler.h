@@ -424,6 +424,18 @@ public:
     }
 
     /**
+     * Post a task at front of queue.
+     *
+     * @param callback Task callback.
+     * @param name Name of the task.
+     * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
+     * @return Returns true if task has been sent successfully.
+     */
+    bool PostTaskAtFront(const Callback &callback, const std::string &name = std::string(),
+                         Priority priority = Priority::LOW, const Caller &caller = {});
+
+    /**
      * Set delivery time out callback.
      *
      * @param callback Delivery Time out callback.

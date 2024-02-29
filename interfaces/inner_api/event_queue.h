@@ -45,6 +45,13 @@ struct CurrentRunningEvent {
     CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event);
 };
 
+enum class EventInsertType: uint32_t {
+    // Insert event at end
+    AT_END = 0,
+    // Insert event at front
+    AT_FRONT
+};
+
 class EventQueue final {
 public:
     // Priority for the events
@@ -72,10 +79,12 @@ public:
      *
      * @param event Event instance which should be added into event queue.
      * @param Priority Priority of the event
+     * @param insertType The type of insertint event to queue
      *
      * @see #Priority
      */
-    void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW);
+    void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+        EventInsertType insertType = EventInsertType::AT_END);
 
     /**
      * Remove events if its owner is invalid.

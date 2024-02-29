@@ -656,6 +656,14 @@ public:
     std::string Dump();
 
     /**
+     * Prints out the internal information about an object in the specified format,
+     * helping you diagnose internal errors of the object.
+     *
+     * @param return The content of the event for trace.
+     */
+    std::string TraceInfo();
+    
+    /**
      * Set uniqueId in event.
      */
     void SetEventUniqueId();

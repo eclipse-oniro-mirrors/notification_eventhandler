@@ -23,6 +23,7 @@
 #include "hichecker.h"
 #endif // HAS_HICHECKER_NATIVE_PART
 #include "thread_local_data.h"
+#include "event_hitrace_meter_adapter.h"
 
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
@@ -87,6 +88,35 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     }
     HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
     eventRunner_->GetEventQueue()->Insert(event, priority);
+    return true;
+}
+
+bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller)
+{
+    if (!eventRunner_) {
+        HILOGE("MUST Set event runner before posting events");
+        return false;
+    }
+
+    auto event = InnerEvent::Get(callback, name, caller);
+    if (!event) {
+        HILOGE("Get an invalid event");
+        return false;
+    }
+
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    event->SetSendTime(now);
+    event->SetHandleTime(now);
+    event->SetSenderKernelThreadId(getproctid());
+    event->SetEventUniqueId();
+    event->SetOwner(shared_from_this());
+    auto traceId = event->GetOrCreateTraceId();
+    if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
+        HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
+    }
+    HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
     return true;
 }
 
@@ -341,6 +371,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         HILOGD("%{public}s", currentRunningInfo.c_str());
     }
 
+    StartTraceAdapter(event);
+
     auto spanId = event->GetTraceId();
     auto traceId = HiTraceChain::GetId();
     bool allowTraceOutPut = AllowHiTraceOutPut(spanId, event->HasWaiter());
@@ -388,6 +420,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         auto now = InnerEvent::Clock::now();
         HILOGD("end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
     }
+    FinishTraceAdapter();
 }
 
 void EventHandler::Dump(Dumper &dumper)

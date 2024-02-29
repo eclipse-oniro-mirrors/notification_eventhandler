@@ -338,6 +338,32 @@ std::string InnerEvent::Dump()
     return content;
 }
 
+std::string InnerEvent::TraceInfo()
+{
+    std::string content;
+
+    content.append("Et:");
+    if (!owner_.expired()) {
+        content.append(std::to_string(senderKernelThreadId_));
+        content.append("," + std::to_string(sendTime_.time_since_epoch().count()));
+        content.append("," + std::to_string(handleTime_.time_since_epoch().count()));
+        if (HasTask()) {
+            content.append("," + taskName_);
+        } else {
+            if (innerEventId_.index() == TYPE_U32_INDEX) {
+                content.append("," + std::to_string(std::get<uint32_t>(innerEventId_)));
+            } else {
+                content.append("," + std::get<std::string>(innerEventId_));
+            }
+        }
+        content.append("," + caller_.ToString());
+    } else {
+        content.append("NA");
+    }
+
+    return content;
+}
+
 void InnerEvent::SetEventUniqueId()
 {
     auto nowTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
