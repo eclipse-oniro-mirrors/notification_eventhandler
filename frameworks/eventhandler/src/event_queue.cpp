@@ -142,7 +142,7 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority, EventInse
     switch (priority) {
         case Priority::VIP:
             needNotify = (event->GetHandleTime() < wakeUpTime_);
-            InsertEventsLocked(vipEvents_, event);
+            InsertEventsLocked(vipEvents_, event, insertType);
             break;
         case Priority::IMMEDIATE:
         case Priority::HIGH:
