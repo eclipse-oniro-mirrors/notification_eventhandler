@@ -91,6 +91,35 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     return true;
 }
 
+bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller)
+{
+    if (!eventRunner_) {
+        HILOGE("MUST Set event runner before posting events");
+        return false;
+    }
+
+    auto event = InnerEvent::Get(callback, name, caller);
+    if (!event) {
+        HILOGE("Get an invalid event");
+        return false;
+    }
+
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    event->SetSendTime(now);
+    event->SetHandleTime(now);
+    event->SetSenderKernelThreadId(getproctid());
+    event->SetEventUniqueId();
+    event->SetOwner(shared_from_this());
+    auto traceId = event->GetOrCreateTraceId();
+    if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
+        HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
+    }
+    HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
+    return true;
+}
+
 bool EventHandler::SendTimingEvent(InnerEvent::Pointer &event, int64_t taskTime, Priority priority)
 {
     InnerEvent::TimePoint nowSys = InnerEvent::Clock::now();

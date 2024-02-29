@@ -231,3 +231,65 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post007, TestSize.Level1)
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_TRUE(runResult);
 }
+
+/**
+ * @tc.name: Post008
+ * @tc.desc: Post a task at front with callback, name, delayTime and priority
+ * @tc.type: FUNC
+ * @tc.require: SR000BTOPD SR000BTOPJ
+ */
+HWTEST_F(EventHandlerPostTaskModuleTest, Post008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Post a task with callback, name, delayTime and priority.
+     * @tc.expected: step1. Post successfully and the task handled.
+     */
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+    // insert at end
+    string taskName = std::to_string(Random());
+    auto f1 = []() { CommonUtils::CommonUtils::TaskCalledSet(true); };
+    bool postResult = handler->PostTask(f1, taskName, 0, EventQueue::Priority::LOW);
+    EXPECT_TRUE(postResult);
+    // insert at front
+    taskName = std::to_string(Random());
+    auto f2 = []() { CommonUtils::CommonUtils::TaskCalledSet(false); };
+    postResult = handler->PostTaskAtFront(f2, taskName, EventQueue::Priority::LOW);
+    EXPECT_TRUE(postResult);
+    int64_t param = 0;
+    handler->SendEvent(STOP_EVENT_ID, param, 1);
+    myRunner->Run();
+    bool runResult = CommonUtils::TaskCalledGet();
+    EXPECT_TRUE(runResult);
+}
+
+/**
+ * @tc.name: Post009
+ * @tc.desc: Post a task at front with callback, name, delayTime and priority
+ * @tc.type: FUNC
+ * @tc.require: SR000BTOPD SR000BTOPJ
+ */
+HWTEST_F(EventHandlerPostTaskModuleTest, Post009, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Post a task with callback, name, delayTime and priority.
+     * @tc.expected: step1. Post successfully and the task handled.
+     */
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+    // insert at front
+    string taskName = std::to_string(Random());
+    auto f1 = []() { CommonUtils::CommonUtils::TaskCalledSet(false); };
+    bool postResult = handler->PostTaskAtFront(f1, taskName, EventQueue::Priority::LOW);
+    EXPECT_TRUE(postResult);
+    // insert at front
+    taskName = std::to_string(Random());
+    auto f2 = []() { CommonUtils::CommonUtils::TaskCalledSet(true); };
+    postResult = handler->PostTaskAtFront(f2, taskName, EventQueue::Priority::LOW);
+    EXPECT_TRUE(postResult);
+    int64_t param = 0;
+    handler->SendEvent(STOP_EVENT_ID, param, 1);
+    myRunner->Run();
+    bool runResult = CommonUtils::TaskCalledGet();
+    EXPECT_FALSE(runResult);
+}
