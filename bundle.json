@@ -26,9 +26,6 @@
                 "hichecker",
                 "napi",
                 "c_utils"
-            ],
-            "third_party": [
-                "libuv"
             ]
         },
         "build": {
