@@ -456,6 +456,35 @@ HWTEST_F(EventHandlerSendEventModuleTest, Send013, TestSize.Level1)
 }
 
 /**
+ * @tc.name: Send014
+ * @tc.desc: Send event with priority = VIP
+ * @tc.type: FUNC
+ * @tc.require: SR000BTOPD SR000BTOPJ SR000BTOPM
+ */
+HWTEST_F(EventHandlerSendEventModuleTest, Send014, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Send event with VIP priority.
+     * @tc.expected: step1. Send successfully and the event handled.
+     */
+    int64_t delayTime = 0;
+    auto event = InnerEvent::Get(RUN_EVENT_ID);
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+    bool sendResult = handler->SendEvent(event, delayTime, EventQueue::Priority::VIP);
+    EXPECT_TRUE(sendResult);
+
+    auto f = [&myRunner]() { myRunner->Stop(); };
+    handler->PostTask(f, delayTime, EventQueue::Priority::VIP);
+    uint32_t newEventId = 1;
+    int64_t param = 0;
+    handler->SendEvent(newEventId, param, delayTime + 1);
+    myRunner->Run();
+    bool runResult = CommonUtils::EventRunGet();
+    EXPECT_TRUE(runResult);
+}
+
+/**
  * @tc.name: SendHigh001
  * @tc.desc: Send high priority event
  * @tc.type: FUNC
