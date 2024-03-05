@@ -68,6 +68,7 @@ protected:
     std::string threadName_;
     std::thread::id threadId_;
     int64_t kernelThreadId_{0};
+    Mode runningMode_ = Mode::DEFAULT;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

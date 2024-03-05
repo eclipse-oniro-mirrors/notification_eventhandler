@@ -27,6 +27,12 @@ namespace OHOS {
 namespace AppExecFwk {
 class EventInnerRunner;
 
+// Running mode of eventrunner
+enum class Mode: uint32_t {
+    DEFAULT = 0,  // Default polling mode
+    NO_WAIT,      // One poll mode
+};
+
 class EventRunner final {
 public:
     EventRunner() = delete;
@@ -44,28 +50,31 @@ public:
      * Create new 'EventRunner'.
      *
      * @param inNewThread True if create new thread to start the 'EventRunner' automatically.
+     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(bool inNewThread = true);
+    static std::shared_ptr<EventRunner> Create(bool inNewThread = true, Mode mode = Mode::DEFAULT);
 
     /**
      * Create new 'EventRunner' and start to run in a new thread.
      *
      * @param threadName Thread name of the new created thread.
+     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName);
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT);
 
     /**
      * Create new 'EventRunner' and start to run in a new thread.
      * Eliminate ambiguity, while calling like 'EventRunner::Create("threadName")'.
      *
      * @param threadName Thread name of the new created thread.
+     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static inline std::shared_ptr<EventRunner> Create(const char *threadName)
+    static inline std::shared_ptr<EventRunner> Create(const char *threadName, Mode mode = Mode::DEFAULT)
     {
-        return Create((threadName != nullptr) ? std::string(threadName) : std::string());
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode);
     }
 
     /**
@@ -251,7 +260,7 @@ public:
     static std::shared_ptr<EventRunner> GetMainEventRunner();
 
 private:
-    explicit EventRunner(bool deposit);
+    explicit EventRunner(bool deposit, Mode runningMode = Mode::DEFAULT);
 
     friend class EventHandler;
 
@@ -263,8 +272,13 @@ private:
     inline bool IsRunning() const
     {
         // If this runner is deposited, it it always running
-        return (deposit_) || (running_.load());
+        return (deposit_ && runningMode_ == Mode::DEFAULT) || (running_.load());
     }
+
+    /**
+     * Start event running for no_wait mode in new thread.
+     */
+    void StartRunningForNoWait();
 
     int64_t deliveryTimeout_ = 0;
     int64_t distributeTimeout_ = 0;
@@ -275,6 +289,7 @@ private:
     std::shared_ptr<EventInnerRunner> innerRunner_;
     static std::shared_ptr<EventRunner> mainRunner_;
     std::string currentEventInfo_;
+    Mode runningMode_ = Mode::DEFAULT;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

@@ -620,6 +620,13 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     handler->PostHighPriorityTask(f, taskName);
 }
 
+void EventQueue::CheckFileDescriptorEvent()
+{
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    std::unique_lock<std::mutex> lock(queueLock_);
+    WaitUntilLocked(now, lock);
+}
+
 bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
 {
     HILOGD("enter");
