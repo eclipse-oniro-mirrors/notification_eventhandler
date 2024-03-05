@@ -33,8 +33,8 @@ public:
     ~EventRunner();
     DISALLOW_COPY_AND_MOVE(EventRunner);
 
-    using DistributeBeginTime = std::function<InnerEvent::TimePoint(std::string)>;
-    using DistributeEndTime = std::function<void(std::string, InnerEvent::TimePoint)>;
+    using DistributeBeginTime = std::function<InnerEvent::TimePoint(const std::string&)>;
+    using DistributeEndTime = std::function<void(const std::string&, const InnerEvent::TimePoint&)>;
     using CallbackTime = std::function<void(int64_t)>;
     static DistributeBeginTime distributeBegin_;
     static DistributeEndTime distributeEnd_;
