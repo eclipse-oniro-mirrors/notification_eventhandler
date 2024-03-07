@@ -28,33 +28,6 @@ namespace OHOS {
 namespace AppExecFwk {
 inline constexpr uint32_t EH_LOG_DOMAIN = 0xD001200;
 #define EH_LOG_LIMIT_INTERVALS 10000 //ms
-
-class InnerFunctionTracer {
-public:
-    using HilogFunc = std::function<int(const char *)>;
-
-    InnerFunctionTracer(HilogFunc logfn, const char* tag, LogLevel level)
-        : logfn_(logfn), tag_(tag), level_(level)
-    {
-        if (HiLogIsLoggable(OHOS::AppExecFwk::EH_LOG_DOMAIN, tag_, level_)) {
-            if (logfn_ != nullptr) {
-                logfn_("in %{public}s, enter");
-            }
-        }
-    }
-    ~InnerFunctionTracer()
-    {
-        if (HiLogIsLoggable(OHOS::AppExecFwk::EH_LOG_DOMAIN, tag_, level_)) {
-            if (logfn_ != nullptr) {
-                logfn_("in %{public}s, leave");
-            }
-        }
-    }
-private:
-    HilogFunc logfn_ { nullptr };
-    const char* tag_ { nullptr };
-    LogLevel level_ { LOG_LEVEL_MIN };
-};
 } // namespace AppExecFwk
 } // namespace OHOS
 
@@ -165,23 +138,5 @@ do {                                                                    \
         HILOGD(fmt, ##__VA_ARGS__);                                   \
     }                                                                   \
 } while (0)
-
-#ifndef EH_CALL_DEBUG_ENTER
-#define EH_CALL_DEBUG_ENTER        ::OHOS::AppExecFwk::InnerFunctionTracer ___innerFuncTracer_Debug___   \
-    { std::bind(&::OHOS::HiviewDFX::HiLog::Debug, EH_LOG_LABEL, std::placeholders::_1,                   \
-      __FUNCTION__), EH_LOG_LABEL.tag, LOG_DEBUG }
-#endif // EH_CALL_DEBUG_ENTER
-
-#ifndef EH_CALL_INFO_TRACE
-#define EH_CALL_INFO_TRACE         ::OHOS::AppExecFwk::InnerFunctionTracer ___innerFuncTracer_Info___    \
-    { std::bind(&::OHOS::HiviewDFX::HiLog::Info, EH_LOG_LABEL, std::placeholders::_1,                    \
-      __FUNCTION__), EH_LOG_LABEL.tag, LOG_INFO }
-#endif // EH_CALL_INFO_TRACE
-
-#ifndef EH_CALL_TEST_DEBUG
-#define EH_CALL_TEST_DEBUG         ::OHOS::AppExecFwk::InnerFunctionTracer ___innerFuncTracer_Info___    \
-    { std::bind(&::OHOS::HiviewDFX::HiLog::Info, EH_LOG_LABEL, std::placeholders::_1,                    \
-      (test_info_ == nullptr ? "TestBody" : test_info_->name())), EH_LOG_LABEL.tag, LOG_DEBUG }
-#endif // EH_CALL_TEST_DEBUG
 
 #endif // BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_LOGGER_H
