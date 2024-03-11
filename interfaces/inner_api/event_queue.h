@@ -238,6 +238,11 @@ public:
     void PushHistoryQueueAfterDistribute();
 
     std::string DumpCurrentQueueSize();
+
+    /**
+     * Check whether there are currenty file descriptors is need to be processed.
+     */
+    void CheckFileDescriptorEvent();
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;

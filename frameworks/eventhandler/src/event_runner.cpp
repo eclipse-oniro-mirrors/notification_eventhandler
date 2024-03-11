@@ -344,33 +344,10 @@ public:
         currentEventRunner = owner_;
 
         // Start event looper.
-        for (auto event = queue_->GetEvent(); event; event = queue_->GetEvent()) {
-            std::shared_ptr<EventHandler> handler = event->GetOwner();
-            // Make sure owner of the event exists.
-            if (handler) {
-                std::shared_ptr<Logger> logging = logger_;
-                if (logging != nullptr) {
-                    if (!event->HasTask()) {
-                        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
-                        if (eventId.index() == TYPE_U32_INDEX) {
-                            logging->Log(
-                                "Dispatching to handler event id = " + std::to_string(std::get<uint32_t>(eventId)));
-                        } else {
-                            logging->Log("Dispatching to handler event id = " + std::get<std::string>(eventId));
-                        }
-                    } else {
-                        logging->Log("Dispatching to handler event task name = " + event->GetTaskName());
-                    }
-                }
-
-                SetCurrentEventInfo(event);
-                queue_->PushHistoryQueueBeforeDistribute(event);
-                handler->DistributeEvent(event);
-                queue_->PushHistoryQueueAfterDistribute();
-                ClearCurrentEventInfo();
-            }
-            // Release event manually, otherwise event will be released until next event coming.
-            event.reset();
+        if (runningMode_ == Mode::NO_WAIT) {
+            NoWaitModeLoop();
+        } else {
+            DefaultModeLoop();
         }
 
         // Restore current event runner.
@@ -381,6 +358,65 @@ public:
     {
         HILOGD("enter");
         queue_->Finish();
+    }
+
+    void NoWaitModeLoop()
+    {
+        // handler event queue
+        InnerEvent::TimePoint nextWakeTime = InnerEvent::TimePoint::max();
+        for (auto event = queue_->GetExpiredEvent(nextWakeTime); event; event =
+            queue_->GetExpiredEvent(nextWakeTime)) {
+            ExecuteEventHandler(event);
+        }
+        // wait for file descriptor
+        queue_->CheckFileDescriptorEvent();
+        //  handler file descriptor event
+        for (auto event = queue_->GetExpiredEvent(nextWakeTime); event; event =
+            queue_->GetExpiredEvent(nextWakeTime)) {
+            ExecuteEventHandler(event);
+        }
+    }
+
+    inline void DefaultModeLoop()
+    {
+        // Default running loop
+        for (auto event = queue_->GetEvent(); event; event = queue_->GetEvent()) {
+            ExecuteEventHandler(event);
+        }
+    }
+
+    void RecordDispatchEventId(InnerEvent::Pointer &event)
+    {
+        std::shared_ptr<Logger> logging = logger_;
+        if (logging != nullptr) {
+            if (!event->HasTask()) {
+                InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+                if (eventId.index() == TYPE_U32_INDEX) {
+                    logging->Log(
+                        "Dispatching to handler event id = " + std::to_string(std::get<uint32_t>(eventId)));
+                } else {
+                    logging->Log("Dispatching to handler event id = " + std::get<std::string>(eventId));
+                }
+            } else {
+                logging->Log("Dispatching to handler event task name = " + event->GetTaskName());
+            }
+        }
+    }
+
+    void ExecuteEventHandler(InnerEvent::Pointer &event)
+    {
+        std::shared_ptr<EventHandler> handler = event->GetOwner();
+        // Make sure owner of the event exists.
+        if (handler) {
+            RecordDispatchEventId(event);
+            SetCurrentEventInfo(event);
+            queue_->PushHistoryQueueBeforeDistribute(event);
+            handler->DistributeEvent(event);
+            queue_->PushHistoryQueueAfterDistribute();
+            ClearCurrentEventInfo();
+        }
+        // Release event manually, otherwise event will be released until next event coming.
+        event.reset();
     }
 
     inline bool Attach(std::unique_ptr<std::thread> &thread)
@@ -401,6 +437,11 @@ public:
         } else {
             threadName_ = threadName;
         }
+    }
+
+    inline void SetRunningMode(const Mode runningMode)
+    {
+        runningMode_ = runningMode;
     }
 
 private:
@@ -490,38 +531,43 @@ EventRunner::DistributeBeginTime EventRunner::distributeBegin_ = nullptr;
 EventRunner::DistributeEndTime EventRunner::distributeEnd_ = nullptr;
 EventRunner::CallbackTime EventRunner::distributeCallback_ = nullptr;
 
-std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
 {
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
         HILOGI("EventRunner created");
-        return Create(std::string());
+        return Create(std::string(), mode);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
-    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false));
+    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, mode));
     if (sp == nullptr) {
         HILOGI("Failed to create EventRunner Instance");
         return nullptr;
     }
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
 
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName)
+std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode)
 {
-    HILOGD("threadName is %{public}s", threadName.c_str());
+    HILOGD("threadName is %{public}s %{public}d", threadName.c_str(), mode);
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
-    std::shared_ptr<EventRunner> sp(new EventRunner(true));
+    std::shared_ptr<EventRunner> sp(new EventRunner(true, mode));
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
+    innerRunner->SetThreadName(threadName);
+    if (mode == Mode::NO_WAIT) {
+        return sp;
+    }
 
     // Start new thread
-    innerRunner->SetThreadName(threadName);
     auto thread =
         std::make_unique<std::thread>(EventRunnerImpl::ThreadMain, std::weak_ptr<EventRunnerImpl>(innerRunner));
     if (!innerRunner->Attach(thread)) {
@@ -542,9 +588,9 @@ std::shared_ptr<EventRunner> EventRunner::Current()
     return nullptr;
 }
 
-EventRunner::EventRunner(bool deposit) : deposit_(deposit)
+EventRunner::EventRunner(bool deposit, Mode runningMode) : deposit_(deposit), runningMode_(runningMode)
 {
-    HILOGD("deposit_ is %{public}d", deposit_);
+    HILOGD("deposit_ is %{public}d %{public}d", deposit_, runningMode_);
 }
 
 std::string EventRunner::GetRunnerThreadName() const
@@ -560,10 +606,22 @@ EventRunner::~EventRunner()
     }
 }
 
+void EventRunner::StartRunningForNoWait()
+{
+    auto innerRunner = std::static_pointer_cast<EventRunnerImpl>(innerRunner_);
+    auto thread =
+        std::make_unique<std::thread>(EventRunnerImpl::ThreadMain, std::weak_ptr<EventRunnerImpl>(innerRunner));
+    if (!innerRunner->Attach(thread)) {
+        HILOGW("Failed to attach thread for no wait, maybe process is exiting");
+        innerRunner->Stop();
+        thread->join();
+    }
+}
+
 ErrCode EventRunner::Run()
 {
     HILOGD("enter");
-    if (deposit_) {
+    if (deposit_ && runningMode_ == Mode::DEFAULT) {
         HILOGE("Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
     }
@@ -574,8 +632,13 @@ ErrCode EventRunner::Run()
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
-    // Entry event loop.
-    innerRunner_->Run();
+    if (deposit_ && runningMode_ == Mode::NO_WAIT) {
+        // Start new thread for NO_WAIT Mode
+        StartRunningForNoWait();
+    }  else {
+        // Entry event loop.
+        innerRunner_->Run();
+    }
 
     running_.store(false);
     return ERR_OK;
