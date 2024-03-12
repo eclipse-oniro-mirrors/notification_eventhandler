@@ -317,7 +317,7 @@ public:
 
             HILOGD("Stopped running for thread '%{public}s'", inner->threadName_.c_str());
         } else {
-            HILOGW("EventRunner has been released just after its creation");
+            EH_LOGW_LIMIT("EventRunner has been released just after its creation");
         }
 
         // Reclaim current thread.
@@ -535,7 +535,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
 {
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
-        HILOGI("EventRunner created");
+        EH_LOGI_LIMIT("EventRunner created");
         return Create(std::string(), mode);
     }
 
@@ -648,7 +648,7 @@ ErrCode EventRunner::Stop()
 {
     HILOGD("enter");
     if (deposit_) {
-        HILOGE("Stop: Do not call, if event runner is deposited");
+        EH_LOGE_LIMIT("Stop: Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
     }
 

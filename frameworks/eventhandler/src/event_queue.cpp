@@ -123,7 +123,7 @@ EventQueue::~EventQueue()
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
-    HILOGI("EventQueue is unavailable hence");
+    EH_LOGI_LIMIT("EventQueue is unavailable hence");
 }
 
 void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)

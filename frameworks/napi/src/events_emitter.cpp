@@ -473,7 +473,7 @@ namespace {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
-            HILOGW("JS_Emit has no callback");
+            EH_LOGW_LIMIT("JS_Emit has no callback");
             return false;
         }
         if (subscribe->second.size() != 0) {
@@ -500,7 +500,7 @@ namespace {
         HILOGD("Event id value:%{public}u", id);
 
         if (!IsExistValidCallback(env, eventId)) {
-            HILOGE("Invalid callback");
+            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
@@ -541,7 +541,7 @@ namespace {
         HILOGD("Event id value:%{public}s", id.c_str());
 
         if (!IsExistValidCallback(env, eventId)) {
-            HILOGE("Invalid callback");
+            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
