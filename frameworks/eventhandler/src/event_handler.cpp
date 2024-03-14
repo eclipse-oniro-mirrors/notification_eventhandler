@@ -64,11 +64,6 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         return false;
     }
 
-    if (!eventRunner_) {
-        HILOGE("MUST Set event runner before sending events");
-        return false;
-    }
-
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetSenderKernelThreadId(getproctid());
@@ -87,6 +82,10 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
     }
     HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    if (!eventRunner_) {
+        HILOGE("MUST Set event runner before sending events");
+        return false;
+    }
     eventRunner_->GetEventQueue()->Insert(event, priority);
     return true;
 }
