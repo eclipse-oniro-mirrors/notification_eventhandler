@@ -20,6 +20,7 @@ if (is_arkui_x) {
     include_dirs = [
       "include",
       "//third_party/node/src",
+      "//third_party/libuv/include",
     ]
     include_dirs += emitter_include
     sources = [
