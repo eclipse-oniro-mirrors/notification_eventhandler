@@ -455,8 +455,8 @@ namespace {
             napi_get_undefined(env, &undefined);
             bool defaultTransfer = false;
             bool defaultCloneSendable = true;
-            serializeResult = napi_serialize(env, data, undefined, undefined,
-                                             defaultTransfer, defaultCloneSendable, &serializeData);
+            serializeResult = napi_serialize_inner(env, data, undefined, undefined,
+                                                   defaultTransfer, defaultCloneSendable, &serializeData);
             if (serializeResult != napi_ok || serializeData == nullptr) {
                 HILOGE("Serialize fail.");
                 return false;
