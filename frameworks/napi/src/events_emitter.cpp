@@ -272,14 +272,19 @@ namespace {
         if (callbackInfo != nullptr) {
             uv_loop_s *loop = nullptr;
             if (napi_get_uv_event_loop(callbackInfo->env, &loop) != napi_ok) {
+                delete callbackInfo;
+                callbackInfo = nullptr;
                 return;
             }
             uv_work_t *work = new (std::nothrow) uv_work_t;
             if (work == nullptr) {
+                delete callbackInfo;
+                callbackInfo = nullptr;
                 return;
             }
             work->data = reinterpret_cast<void*>(callbackInfo);
-            uv_queue_work_with_qos(loop, work, [](uv_work_t* work) {}, [](uv_work_t *work, int status) {
+            auto ret = uv_queue_work_with_qos(loop, work, [](uv_work_t* work) {},
+            [](uv_work_t *work, int status) {
                 AsyncCallbackInfo* callbackInfo = reinterpret_cast<AsyncCallbackInfo*>(work->data);
                 if (napi_delete_reference(callbackInfo->env, callbackInfo->callback) != napi_ok) {
                     HILOGE("napi_delete_reference fail.");
@@ -290,6 +295,12 @@ namespace {
                 delete work;
                 work = nullptr;
             }, uv_qos_user_initiated);
+            if (ret != napi_ok)  {
+                delete callbackInfo;
+                callbackInfo = nullptr;
+                delete work;
+                work = nullptr;
+            }
         }
     }
 
