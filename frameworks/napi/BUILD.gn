@@ -17,10 +17,7 @@ import("../../eventhandler.gni")
 if (is_arkui_x) {
   import("//plugins/events/eventhandler.gni")
   ohos_source_set("emitter") {
-    include_dirs = [
-      "include",
-      "//third_party/node/src",
-    ]
+    include_dirs = [ "include" ]
     include_dirs += emitter_include
     sources = [
       "src/events_emitter.cpp",
@@ -42,7 +39,6 @@ if (is_arkui_x) {
     include_dirs = [
       "include",
       "${inner_api_path}",
-      "//third_party/node/src",
     ]
 
     sources = [
