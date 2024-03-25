@@ -218,6 +218,13 @@ void EventHandler::RemoveTask(const std::string &name)
 ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
     const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName)
 {
+    return AddFileDescriptorListener(fileDescriptor, events, listener, taskName, EventQueue::Priority::HIGH);
+}
+
+ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+    const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
+    EventQueue::Priority priority)
+{
     HILOGD("enter");
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0) || (!listener)) {
         HILOGE("%{public}d, %{public}u, %{public}s: Invalid parameter",
@@ -231,7 +238,8 @@ ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t
     }
 
     listener->SetOwner(shared_from_this());
-    return eventRunner_->GetEventQueue()->AddFileDescriptorListener(fileDescriptor, events, listener, taskName);
+    return eventRunner_->GetEventQueue()->AddFileDescriptorListener(fileDescriptor, events, listener, taskName,
+        priority);
 }
 
 void EventHandler::RemoveAllFileDescriptorListeners()
