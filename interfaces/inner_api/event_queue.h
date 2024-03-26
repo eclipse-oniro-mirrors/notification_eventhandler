@@ -30,6 +30,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
+class EpollIoWaiter;
 
 struct CurrentRunningEvent {
     InnerEvent::TimePoint beginTime_;
@@ -137,7 +138,8 @@ public:
      * @return Return 'ERR_OK' on success.
      */
     ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
-        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName);
+        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
+        Priority priority = Priority::HIGH);
 
     /**
      * Remove all file descriptor listeners for a specified owner.

@@ -902,6 +902,10 @@ public:
     ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
         const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName);
 
+    ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
+        EventQueue::Priority priority);
+
     /**
      * Remove all file descriptor listeners.
      */
