@@ -18,6 +18,7 @@
 
 #include <atomic>
 
+#include <vector>
 #include "nocopyable.h"
 
 #include "event_handler.h"
@@ -110,7 +111,32 @@ public:
         eventRunTimes_ = 0;
     }
 
+    /**
+     * Function: Reset the thread of vector.
+     */
+    static inline void ThreadIdsReset()
+    {
+        threads_.clear();
+    }
+
+    /**
+     * Function: push back thread Id.
+     */
+    static inline void PushbackThread(const std::string threadId)
+    {
+        threads_.push_back(threadId);
+    }
+
+    /**
+     * Get thread Id.
+     */
+    static inline std::vector<std::string> GetThreads()
+    {
+        return threads_;
+    }
+
 private:
+    static std::vector<std::string> threads_;
     static std::atomic<bool> eventRun_;
     static std::atomic<bool> taskCalled_;
     static std::atomic<uint32_t> eventRunTimes_;

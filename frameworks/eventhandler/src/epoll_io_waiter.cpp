@@ -329,13 +329,15 @@ bool EpollIoWaiter::AddFileDescriptorInfo(int32_t fileDescriptor, uint32_t event
         epollEvents |= EPOLLOUT;
     }
 
+    InsertFileDescriptorMap(fileDescriptor, taskName, priority, listener);
     if (EpollCtrl(epollFd_, EPOLL_CTL_ADD, fileDescriptor, epollEvents | EPOLLET) < 0) {
+        RemoveFileDescriptor(fileDescriptor);
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
         HILOGE("Failed to add file descriptor into epoll, %{public}s", errmsg);
         return false;
     }
-    InsertFileDescriptorMap(fileDescriptor, taskName, priority, listener);
+    HILOGD("EpollIoWaiter add file %{public}d, %{public}s, %{public}d", fileDescriptor, taskName.c_str(), priority);
     return true;
 }
 
@@ -396,6 +398,7 @@ std::shared_ptr<FileDescriptorInfo> EpollIoWaiter::GetFileDescriptorMap(int32_t 
     std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
     auto it = fileDescriptorMap_.find(fileDescriptor);
     if (it == fileDescriptorMap_.end()) {
+        HILOGW("EpollIoWaiter get file descriptor failed %{public}d", fileDescriptor);
         return nullptr;
     }
     return it->second;
