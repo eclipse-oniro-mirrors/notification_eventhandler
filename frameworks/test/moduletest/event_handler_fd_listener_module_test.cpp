@@ -14,7 +14,10 @@
  */
 
 #include <fcntl.h>
-
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <thread>
+#include "event_logger.h"
 #include "event_handler_test_common.h"
 
 #include <gtest/gtest.h>
@@ -24,7 +27,9 @@ using namespace OHOS;
 using namespace OHOS::AppExecFwk;
 
 static std::string g_testMsg = "";
-
+namespace {
+DEFINE_EH_HILOG_LABEL("ListenerModuleTest");
+}
 class EventHandlerFdListenerModuleTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -69,6 +74,9 @@ public:
 
         uint32_t messageSize = 64;
         char message[messageSize];
+        std::string threadId = std::to_string(gettid());
+        CommonUtils::CommonUtils::PushbackThread(threadId);
+        CommonUtils::EventRunCountIncrement();
         ssize_t retVal = read(fileDescriptor, message, sizeof(message) - 1);
         if (retVal > 0) {
             message[retVal] = '\0';
@@ -87,6 +95,7 @@ public:
 
         if (fd_ >= 0) {
             close(fd_);
+            fd_ = -1;
             return;
         }
 
@@ -419,4 +428,48 @@ HWTEST_F(EventHandlerFdListenerModuleTest, NowaitForFd001, TestSize.Level1)
     myRunner->Run();
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_FALSE(runResult);
+}
+
+
+void AddFileDescriptorHelper()
+{
+    HILOGI("AddFileDescriptorHelper start");
+    int32_t fds[] = {-1, -1};
+    int32_t pipe = pipe2(fds, O_NONBLOCK);
+    EXPECT_GE(pipe, 0);
+
+    auto listener = std::make_shared<MyFileDescriptorListener>();
+    auto myRunner = EventRunner::Create(false);
+    auto handler = std::make_shared<MyEventHandler>(myRunner);
+    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener, "File001");
+    EXPECT_EQ(inResult, ERR_OK);
+    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener, "File001");
+    EXPECT_EQ(outResult, ERR_OK);
+    int64_t delayTime = 1000;
+    int64_t param = 0;
+    handler->SendEvent(STOP_EVENT_ID, param, delayTime);
+    myRunner->Run();
+}
+
+/**
+ * @tc.name: fdthread001
+ * @tc.desc: single thread epoll for fd
+ * @tc.type: FUNC
+ * @tc.require: SR20240112414855
+ */
+HWTEST_F(EventHandlerFdListenerModuleTest, fileDescriptordthread, TestSize.Level1)
+{
+    HILOGI("fileDescriptordthread start");
+    CommonUtils::ThreadIdsReset();
+    CommonUtils::EventRunCountReset();
+    std::thread thread_(AddFileDescriptorHelper);
+    AddFileDescriptorHelper();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
+    EXPECT_EQ(CommonUtils::EventRunCount(), 2);
+    std::vector<std::string> data = CommonUtils::GetThreads();
+    EXPECT_EQ(data.size(), 2);
+    EXPECT_NE(data[0], data[1]);
+    HILOGI("fileDescriptordthread %{public}s %{public}s", data[0].c_str(), data[1].c_str());
 }

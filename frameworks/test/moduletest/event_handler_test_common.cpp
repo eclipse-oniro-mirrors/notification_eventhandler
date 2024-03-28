@@ -20,6 +20,7 @@ namespace AppExecFwk {
 std::atomic<bool> CommonUtils::eventRun_ {false};
 std::atomic<bool> CommonUtils::taskCalled_ {false};
 std::atomic<uint32_t> CommonUtils::eventRunTimes_ {0};
+std::vector<std::string> CommonUtils::threads_ = {};
 
 MyEventHandler::MyEventHandler(const std::shared_ptr<EventRunner> &runner) : EventHandler(runner)
 {}
