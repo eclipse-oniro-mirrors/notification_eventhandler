@@ -456,7 +456,7 @@ namespace {
             return false;
         }
         bool hasData = false;
-        napi_value serializeData = nullptr;
+        void* serializeData = nullptr;
         napi_has_named_property(env, argv, "data", &hasData);
         if (hasData) {
             napi_value data = nullptr;
@@ -474,7 +474,7 @@ namespace {
             }
         }
         OutPutEventIdLog(eventId);
-        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(serializeData));
+        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(reinterpret_cast<napi_value>(serializeData)));
         eventHandler->SendEvent(event, 0, priority);
         return true;
     }
