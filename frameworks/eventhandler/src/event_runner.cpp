@@ -414,6 +414,8 @@ public:
             handler->DistributeEvent(event);
             queue_->PushHistoryQueueAfterDistribute();
             ClearCurrentEventInfo();
+        } else {
+            HILOGW("Invalid event handler.");
         }
         // Release event manually, otherwise event will be released until next event coming.
         event.reset();
