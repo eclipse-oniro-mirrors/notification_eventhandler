@@ -53,6 +53,9 @@ public:
         return &instance;
     }
 
+    IsTagEnabledType IsTagEnabled = nullptr;
+    StartTraceType StartTrace = nullptr;
+    FinishTraceType FinishTrace = nullptr;
 private:
     bool Load()
     {
@@ -96,9 +99,6 @@ private:
     }
 
     void* handle = nullptr;
-    IsTagEnabledType IsTagEnabled = nullptr;
-    StartTraceType StartTrace = nullptr;
-    FinishTraceType FinishTrace = nullptr;
 };
 
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
