@@ -73,7 +73,7 @@ private:
             return false;
         }
 
-        StartTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "StartTrace"));
+        StartTrace = reinterpret_cast<StartTraceType>(dlsym(handle, "StartTrace"));
         if (StartTrace == nullptr) {
             return false;
         }
