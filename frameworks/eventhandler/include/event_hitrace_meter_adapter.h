@@ -25,6 +25,9 @@ constexpr uint64_t HITRACE_TAG_NOTIFICATION = (1ULL << 40); // Notification modu
 bool IsTagEnabled(uint64_t tag);
 void StartTrace(uint64_t label, const std::string& value, float limit = -1);
 void FinishTrace(uint64_t label);
+using IsTagEnabledType = decltype(IsTagEnabled)*;
+using StartTraceType = decltype(StartTrace)*;
+using FinishTraceType = decltype(FinishTrace)*;
 
 #ifdef APP_USE_ARM
 static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_master.so";
@@ -50,12 +53,6 @@ public:
         return &instance;
     }
 
-#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func = nullptr
-    REG_FUNC(IsTagEnabled);
-    REG_FUNC(StartTrace);
-    REG_FUNC(FinishTrace);
-#undef REG_FUNC
-
 private:
     bool Load()
     {
@@ -67,16 +64,22 @@ private:
         if (handle == nullptr) {
             return false;
         }
-#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));        \
-        if (x == nullptr)                                                     \
-        {                                                                     \
-            return false;                                                     \
-        }
-            LOAD_FUNC(IsTagEnabled);
-            LOAD_FUNC(StartTrace);
-            LOAD_FUNC(FinishTrace);
 
-#undef LOAD_FUNC
+        IsTagEnabled = reinterpret_cast<IsTagEnabledType>(dlsym(handle, "IsTagEnabled"));
+        if (IsTagEnabled == nullptr) {
+            return false;
+        }
+
+        StartTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "StartTrace"));
+        if (StartTrace == nullptr) {
+            return false;
+        }
+
+        FinishTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "FinishTrace"));
+        if (FinishTrace == nullptr) {
+            return false;
+        }
+
         return true;
     }
 
@@ -93,6 +96,9 @@ private:
     }
 
     void* handle = nullptr;
+    IsTagEnabledType IsTagEnabled = nullptr;
+    StartTraceType StartTrace = nullptr;
+    FinishTraceType FinishTrace = nullptr;
 };
 
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
