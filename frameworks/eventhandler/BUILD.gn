@@ -60,7 +60,10 @@ ohos_shared_library("libeventhandler") {
 
   if (eh_hitrace_usage) {
     cflags_cc += [ "-DEH_HITRACE_METER_ENABLE" ]
-    external_deps += [ "hitrace:hitrace_meter" ]
+  }
+
+  if (target_cpu == "arm") {
+    cflags_cc += [ "-DAPP_USE_ARM" ]
   }
 
   install_images = [ system_base_dir ]

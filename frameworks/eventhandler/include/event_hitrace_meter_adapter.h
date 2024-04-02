@@ -16,21 +16,95 @@
 #define BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_HITRACE_METER_H
 
 #ifdef EH_HITRACE_METER_ENABLE
-#include "hitrace_meter.h"
+#include <dlfcn.h>
 #include "inner_event.h"
 
 namespace OHOS {
 namespace AppExecFwk {
+constexpr uint64_t HITRACE_TAG_NOTIFICATION = (1ULL << 40); // Notification module tag.
+bool IsTagEnabled(uint64_t tag);
+void StartTrace(uint64_t label, const std::string& value, float limit = -1);
+void FinishTrace(uint64_t label);
+
+#ifdef APP_USE_ARM
+static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_master.so";
+#else
+static const std::string TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_master.so";
+#endif
+
+class TraceAdapter {
+public:
+    TraceAdapter()
+    {
+        Load();
+    }
+
+    ~TraceAdapter()
+    {
+        Unload();
+    }
+
+    static TraceAdapter* Instance()
+    {
+        static TraceAdapter instance;
+        return &instance;
+    }
+
+#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func = nullptr
+    REG_FUNC(IsTagEnabled);
+    REG_FUNC(StartTrace);
+    REG_FUNC(FinishTrace);
+#undef REG_FUNC
+
+private:
+    bool Load()
+    {
+        if (handle != nullptr) {
+            return true;
+        }
+
+        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (handle == nullptr) {
+            return false;
+        }
+#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));        \
+        if (x == nullptr)                                                     \
+        {                                                                     \
+            return false;                                                     \
+        }
+            LOAD_FUNC(IsTagEnabled);
+            LOAD_FUNC(StartTrace);
+            LOAD_FUNC(FinishTrace);
+
+#undef LOAD_FUNC
+        return true;
+    }
+
+    bool Unload()
+    {
+        if (handle != nullptr) {
+            if (dlclose(handle) != 0) {
+                return false;
+            }
+            handle = nullptr;
+            return true;
+        }
+        return true;
+    }
+
+    void* handle = nullptr;
+};
+
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
 {
-    if (IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
-        StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo());
+    if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
+        TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
     }
 }
 
 static inline void FinishTraceAdapter()
 {
-    FinishTrace(HITRACE_TAG_NOTIFICATION);
+    TraceAdapter::Instance()->FinishTrace(HITRACE_TAG_NOTIFICATION);
 }
 }}
 #else
