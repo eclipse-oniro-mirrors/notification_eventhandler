@@ -58,7 +58,8 @@ public:
     }
 
     template<typename T>
-    T *GetFunction(const std::string &symbol) {
+    T *GetFunction(const std::string &symbol)
+    {
         std::lock_guard<std::mutex> lock(mutex_);
         if (handle_ == nullptr) {
             HILOGE("get handle failed, handle is null.");
