@@ -42,6 +42,7 @@ class TraceAdapter {
 public:
     TraceAdapter()
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         Load();
     }
 
@@ -106,7 +107,6 @@ static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
             StartTraceFunc(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
         }
     }
-
 }
 
 static inline void FinishTraceAdapter()
