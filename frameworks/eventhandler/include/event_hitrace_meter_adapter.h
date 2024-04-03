@@ -44,7 +44,6 @@ public:
 
     ~TraceAdapter()
     {
-        Unload();
     }
 
     static TraceAdapter* Instance()
@@ -57,60 +56,59 @@ public:
     StartTraceType StartTrace = nullptr;
     FinishTraceType FinishTrace = nullptr;
 private:
-    bool Load()
+    void Load()
     {
         if (handle != nullptr) {
-            return true;
+            HILOGE("%{public}s is already dlopened.", TRACE_LIB_PATH.c_str());
+            return;
         }
 
         handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
+            HILOGE("dlopen %{public}s failed.", TRACE_LIB_PATH.c_str());
             return false;
         }
 
         IsTagEnabled = reinterpret_cast<IsTagEnabledType>(dlsym(handle, "IsTagEnabled"));
         if (IsTagEnabled == nullptr) {
+            HILOGE("get symbol IsTagEnabled failed.");
             return false;
         }
 
         StartTrace = reinterpret_cast<StartTraceType>(dlsym(handle, "StartTrace"));
         if (StartTrace == nullptr) {
+            HILOGE("get symbol StartTrace failed.");
             return false;
         }
 
         FinishTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "FinishTrace"));
         if (FinishTrace == nullptr) {
+            HILOGE("get symbol FinishTrace failed.");
             return false;
         }
 
         return true;
     }
 
-    bool Unload()
-    {
-        if (handle != nullptr) {
-            if (dlclose(handle) != 0) {
-                return false;
-            }
-            handle = nullptr;
-            return true;
-        }
-        return true;
-    }
-
+    DEFINE_EH_HILOG_LABEL("EventHandler");
     void* handle = nullptr;
 };
 
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
 {
-    if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
-        TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
+    if (TraceAdapter::Instance()) {
+        if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
+            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
+        }   
     }
+    
 }
 
 static inline void FinishTraceAdapter()
 {
-    TraceAdapter::Instance()->FinishTrace(HITRACE_TAG_NOTIFICATION);
+    if (TraceAdapter::Instance()) {
+        TraceAdapter::Instance()->FinishTrace(HITRACE_TAG_NOTIFICATION);
+    }
 }
 }}
 #else
