@@ -66,25 +66,25 @@ private:
         handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
             HILOGE("dlopen %{public}s failed.", TRACE_LIB_PATH.c_str());
-            return false;
+            return;
         }
 
         IsTagEnabled = reinterpret_cast<IsTagEnabledType>(dlsym(handle, "IsTagEnabled"));
         if (IsTagEnabled == nullptr) {
             HILOGE("get symbol IsTagEnabled failed.");
-            return false;
+            return;
         }
 
         StartTrace = reinterpret_cast<StartTraceType>(dlsym(handle, "StartTrace"));
         if (StartTrace == nullptr) {
             HILOGE("get symbol StartTrace failed.");
-            return false;
+            return;
         }
 
         FinishTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "FinishTrace"));
         if (FinishTrace == nullptr) {
             HILOGE("get symbol FinishTrace failed.");
-            return false;
+            return;
         }
 
         return true;
@@ -101,7 +101,6 @@ static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
             TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
         }   
     }
-    
 }
 
 static inline void FinishTraceAdapter()
