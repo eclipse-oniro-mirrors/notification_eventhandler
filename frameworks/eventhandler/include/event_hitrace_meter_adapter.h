@@ -59,7 +59,7 @@ private:
     void Load()
     {
         if (handle != nullptr) {
-            HILOGE("%{public}s is already dlopened.", TRACE_LIB_PATH.c_str());
+            HILOGD("%{public}s is already dlopened.", TRACE_LIB_PATH.c_str());
             return;
         }
 
@@ -90,7 +90,7 @@ private:
         return true;
     }
 
-    DEFINE_EH_HILOG_LABEL("EventHandler");
+    DEFINE_EH_HILOG_LABEL("EventHiTraceAdapter");
     void* handle = nullptr;
 };
 
