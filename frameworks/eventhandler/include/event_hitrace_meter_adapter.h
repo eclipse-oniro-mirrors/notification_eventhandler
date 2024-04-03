@@ -98,7 +98,6 @@ static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
         if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
             TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
         }
-        }
     }
 }
 static inline void FinishTraceAdapter()
