@@ -17,6 +17,9 @@
 
 #ifdef EH_HITRACE_METER_ENABLE
 #include <dlfcn.h>
+#include <mutex>
+#include <map>
+#include <string>
 #include "inner_event.h"
 
 namespace OHOS {
@@ -25,9 +28,9 @@ constexpr uint64_t HITRACE_TAG_NOTIFICATION = (1ULL << 40); // Notification modu
 bool IsTagEnabled(uint64_t tag);
 void StartTrace(uint64_t label, const std::string& value, float limit = -1);
 void FinishTrace(uint64_t label);
-using IsTagEnabledType = decltype(IsTagEnabled)*;
-using StartTraceType = decltype(StartTrace)*;
-using FinishTraceType = decltype(FinishTrace)*;
+using IsTagEnabledType = decltype(IsTagEnabled);
+using StartTraceType = decltype(StartTrace);
+using FinishTraceType = decltype(FinishTrace);
 
 #ifdef APP_USE_ARM
 static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
@@ -44,6 +47,7 @@ public:
 
     ~TraceAdapter()
     {
+        functionMap_.clear();
     }
 
     static TraceAdapter* Instance()
@@ -52,59 +56,64 @@ public:
         return &instance;
     }
 
-    IsTagEnabledType IsTagEnabled = nullptr;
-    StartTraceType StartTrace = nullptr;
-    FinishTraceType FinishTrace = nullptr;
+    template<typename T>
+    T *GetFunction(const std::string &symbol) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (handle_ == nullptr) {
+            HILOGE("get handle failed, handle is null.");
+            return nullptr;
+        }
+
+        auto iterAddr = functionMap_.find(TRACE_LIB_PATH + '|' + symbol);
+        if (iterAddr != functionMap_.end()) {
+            return reinterpret_cast<T *>(iterAddr->second);
+        }
+        auto addr = dlsym(handle_, symbol.c_str());
+        if (addr == nullptr) {
+            HILOGE("dlsymc %{public}s error", symbol.c_str());
+            return nullptr;
+        }
+        functionMap_[TRACE_LIB_PATH + "|" + symbol] = reinterpret_cast<void *>(addr);
+        return reinterpret_cast<T *>(addr);
+    }
 private:
     void Load()
     {
-        if (handle != nullptr) {
+        if (handle_ != nullptr) {
             HILOGD("%{public}s is already dlopened.", TRACE_LIB_PATH.c_str());
             return;
         }
 
-        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (handle == nullptr) {
+        handle_ = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (handle_ == nullptr) {
             HILOGE("dlopen %{public}s failed.", TRACE_LIB_PATH.c_str());
-            return;
-        }
-
-        IsTagEnabled = reinterpret_cast<IsTagEnabledType>(dlsym(handle, "IsTagEnabled"));
-        if (IsTagEnabled == nullptr) {
-            HILOGE("get symbol IsTagEnabled failed.");
-            return;
-        }
-
-        StartTrace = reinterpret_cast<StartTraceType>(dlsym(handle, "StartTrace"));
-        if (StartTrace == nullptr) {
-            HILOGE("get symbol StartTrace failed.");
-            return;
-        }
-
-        FinishTrace = reinterpret_cast<FinishTraceType>(dlsym(handle, "FinishTrace"));
-        if (FinishTrace == nullptr) {
-            HILOGE("get symbol FinishTrace failed.");
             return;
         }
     }
 
     DEFINE_EH_HILOG_LABEL("EventHiTraceAdapter");
-    void* handle = nullptr;
+    void* handle_ = nullptr;
+    std::mutex mutex_;
+    std::map<std::string, void *> functionMap_;
 };
 
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
 {
-    if (TraceAdapter::Instance()) {
-        if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
-            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
+    auto IsTagEnabledFunc = TraceAdapter::Instance()->GetFunction<IsTagEnabledType>("IsTagEnabled");
+    auto StartTraceFunc = TraceAdapter::Instance()->GetFunction<StartTraceType>("StartTrace");
+    if (IsTagEnabledFunc && StartTraceFunc) {
+        if (IsTagEnabledFunc(HITRACE_TAG_NOTIFICATION)) {
+            StartTraceFunc(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
         }
     }
+
 }
 
 static inline void FinishTraceAdapter()
 {
-    if (TraceAdapter::Instance()) {
-        TraceAdapter::Instance()->FinishTrace(HITRACE_TAG_NOTIFICATION);
+    auto FinishTraceFunc = TraceAdapter::Instance()->GetFunction<FinishTraceType>("FinishTrace");
+    if (FinishTraceFunc) {
+        FinishTraceFunc(HITRACE_TAG_NOTIFICATION);
     }
 }
 }}
