@@ -16,6 +16,8 @@
 #ifndef BASE_EVENTHANDLER_INTERFACES_INNER_API_LOGGER_H
 #define BASE_EVENTHANDLER_INTERFACES_INNER_API_LOGGER_H
 
+#include <string>
+
 namespace OHOS {
 namespace AppExecFwk {
 class Logger {
