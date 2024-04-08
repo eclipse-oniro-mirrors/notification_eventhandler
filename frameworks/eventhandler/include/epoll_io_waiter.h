@@ -58,6 +58,7 @@ public:
     bool Init();
 
     bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
+    bool WaitForNoWait(int64_t nanoseconds);
 
     void NotifyOne() final;
     void NotifyAll() final;

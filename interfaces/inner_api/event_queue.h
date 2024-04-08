@@ -245,6 +245,14 @@ public:
      * Check whether there are currenty file descriptors is need to be processed.
      */
     void CheckFileDescriptorEvent();
+
+    /**
+     * Set epoll waiter mode
+     */
+    void SetNoWaitEpollWaiter(bool useNoWaitEpollWaiter)
+    {
+        useNoWaitEpollWaiter_ = useNoWaitEpollWaiter;
+    }
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
@@ -287,6 +295,11 @@ private:
     std::string DumpCurrentRunning();
     void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
     void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
+    void RemoveFileDescriptorByFd(int32_t fileDescriptor);
+    bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
+    bool EnsureIoWaiterForDefault();
+    bool EnsureIoWaiterForNoWait();
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -312,6 +325,12 @@ private:
 
     // IO waiter used to block if no events while calling 'GetEvent'.
     std::shared_ptr<IoWaiter> ioWaiter_;
+
+    // select different epoll
+    bool useNoWaitEpollWaiter_ = false;
+
+    // Epoll io waiter for no wait mdoe
+    std::shared_ptr<EpollIoWaiter> epollIoWaiter_;
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;

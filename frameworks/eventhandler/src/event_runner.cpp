@@ -444,6 +444,9 @@ public:
     inline void SetRunningMode(const Mode runningMode)
     {
         runningMode_ = runningMode;
+        if (queue_) {
+            queue_->SetNoWaitEpollWaiter(runningMode == Mode::NO_WAIT);
+        }
     }
 
 private:

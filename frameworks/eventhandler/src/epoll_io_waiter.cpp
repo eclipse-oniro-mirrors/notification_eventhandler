@@ -264,6 +264,28 @@ void EpollIoWaiter::EpollWaitFor()
     }
 }
 
+bool EpollIoWaiter::WaitForNoWait(int64_t nanoseconds)
+{
+    if (epollFd_ < 0) {
+        HILOGE("MUST initialized before waiting");
+        return false;
+    }
+
+    struct epoll_event epollEvents[MAX_EPOLL_EVENTS_SIZE];
+    int32_t retVal = epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, -1);
+    if (retVal < 0) {
+        if (errno != EINTR && errno != EINVAL) {
+            char errmsg[MAX_ERRORMSG_LEN] = {0};
+            GetLastErr(errmsg, MAX_ERRORMSG_LEN);
+            HILOGE("Failed to wait epoll, %{public}s", errmsg);
+            return false;
+        }
+    } else {
+        HandleEpollEvents(epollEvents, retVal);
+    }
+    return true;
+}
+
 bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
 {
     return true;
