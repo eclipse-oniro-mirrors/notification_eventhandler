@@ -69,7 +69,7 @@ ohos_shared_library("libeventhandler") {
   install_images = [
     system_base_dir,
     "system",
-    "updater", 
+    "updater",
   ]
   subsystem_name = "notification"
   innerapi_tags = [
