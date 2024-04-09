@@ -20,7 +20,7 @@
 
 #include "event_queue.h"
 #include "dumper.h"
-#include "logger.h"
+#include "event_inner_logger.h"
 #include "inner_event.h"
 
 namespace OHOS {
