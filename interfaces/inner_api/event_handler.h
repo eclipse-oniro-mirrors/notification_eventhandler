@@ -902,6 +902,15 @@ public:
     ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
         const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName);
 
+    /**
+     * Add file descriptor listener for a file descriptor.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param listener Listener callback.
+     * @param priority Priority of the for file descriptor.
+     * @return Return 'ERR_OK' on success.
+     */
     ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
         const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
         EventQueue::Priority priority);
