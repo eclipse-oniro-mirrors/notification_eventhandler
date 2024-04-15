@@ -52,7 +52,7 @@ inline constexpr uint32_t EH_LOG_DOMAIN = 0xD001200;
 
 #define HILOGD(fmt, ...) do { \
     if (HiLogIsLoggable(OHOS::AppExecFwk::EH_LOG_DOMAIN, EH_LOG_LABEL, LOG_DEBUG)) { \
-        ((void)HILOG_IMPL(LOG_CORE, LOG_INFO, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
+        ((void)HILOG_IMPL(LOG_CORE, LOG_DEBUG, EH_LOG_DOMAIN, EH_LOG_LABEL, fmt, ##__VA_ARGS__)); \
     } \
 } while (0)
 

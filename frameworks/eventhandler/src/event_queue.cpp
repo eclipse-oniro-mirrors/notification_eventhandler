@@ -131,7 +131,7 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority, EventInse
         HILOGE("Could not insert an invalid event");
         return;
     }
-    HILOGD("Insert task: %{public}s .", (event->GetEventUniqueId()).c_str());
+    HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
