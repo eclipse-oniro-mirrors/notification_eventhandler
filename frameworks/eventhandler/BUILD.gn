@@ -62,10 +62,6 @@ ohos_shared_library("libeventhandler") {
     cflags_cc += [ "-DEH_HITRACE_METER_ENABLE" ]
   }
 
-  if (target_cpu == "arm") {
-    cflags_cc += [ "-DAPP_USE_ARM" ]
-  }
-
   install_images = [
     system_base_dir,
     updater_base_dir,
