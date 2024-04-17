@@ -30,9 +30,9 @@ using StartTraceType = decltype(StartTrace)*;
 using FinishTraceType = decltype(FinishTrace)*;
 
 #ifdef (defined(__aarch64__) || defined(__x86_64__))
-static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
-#else
 static const std::string TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
+#else
+static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
 #endif
 
 class TraceAdapter {
