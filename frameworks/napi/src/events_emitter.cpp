@@ -147,6 +147,10 @@ namespace {
                 HILOGE("new object failed");
                 continue;
             }
+            if ((*it)->env == nullptr || (*it)->isDeleted) {
+                HILOGE("env is release");
+                continue;
+            }
             deleteEnv = (*it)->env;
             eventDataWorker->data = eventData;
             eventDataWorker->callbackInfo = (*it);
