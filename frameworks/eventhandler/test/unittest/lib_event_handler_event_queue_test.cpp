@@ -1786,3 +1786,28 @@ HWTEST_F(LibEventHandlerEventQueueTest, Remove001, TestSize.Level1)
     owner = std::make_shared<EventHandler>(runner);
     queue->Remove(owner, "");
 }
+
+/*
+ * @tc.name: DumpCurrentQueuesize
+ * @tc.desc: DumpCurrentQueuesize test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, DumpCurrentQueuesize001, TestSize.Level1)
+{
+    auto queue = std::make_shared<EventQueue>();
+    EXPECT_NE(queue, nullptr);
+    std::string result = queue->DumpCurrentQueueSize();
+    EXPECT_NE(result, "");
+}
+
+/*
+ * @tc.name: CheckFileDescriptorEvent
+ * @tc.desc: CheckFileDescriptorEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, CheckFileDescriptorEvent001, TestSize.Level1)
+{
+    auto queue = std::make_shared<EventQueue>();
+    EXPECT_NE(queue, nullptr);
+    queue->CheckFileDescriptorEvent();
+}
