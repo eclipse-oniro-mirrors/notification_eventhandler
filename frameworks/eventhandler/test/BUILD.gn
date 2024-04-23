@@ -152,6 +152,28 @@ ohos_unittest("LibEventHandlerTraceTest") {
   }
 }
 
+ohos_unittest("LibEventHandlerInnerEventTest") {
+  module_out_path = module_output_path
+
+  sources = inner_api_sources
+
+  sources += [ "unittest/lib_event_handler_inner_event_test.cpp" ]
+
+  configs = [ ":libeventhandler_test_private_config" ]
+
+  deps = [ "//third_party/googletest:gtest_main" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "hitrace:libhitracechain",
+  ]
+
+  if (has_hichecker_native_part) {
+    external_deps += [ "hichecker:libhichecker" ]
+  }
+}
+
 group("unittest") {
   testonly = true
 
@@ -161,6 +183,7 @@ group("unittest") {
     ":LibEventHandlerEventQueueTest",
     ":LibEventHandlerEventRunnerTest",
     ":LibEventHandlerEventTest",
+    ":LibEventHandlerInnerEventTest",
     ":LibEventHandlerTraceTest",
   ]
 }
