@@ -1007,6 +1007,14 @@ public:
     std::string GetEventName(const InnerEvent::Pointer &event);
 
     /**
+     * Check whether there are events which priority higher than basePrio in subevent queue.
+     *
+     * @param basePrio base priority
+     * @return Return true if there are higher priority events, ohtherwise return false.
+    */
+    bool HasPreferEvent(int basePrio);
+
+    /**
      * Checks whether the current event handler is idle
      * @return Returns true if current event handler is idle otherwise return false.
      */

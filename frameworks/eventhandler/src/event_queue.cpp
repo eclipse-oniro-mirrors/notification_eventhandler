@@ -900,6 +900,22 @@ std::string EventQueue::DumpCurrentQueueSize()
     std::to_string(vipEvents_.size()) + " ; ";
 }
 
+bool EventQueue::HasPreferEvent(int basePrio)
+{
+    if (basePrio == static_cast<int>(Priority::VIP)) {
+        return false;
+    }
+    if (subEventQueues_[static_cast<int>(Priority::VIP)].queue.size() > 0) {
+        return true;
+    }
+    for (int prio = 0; prio < basePrio; prio++) {
+        if (subEventQueues_[prio].queue.size() > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 CurrentRunningEvent::CurrentRunningEvent()
 {
     beginTime_ = InnerEvent::TimePoint::max();

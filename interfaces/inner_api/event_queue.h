@@ -239,6 +239,8 @@ public:
 
     void PushHistoryQueueAfterDistribute();
 
+    bool HasPreferEvent(int basePrio);
+
     std::string DumpCurrentQueueSize();
 
     /**
