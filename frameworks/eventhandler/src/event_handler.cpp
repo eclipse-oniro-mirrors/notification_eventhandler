@@ -493,5 +493,10 @@ void EventHandler::EnableEventLog(bool enableEventLog)
 {
     enableEventLog_ = enableEventLog;
 }
+
+bool EventHandler::HasPreferEvent(int basePrio)
+{
+    return eventRunner_->GetEventQueue()->HasPreferEvent(basePrio);
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
