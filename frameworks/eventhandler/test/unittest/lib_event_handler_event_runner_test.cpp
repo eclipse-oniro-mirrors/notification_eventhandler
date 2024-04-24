@@ -370,3 +370,34 @@ HWTEST_F(LibEventHandlerEventRunnerTest, SetLogger001, TestSize.Level1)
     usleep(100 * 1000);
     EXPECT_TRUE(isSetLogger);
 }
+
+/*
+ * @tc.name: SetTimeOut001
+ * @tc.desc: check SetTimeOut001 success
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, SetTimeOut001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    auto event = InnerEvent::Get(HAS_EVENT_ID, HAS_EVENT_PARAM);
+    int64_t timeout = 100;
+
+    /**
+     * @tc.steps: step1. send event
+     * @tc.expected: step1. SetLogger success
+     */
+    std::shared_ptr<LoggerTest> logtest = std::make_shared<LoggerTest>();
+    runner->SetLogger(logtest);
+    handler->SendEvent(event, EventQueue::Priority::LOW);
+    runner->SetTimeout(timeout);
+    runner->SetTimeoutCallback(nullptr);
+    int64_t reTimeout = runner->GetTimeout();
+
+    EXPECT_EQ(reTimeout, timeout);
+    EXPECT_EQ(nullptr, EventRunner::distributeCallback_);
+
+}
