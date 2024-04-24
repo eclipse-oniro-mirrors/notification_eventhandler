@@ -398,5 +398,4 @@ HWTEST_F(LibEventHandlerEventRunnerTest, SetTimeOut001, TestSize.Level1)
     int64_t reTimeout = runner->GetTimeout();
     EXPECT_EQ(reTimeout, timeout);
     EXPECT_EQ(nullptr, EventRunner::distributeCallback_);
-
 }
