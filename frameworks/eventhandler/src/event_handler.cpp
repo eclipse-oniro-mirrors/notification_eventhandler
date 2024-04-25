@@ -390,8 +390,8 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
 
     InnerEvent::TimePoint nowStart = InnerEvent::Clock::now();
     DeliveryTimeAction(event, nowStart);
-    HILOGD("EventName is %{public}s, eventId is %{public}s .", GetEventName(event).c_str(),
-        (event->GetEventUniqueId()).c_str());
+    HILOGD("EventName is %{public}s, eventId is %{public}s priority %{public}d.", GetEventName(event).c_str(),
+        (event->GetEventUniqueId()).c_str(), event->GetEventPriority());
 
     std::string eventName = GetEventName(event);
     InnerEvent::TimePoint beginTime;

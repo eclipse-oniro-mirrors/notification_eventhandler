@@ -57,16 +57,16 @@ class EventQueue final {
 public:
     // Priority for the events
     enum class Priority : uint32_t {
+        // The highest priority queue, should be distributed until the tasks in the queue are completed.
+        VIP = 0,
         // Event that should be distributed at once if possible.
-        IMMEDIATE = 0,
+        IMMEDIATE,
         // High priority event, sorted by handle time, should be distributed before low priority event.
         HIGH,
         // Normal event, sorted by handle time.
         LOW,
         // Event that should be distributed only if no other event right now.
         IDLE,
-        // The highest priority queue, should be distributed until the tasks in the queue are completed.
-        VIP,
     };
 
     EventQueue();
@@ -268,6 +268,7 @@ private:
         InnerEvent::TimePoint handleTime;
         InnerEvent::TimePoint triggerTime;
         InnerEvent::TimePoint completeTime;
+        int32_t priority = -1;
     };
 
     /*
@@ -311,8 +312,6 @@ private:
 
     // Event queue for IDLE events.
     std::list<InnerEvent::Pointer> idleEvents_;
-    // Event queue for VIP events.
-    std::list<InnerEvent::Pointer> vipEvents_;
 
     // Next wake up time when block in 'GetEvent'.
     InnerEvent::TimePoint wakeUpTime_ { InnerEvent::TimePoint::max() };

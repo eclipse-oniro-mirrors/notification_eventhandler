@@ -138,11 +138,9 @@ void EventQueue::Insert(InnerEvent::Pointer &event, Priority priority, EventInse
         return;
     }
     bool needNotify = false;
+    event->SetEventPriority(static_cast<int32_t>(priority));
     switch (priority) {
         case Priority::VIP:
-            needNotify = (event->GetHandleTime() < wakeUpTime_);
-            InsertEventsLocked(vipEvents_, event, insertType);
-            break;
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
@@ -202,7 +200,6 @@ void EventQueue::RemoveAll()
         subEventQueues_[i].queue.clear();
     }
     idleEvents_.clear();
-    vipEvents_.clear();
 }
 
 void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner)
@@ -279,13 +276,11 @@ void EventQueue::Remove(const RemoveFilter &filter)
         subEventQueues_[i].queue.remove_if(filter);
     }
     idleEvents_.remove_if(filter);
-    vipEvents_.remove_if(filter);
 }
 
 void EventQueue::RemoveOrphan(const RemoveFilter &filter)
 {
     std::list<InnerEvent::Pointer> releaseIdleEvents;
-    std::list<InnerEvent::Pointer> releaseVipEvents;
     std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> releaseEventsQueue;
     {
         std::lock_guard<std::mutex> lock(queueLock_);
@@ -301,10 +296,6 @@ void EventQueue::RemoveOrphan(const RemoveFilter &filter)
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
         idleEvents_.erase(idleEvents_.begin(), idleEventIt);
-
-        auto vipEventIt = std::stable_partition(vipEvents_.begin(), vipEvents_.end(), filter);
-        std::move(vipEvents_.begin(), vipEventIt, std::back_inserter(releaseVipEvents));
-        vipEvents_.erase(vipEvents_.begin(), vipEventIt);
     }
 }
 
@@ -346,8 +337,7 @@ bool EventQueue::HasInnerEvent(const HasFilter &filter)
             return true;
         }
     }
-    if (std::find_if(idleEvents_.begin(), idleEvents_.end(), filter) != idleEvents_.end() ||
-        std::find_if(vipEvents_.begin(), vipEvents_.end(), filter) != vipEvents_.end()) {
+    if (std::find_if(idleEvents_.begin(), idleEvents_.end(), filter) != idleEvents_.end()) {
         return true;
     }
     return false;
@@ -355,12 +345,6 @@ bool EventQueue::HasInnerEvent(const HasFilter &filter)
 
 InnerEvent::Pointer EventQueue::PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime)
 {
-    if (!vipEvents_.empty()) {
-        const auto &vipEvent = vipEvents_.front();
-        if (vipEvent->GetHandleTime() <= now) {
-            return PopFrontEventFromListLocked(vipEvents_);
-        }
-    }
     uint32_t priorityIndex = SUB_EVENT_QUEUE_NUM;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         // Check whether any event need to be distributed.
@@ -725,7 +709,7 @@ std::string EventQueue::DumpCurrentRunning()
 
 void EventQueue::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
 {
-    std::string priority[] = {"Immediate", "High", "Low"};
+    std::string priority[] = {"VIP", "Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t n = 0;
@@ -750,15 +734,6 @@ void EventQueue::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
         ++total;
     }
     dumper.Dump(dumper.GetTag() + " Total size of Idle events : " + std::to_string(n) + LINE_SEPARATOR);
-    n = 0;
-    for (auto it = vipEvents_.begin(); it != vipEvents_.end(); ++it) {
-        ++n;
-        if (total < dumpMaxSize) {
-            dumper.Dump(dumper.GetTag() + " No." + std::to_string(n) + " : " + (*it)->Dump());
-        }
-        ++total;
-    }
-    dumper.Dump(dumper.GetTag() + " Total size of vip events : " + std::to_string(n) + LINE_SEPARATOR);
     dumper.Dump(dumper.GetTag() + " Total event size : " + std::to_string(total) + LINE_SEPARATOR);
 }
 
@@ -789,7 +764,7 @@ void EventQueue::DumpQueueInfo(std::string& queueInfo)
         HILOGW("EventQueue is unavailable.");
         return;
     }
-    std::string priority[] = {"Immediate", "High", "Low"};
+    std::string priority[] = {"VIP", "Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t n = 0;
@@ -811,14 +786,6 @@ void EventQueue::DumpQueueInfo(std::string& queueInfo)
         ++total;
     }
     queueInfo += "              Total size of Idle events : " + std::to_string(n) + LINE_SEPARATOR;
-    n = 0;
-    for (auto it = vipEvents_.begin(); it != vipEvents_.end(); ++it) {
-        ++n;
-        queueInfo += "            No." + std::to_string(n) + " : " + (*it)->Dump();
-        ++total;
-    }
-    queueInfo += "              Total size of Vip events : " + std::to_string(n) + LINE_SEPARATOR;
-
     queueInfo += "            Total event size : " + std::to_string(total);
 }
 
@@ -841,7 +808,7 @@ bool EventQueue::IsQueueEmpty()
         }
     }
 
-    return idleEvents_.size() == 0 && vipEvents_.size() == 0;
+    return idleEvents_.size() == 0;
 }
 
 void EventQueue::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event)
@@ -854,6 +821,7 @@ void EventQueue::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &eve
     historyEvents_[historyEventIndex_].sendTime = event->GetSendTime();
     historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
     historyEvents_[historyEventIndex_].triggerTime = InnerEvent::Clock::now();
+    historyEvents_[historyEventIndex_].priority = event->GetEventPriority();
 
     if (event->HasTask()) {
         historyEvents_[historyEventIndex_].hasTask = true;
@@ -880,6 +848,8 @@ std::string EventQueue::HistoryQueueDump(const HistoryEvent &historyEvent)
     content.append(", handle time = " + InnerEvent::DumpTimeToString(historyEvent.handleTime));
     content.append(", trigger time = " + InnerEvent::DumpTimeToString(historyEvent.triggerTime));
     content.append(", completeTime time = " + InnerEvent::DumpTimeToString(historyEvent.completeTime));
+    content.append(", prio = " + std::to_string(historyEvent.priority));
+
     if (historyEvent.hasTask) {
         content.append(", task name = " + historyEvent.taskName);
     } else {
@@ -896,8 +866,7 @@ std::string EventQueue::DumpCurrentQueueSize()
     std::to_string(subEventQueues_[static_cast<int>(Priority::IMMEDIATE)].queue.size()) + ", HIGH = " +
     std::to_string(subEventQueues_[static_cast<int>(Priority::HIGH)].queue.size()) + ", LOW = " +
     std::to_string(subEventQueues_[static_cast<int>(Priority::LOW)].queue.size()) + ", IDLE = " +
-    std::to_string(idleEvents_.size()) + " , VIP = " +
-    std::to_string(vipEvents_.size()) + " ; ";
+    std::to_string(idleEvents_.size()) + " ; ";
 }
 
 bool EventQueue::HasPreferEvent(int basePrio)
