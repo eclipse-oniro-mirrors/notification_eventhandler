@@ -678,6 +678,24 @@ public:
         return eventId;
     }
 
+    /**
+     * Get event priority.
+     *
+     * @return Returns uniqueId for event.
+     */
+    inline int32_t GetEventPriority()
+    {
+        return priority;
+    }
+
+    /**
+     * Set event priority.
+     */
+    inline void SetEventPriority(int32_t prio)
+    {
+        priority = prio;
+    }
+
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -811,6 +829,8 @@ private:
 
     // use to store event unique Id
     std::string eventId;
+
+    int32_t priority = -1;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
