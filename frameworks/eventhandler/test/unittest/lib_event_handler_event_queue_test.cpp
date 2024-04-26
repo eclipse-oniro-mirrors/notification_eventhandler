@@ -1811,3 +1811,69 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckFileDescriptorEvent001, TestSize.Le
     EXPECT_NE(queue, nullptr);
     queue->CheckFileDescriptorEvent();
 }
+
+/*
+ * @tc.name: HasPreferEvent
+ * @tc.desc: HasPreferEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, HasPreferEvent001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueue queue;
+    queue.Prepare();
+
+    /**
+     * @tc.steps: step1. first insert MAX_HIGH_PRIORITY_COUNT high priority events, then insert two low priority events.
+     */
+    for (uint32_t eventId = 0; eventId < MAX_HIGH_PRIORITY_COUNT + 1; eventId++) {
+        auto event = InnerEvent::Get(eventId);
+        auto now = InnerEvent::Clock::now();
+        event->SetSendTime(now);
+        event->SetHandleTime(now);
+        queue.Insert(event, EventQueue::Priority::HIGH);
+    }
+
+    /**
+     * @tc.steps: step2. check whether there are higher priority than HIGH in event queue
+     * @tc.expected: step2. return false.
+     */
+    bool hasPreferEvent1 = queue.HasPreferEvent(static_cast<int>(EventQueue::Priority::HIGH));
+    EXPECT_FALSE(hasPreferEvent1);
+    bool hasPreferEvent2 = queue.HasPreferEvent(static_cast<int>(EventQueue::Priority::IMMEDIATE));
+    EXPECT_FALSE(hasPreferEvent2);
+}
+
+/*
+ * @tc.name: HasPreferEvent
+ * @tc.desc: HasPreferEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, HasPreferEvent002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueue queue;
+    queue.Prepare();
+
+    /**
+     * @tc.steps: step1. first insert MAX_HIGH_PRIORITY_COUNT high priority events, then insert two low priority events.
+     */
+    for (uint32_t eventId = 0; eventId < MAX_HIGH_PRIORITY_COUNT + 1; eventId++) {
+        auto event = InnerEvent::Get(eventId);
+        auto now = InnerEvent::Clock::now();
+        event->SetSendTime(now);
+        event->SetHandleTime(now);
+        queue.Insert(event, EventQueue::Priority::HIGH);
+    }
+
+    /**
+     * @tc.steps: step2. check whether there are higher priority than LOW in event queue
+     * @tc.expected: step2. return true.
+     */
+    bool hasPreferEvent = queue.HasPreferEvent(static_cast<int>(EventQueue::Priority::LOW));
+    EXPECT_TRUE(hasPreferEvent);
+}
