@@ -232,12 +232,12 @@ void EpollIoWaiter::EpollWaitFor()
     pthread_setname_np(pthread_self(), "OS_EVENT_POLL");
 #ifdef RES_SCHED_ENABLE
     std::unordered_map<std::string, std::string> payload {
-        {"pid", std::to_string(getpid())}
+        {"pid", std::to_string(getprocpid())}
     };
     uint32_t type = ResourceSchedule::ResType::RES_TYPE_REPORT_DISTRIBUTE_TID;
-    int64_t value = gettid();
+    int64_t value = getproctid();
     ResourceSchedule::ResSchedClient::GetInstance().ReportData(type, value, payload);
-    HILOGD("Epoll io waiter set thread sched.");
+    HILOGD("Epoll io waiter set thread sched. pid: %{public}d, tid: %{public}d", getprocpid(), getproctid());
 #endif
     while (!isFinished_) {
         // Increasment of waiting count MUST be done before unlock.
