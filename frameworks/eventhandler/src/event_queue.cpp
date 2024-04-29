@@ -871,12 +871,6 @@ std::string EventQueue::DumpCurrentQueueSize()
 
 bool EventQueue::HasPreferEvent(int basePrio)
 {
-    if (basePrio == static_cast<int>(Priority::VIP)) {
-        return false;
-    }
-    if (subEventQueues_[static_cast<int>(Priority::VIP)].queue.size() > 0) {
-        return true;
-    }
     for (int prio = 0; prio < basePrio; prio++) {
         if (subEventQueues_[prio].queue.size() > 0) {
             return true;
