@@ -45,7 +45,7 @@ EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRu
 
 EventHandler::~EventHandler()
 {
-    HILOGD("enter");
+    HILOGD("~EventHandler enter");
     if (eventRunner_) {
         HILOGD("eventRunner is alive");
         /*
@@ -173,7 +173,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 
 void EventHandler::RemoveAllEvents()
 {
-    HILOGD("enter");
+    HILOGD("RemoveAllEvents enter");
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before removing all events");
         return;
@@ -184,7 +184,7 @@ void EventHandler::RemoveAllEvents()
 
 void EventHandler::RemoveEvent(uint32_t innerEventId)
 {
-    HILOGD("enter");
+    HILOGD("RemoveEvent enter");
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before removing events by id");
         return;
@@ -195,7 +195,7 @@ void EventHandler::RemoveEvent(uint32_t innerEventId)
 
 void EventHandler::RemoveEvent(uint32_t innerEventId, int64_t param)
 {
-    HILOGD("enter");
+    HILOGD("RemoveEvent -- enter");
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before removing events by id and param");
         return;
@@ -206,7 +206,7 @@ void EventHandler::RemoveEvent(uint32_t innerEventId, int64_t param)
 
 void EventHandler::RemoveTask(const std::string &name)
 {
-    HILOGD("enter");
+    HILOGD("RemoveTask enter");
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before removing events by task name");
         return;
