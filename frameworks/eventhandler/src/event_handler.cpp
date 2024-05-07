@@ -498,5 +498,75 @@ bool EventHandler::HasPreferEvent(int basePrio)
 {
     return eventRunner_->GetEventQueue()->HasPreferEvent(basePrio);
 }
+
+extern "C" void* GetMainEventHandlerForFFRT()
+{
+    HILOGD("GetMainEventHandlerForFFRT enter");
+    static std::shared_ptr<OHOS::AppExecFwk::EventHandler> mainHandler =
+        std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::GetMainEventRunner());
+    if (mainHandler == nullptr) {
+        HILOGW("GetMainEventHandlerForFFRT execute fail, mainHandler is nullptr");
+        return nullptr;
+    }
+    return &mainHandler;
+}
+
+extern "C" void* GetCurrentEventHandlerForFFRT()
+{
+    HILOGD("GetCurrentEventHandlerForFFRT enter");
+    thread_local std::shared_ptr<OHOS::AppExecFwk::EventHandler> currentHandler =
+        std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::Current());
+    if (currentHandler == nullptr) {
+        HILOGW("GetCurrentEventHandlerForFFRT execute fail, currentHandler is nullptr");
+        return nullptr;
+    }
+    return &currentHandler;
+}
+
+extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callback,
+    const std::string &name, int64_t delayTime, EventQueue::Priority priority)
+{
+    HILOGD("PostTaskByFFRT enter");
+    if (handler == nullptr) {
+        HILOGW("PostTaskByFFRT execute fail, handler is nullptr");
+        return false;
+    }
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    return (*ptr)->PostTask(callback, name, delayTime, priority);
+}
+
+extern "C" bool PostSyncTaskByFFRT(void* handler, const std::function<void()>& callback,
+    const std::string &name, EventQueue::Priority priority)
+{
+    HILOGD("PostSyncTaskByFFRT enter");
+    if (handler == nullptr) {
+        HILOGW("PostSyncTaskByFFRT execute fail, handler is nullptr");
+        return false;
+    }
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    return (*ptr)->PostSyncTask(callback, name, priority);
+}
+
+extern "C" void RemoveTaskForFFRT(void* handler, const std::string &name)
+{
+    HILOGD("RemoveTaskForFFRT enter");
+    if (handler == nullptr) {
+        HILOGW("RemoveTaskForFFRT execute fail, handler is nullptr");
+        return;
+    }
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    (*ptr)->RemoveTask(name);
+}
+
+extern "C" void RemoveAllTaskForFFRT(void* handler)
+{
+    HILOGD("RemoveAllTaskForFFRT enter");
+    if (handler == nullptr) {
+        HILOGW("RemoveAllTaskForFFRT execute fail, handler is nullptr");
+        return;
+    }
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    (*ptr)->RemoveAllEvents();
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
