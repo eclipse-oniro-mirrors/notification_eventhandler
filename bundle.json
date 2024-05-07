@@ -36,7 +36,8 @@
                 "fwk_group": [
                     "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
                     "//base/notification/eventhandler/frameworks:eventhandler_native_target",
-                    "//base/notification/eventhandler/frameworks:napi_packages"
+                    "//base/notification/eventhandler/frameworks:napi_packages",
+                    "//base/notification/eventhandler/frameworks/cj:cj_emitter_ffi"
                 ],
                 "service_group": [
 
