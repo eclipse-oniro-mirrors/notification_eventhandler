@@ -260,7 +260,6 @@ void EventQueue::Remove(const std::shared_ptr<EventHandler> &owner, const std::s
         if (p == nullptr) {
             return false;
         }
-        EH_LOGD_LIMIT("Event address: %{public}p .", &p);
         return (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
     };
 
