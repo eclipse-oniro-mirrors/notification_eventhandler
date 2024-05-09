@@ -20,16 +20,34 @@
 #include <map>
 #include <mutex>
 
+#include <sys/epoll.h>
 #include "io_waiter.h"
 #include "nocopyable.h"
+#include "event_queue.h"
+#include "file_descriptor_listener.h"
 
 namespace OHOS {
 namespace AppExecFwk {
+class EventHandler;
+
+class FileDescriptorInfo {
+public:
+    DISALLOW_COPY_AND_MOVE(FileDescriptorInfo);
+    FileDescriptorInfo() {}
+    FileDescriptorInfo(std::string taskName, EventQueue::Priority priority,
+        std::shared_ptr<FileDescriptorListener>listener): taskName_(taskName), priority_(priority),
+        listener_(listener) {}
+    std::string taskName_;
+    EventQueue::Priority priority_;
+    std::shared_ptr<FileDescriptorListener> listener_;
+};
+
 // Use epoll to listen file descriptor.
 class EpollIoWaiter final : public IoWaiter {
 public:
-    EpollIoWaiter() = default;
+    EpollIoWaiter();
     ~EpollIoWaiter() final;
+    static EpollIoWaiter& GetInstance();
     DISALLOW_COPY_AND_MOVE(EpollIoWaiter);
 
     /**
@@ -40,30 +58,41 @@ public:
     bool Init();
 
     bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
+    bool WaitForNoWait(int64_t nanoseconds);
 
     void NotifyOne() final;
     void NotifyAll() final;
-
+    void StopEpollIoWaiter();
+    void StartEpollIoWaiter();
     bool SupportListeningFileDescriptor() const final;
 
     bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName) final;
     void RemoveFileDescriptor(int32_t fileDescriptor) final;
 
     void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
-    void InsertTaskNameMap(int32_t fileDescriptor, const std::string& taskName);
-    void EraseTaskNameMap(int32_t fileDescriptor);
-    std::string GetTaskNameMap(int32_t fileDescriptor);
+    void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
+        EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener);
+    void EraseFileDescriptorMap(int32_t fileDescriptor);
+    std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
+    bool AddFileDescriptorInfo(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
 private:
+    void EpollWaitFor();
     void DrainAwakenPipe() const;
+    void HandleEpollEvents(struct epoll_event *epollEvents, int32_t eventsCount);
 
     // File descriptor for epoll.
     int32_t epollFd_{-1};
     // File descriptor used to wake up epoll.
     int32_t awakenFd_{-1};
-    std::mutex taskNameMapLock;
+    std::mutex fileDescriptorMapLock;
     FileDescriptorEventCallback callback_;
     std::atomic<int32_t> waitingCount_{0};
-    std::map<int32_t, std::string> taskNameMap_;
+    std::atomic<bool> running_ = false;
+    std::atomic<bool> isFinished_ = false;
+    std::unique_ptr<std::thread> epollThread_;
+    std::map<int32_t, std::shared_ptr<FileDescriptorInfo>> fileDescriptorMap_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

@@ -20,7 +20,6 @@
 #include <mutex>
 
 #include "epoll_io_waiter.h"
-#include "daemon_epoll_io_waiter.h"
 #include "event_handler.h"
 #include "event_handler_utils.h"
 #include "event_logger.h"
@@ -62,18 +61,18 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
 // Help to remove file descriptor listeners.
 template<typename T>
 void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDescriptorListener>> &listeners,
-    const std::shared_ptr<IoWaiter>& ioWaiter, const T &filter, bool useDaemonIoWaiter)
+    const std::shared_ptr<IoWaiter>& ioWaiter, const T &filter, bool useNoWaitEpollWaiter)
 {
-    if (!useDaemonIoWaiter && !ioWaiter) {
+    if (useNoWaitEpollWaiter && !ioWaiter) {
         return;
     }
 
     for (auto it = listeners.begin(); it != listeners.end();) {
         if (filter(it->second)) {
-            if (useDaemonIoWaiter) {
-                DaemonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-            } else {
+            if (useNoWaitEpollWaiter) {
                 ioWaiter->RemoveFileDescriptor(it->first);
+            } else {
+                EpollIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
             }
             it = listeners.erase(it);
         } else {
@@ -123,7 +122,6 @@ EventQueue::~EventQueue()
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
-    epollIoWaiter_ = nullptr;
     EH_LOGI_LIMIT("EventQueue is unavailable hence");
 }
 
@@ -186,7 +184,7 @@ void EventQueue::RemoveOrphan()
         HILOGW("EventQueue is unavailable.");
         return;
     }
-    RemoveFileDescriptorListenerLocked(listeners_, epollIoWaiter_, listenerFilter, useDaemonIoWaiter_);
+    RemoveFileDescriptorListenerLocked(listeners_, epollIoWaiter_, listenerFilter, useNoWaitEpollWaiter_);
 }
 
 
@@ -459,7 +457,7 @@ ErrCode EventQueue::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t e
         return EVENT_HANDLER_ERR_FD_ALREADY;
     }
 
-    HILOGD("Add file descriptor %{public}d to io waiter %{public}d", fileDescriptor, useDaemonIoWaiter_);
+    HILOGD("Add file descriptor %{public}d to io waiter %{public}d", fileDescriptor, useNoWaitEpollWaiter_);
     if (!EnsureIoWaiterSupportListerningFileDescriptorLocked()) {
         return EVENT_HANDLER_ERR_FD_NOT_SUPPORT;
     }
@@ -493,7 +491,7 @@ void EventQueue::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler
         HILOGW("EventQueue is unavailable.");
         return;
     }
-    RemoveFileDescriptorListenerLocked(listeners_, epollIoWaiter_, listenerFilter, useDaemonIoWaiter_);
+    RemoveFileDescriptorListenerLocked(listeners_, epollIoWaiter_, listenerFilter, useNoWaitEpollWaiter_);
 }
 
 void EventQueue::RemoveFileDescriptorListener(int32_t fileDescriptor)
@@ -608,75 +606,66 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
 
 void EventQueue::CheckFileDescriptorEvent()
 {
-    InnerEvent::TimePoint now = InnerEvent::Clock::now();
-    std::unique_lock<std::mutex> lock(queueLock_);
-    WaitUntilLocked(now, lock);
+    if (epollIoWaiter_) {
+        epollIoWaiter_->WaitForNoWait(0);
+    }
 }
 
-bool EventQueue::EnsureDeamonIoWaiter()
+bool EventQueue::EnsureIoWaiterForDefault()
 {
-    if (!DaemonIoWaiter::GetInstance().Init()) {
+    if (!EpollIoWaiter::GetInstance().Init()) {
         HILOGE("Failed to initialize epoll");
         return false;
     }
-    DaemonIoWaiter::GetInstance().StartEpollIoWaiter();
+    EpollIoWaiter::GetInstance().StartEpollIoWaiter();
     return true;
 }
 
-bool EventQueue::EnsureDefaultIoWaiter()
+bool EventQueue::EnsureIoWaiterForNoWait()
 {
-    HILOGD("enter");
-    if (ioWaiter_->SupportListeningFileDescriptor()) {
+    if (epollIoWaiter_ != nullptr) {
         return true;
     }
 
-    auto newIoWaiter = std::make_shared<EpollIoWaiter>();
-    if (!newIoWaiter->Init()) {
-        HILOGE("Failed to initialize epoll");
+    epollIoWaiter_ = std::make_shared<EpollIoWaiter>();
+    if (!epollIoWaiter_->Init()) {
+        HILOGW("Failed to initialize epoll for no wait.");
         return false;
     }
-
-    // Set callback to handle events from file descriptors.
-    newIoWaiter->SetFileDescriptorEventCallback(
-        std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
-        std::placeholders::_3));
-
-    ioWaiter_->NotifyAll();
-    ioWaiter_ = newIoWaiter;
     return true;
 }
 
 bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
 {
     HILOGD("enter");
-    if (useDaemonIoWaiter_) {
-        return EnsureDeamonIoWaiter();
+    if (useNoWaitEpollWaiter_) {
+        return EnsureIoWaiterForNoWait();
     }
-    return EnsureDefaultIoWaiter();
+    return EnsureIoWaiterForDefault();
 }
 
 void EventQueue::RemoveFileDescriptorByFd(int32_t fileDescriptor)
 {
-    if (useDaemonIoWaiter_) {
-        DaemonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
-    } else {
-        if (ioWaiter_) {
-            ioWaiter_->RemoveFileDescriptor(fileDescriptor);
+    if (useNoWaitEpollWaiter_) {
+        if (epollIoWaiter_) {
+            epollIoWaiter_->RemoveFileDescriptor(fileDescriptor);
         }
+    } else {
+        EpollIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
     }
 }
 
 bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
     const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
 {
-    if (useDaemonIoWaiter_) {
-        return DaemonIoWaiter::GetInstance().AddFileDescriptorInfo(fileDescriptor, events, taskName,
-            listener, priority);
+    if (useNoWaitEpollWaiter_) {
+        if (epollIoWaiter_) {
+            return epollIoWaiter_->AddFileDescriptorInfo(fileDescriptor, events, taskName, listener, priority);
+        }
+        return false;
     }
-    if (ioWaiter_) {
-        return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName);
-    }
-    return false;
+    return EpollIoWaiter::GetInstance().AddFileDescriptorInfo(fileDescriptor, events, taskName,
+        listener, priority);
 }
 
 void EventQueue::DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content)
