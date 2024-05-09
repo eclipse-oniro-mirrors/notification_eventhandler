@@ -441,11 +441,11 @@ public:
         }
     }
 
-    inline void SetRunningMode(const Mode runningMode)
+    inline void SetRunningMode(bool isNewThread, const Mode runningMode)
     {
         runningMode_ = runningMode;
         if (queue_) {
-            queue_->SetNoWaitEpollWaiter(runningMode == Mode::NO_WAIT);
+            queue_->SetDaemonIoWaiter(isNewThread && runningMode == Mode::DEFAULT);
         }
     }
 
@@ -551,7 +551,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
         return nullptr;
     }
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
-    innerRunner->SetRunningMode(mode);
+    innerRunner->SetRunningMode(false, mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
 
@@ -564,7 +564,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new EventRunner(true, mode));
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
-    innerRunner->SetRunningMode(mode);
+    innerRunner->SetRunningMode(true, mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     innerRunner->SetThreadName(threadName);
@@ -637,6 +637,9 @@ ErrCode EventRunner::Run()
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
+    if (EventRunner::IsAppMainThread()) {
+        queue_->SetDaemonIoWaiter(true);
+    }
     if (deposit_ && runningMode_ == Mode::NO_WAIT) {
         // Start new thread for NO_WAIT Mode
         StartRunningForNoWait();

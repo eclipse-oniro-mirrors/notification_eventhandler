@@ -30,7 +30,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
-class EpollIoWaiter;
+class DaemonIoWaiter;
 
 struct CurrentRunningEvent {
     InnerEvent::TimePoint beginTime_;
@@ -251,9 +251,9 @@ public:
     /**
      * Set epoll waiter mode
      */
-    void SetNoWaitEpollWaiter(bool useNoWaitEpollWaiter)
+    void SetDaemonIoWaiter(bool daemonIoWaiter)
     {
-        useNoWaitEpollWaiter_ = useNoWaitEpollWaiter;
+        useDaemonIoWaiter_ = daemonIoWaiter;
     }
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
@@ -301,8 +301,8 @@ private:
     void RemoveFileDescriptorByFd(int32_t fileDescriptor);
     bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
-    bool EnsureIoWaiterForDefault();
-    bool EnsureIoWaiterForNoWait();
+    bool EnsureDefaultIoWaiter();
+    bool EnsureDeamonIoWaiter();
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -328,10 +328,10 @@ private:
     std::shared_ptr<IoWaiter> ioWaiter_;
 
     // select different epoll
-    bool useNoWaitEpollWaiter_ = false;
+    bool useDaemonIoWaiter_ = false;
 
-    // Epoll io waiter for no wait mdoe
-    std::shared_ptr<EpollIoWaiter> epollIoWaiter_;
+    // Epoll io waiter for daemon mdoe
+    std::shared_ptr<DaemonIoWaiter> epollIoWaiter_;
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
