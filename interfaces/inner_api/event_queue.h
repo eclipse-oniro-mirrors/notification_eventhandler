@@ -280,6 +280,9 @@ private:
     // Sub event queues for IMMEDIATE, HIGH and LOW priority. So use value of IDLE as size.
     static const uint32_t SUB_EVENT_QUEUE_NUM = static_cast<uint32_t>(Priority::IDLE);
 
+    // Sub event queues for IMMEDIATE, HIGH, VIP and LOW priority. So use value of VIP as size.
+    static const uint32_t SUB_EVENT_QUEUE_VIP_NUM = static_cast<uint32_t>(Priority::VIP);
+
     struct SubEventQueue {
         std::list<InnerEvent::Pointer> queue;
         uint32_t handledEventsCount{0};
