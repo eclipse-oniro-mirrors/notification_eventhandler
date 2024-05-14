@@ -344,11 +344,6 @@ bool EventQueue::HasInnerEvent(const HasFilter &filter)
 
 InnerEvent::Pointer EventQueue::PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime)
 {
-    thread_local bool isMainThread = EventRunner::IsAppMainThread();
-    if (!isMainThread && CheckEventInListLocked(subEventQueues_[SUB_EVENT_QUEUE_VIP_NUM].queue, now, nextWakeUpTime)) {
-        // Current thread is not main thread and vip tasks is not empty
-        return PopFrontEventFromListLocked(subEventQueues_[SUB_EVENT_QUEUE_VIP_NUM].queue);
-    }
     uint32_t priorityIndex = SUB_EVENT_QUEUE_NUM;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         // Check whether any event need to be distributed.
