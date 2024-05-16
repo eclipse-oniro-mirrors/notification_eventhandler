@@ -27,6 +27,7 @@
 #include <sys/syscall.h>
 
 #include "event_handler.h"
+#include "event_queue_base.h"
 #include "event_inner_runner.h"
 #include "event_logger.h"
 #include "securec.h"
@@ -289,7 +290,7 @@ public:
     explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner) : EventInnerRunner(runner)
     {
         HILOGD("enter");
-        queue_ = std::make_shared<EventQueue>();
+        queue_ = std::make_shared<EventQueueBase>();
     }
 
     ~EventRunnerImpl() final
@@ -584,6 +585,11 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
     return sp;
 }
 
+std::shared_ptr<EventRunner> EventRunner::Create(const RunnerAttribute &runnerAttribute)
+{
+    return Create(runnerAttribute.threadName, runnerAttribute.mode);
+}
+
 std::shared_ptr<EventRunner> EventRunner::Current()
 {
     auto runner = EventInnerRunner::GetCurrentEventRunner();
@@ -595,6 +601,7 @@ std::shared_ptr<EventRunner> EventRunner::Current()
 
 EventRunner::EventRunner(bool deposit, Mode runningMode) : deposit_(deposit), runningMode_(runningMode)
 {
+    runnerId_ = std::to_string(GetTimeStamp());
     HILOGD("deposit_ is %{public}d %{public}d", deposit_, runningMode_);
 }
 
@@ -605,7 +612,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    HILOGD("~EventRunner deposit_ is %{public}d", deposit_);
+    HILOGI("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
     if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
@@ -637,6 +644,7 @@ ErrCode EventRunner::Run()
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
+    runnerId_ += "_" + std::to_string(getproctid());
     if (deposit_ && runningMode_ == Mode::NO_WAIT) {
         // Start new thread for NO_WAIT Mode
         StartRunningForNoWait();

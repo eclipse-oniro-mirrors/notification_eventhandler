@@ -1025,6 +1025,14 @@ public:
      */
     void EnableEventLog(bool enableEventLog = false);
 
+    /**
+     * Get handler id, only for inner use
+     */
+    inline std::string GetHandlerId()
+    {
+        return handlerId_;
+    }
+
 protected:
     /**
      * Process the event. Developers should override this method.
@@ -1034,6 +1042,7 @@ protected:
     virtual void ProcessEvent(const InnerEvent::Pointer &event);
 
 private:
+    std::string handlerId_;
     bool enableEventLog_ {false};
     std::shared_ptr<EventRunner> eventRunner_;
     CallbackTimeout deliveryTimeoutCallback_;

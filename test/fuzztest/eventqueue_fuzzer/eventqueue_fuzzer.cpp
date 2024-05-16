@@ -14,6 +14,7 @@
  */
 
 #include "event_queue.h"
+#include "event_queue_base.h"
 #include "eventqueue_fuzzer.h"
 #include "securec.h"
 
@@ -41,7 +42,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     DumperTest dumper;
     std::string stringData(data);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueue eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
     eventQueue.GetExpiredEvent(nextExpiredTime);
     eventQueue.Dump(dumper);
     eventQueue.DumpQueueInfo(stringData);
