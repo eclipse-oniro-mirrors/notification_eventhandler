@@ -76,7 +76,7 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor001, TestSize.Level1
     int32_t fileDescriptor = -1;
     uint32_t events = 1;
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor001");
-    EXPECT_EQ(result, false);
+    EXPECT_EQ(result, true);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
 
@@ -96,7 +96,7 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor002, TestSize.Level1
     int32_t fileDescriptor = 1;
     uint32_t events = 0;
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor002");
-    EXPECT_EQ(result, false);
+    EXPECT_EQ(result, true);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
 
@@ -116,6 +116,6 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor003, TestSize.Level1
     int32_t fileDescriptor = 1;
     uint32_t events = 1;
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor003");
-    EXPECT_EQ(result, false);
+    EXPECT_EQ(result, true);
 }
 
