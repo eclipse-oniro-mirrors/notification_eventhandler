@@ -102,6 +102,13 @@ static inline void GetLastErr(char *errmsg, size_t size = MAX_ERRORMSG_LEN)
     size = size > MAX_ERRORMSG_LEN ? MAX_ERRORMSG_LEN : size;
     strerror_r(errno, errmsg, size);
 }
+
+static inline int64_t GetTimeStamp()
+{
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    auto epoch = now.time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count();
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
 

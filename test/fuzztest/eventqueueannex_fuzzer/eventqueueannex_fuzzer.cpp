@@ -14,6 +14,7 @@
  */
 
 #include "event_queue.h"
+#include "event_queue_base.h"
 #include "eventqueueannex_fuzzer.h"
 #include "securec.h"
 
@@ -51,7 +52,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     std::string stringData(data);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueue eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
     uint32_t innerEventId = *data;
     int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(data));

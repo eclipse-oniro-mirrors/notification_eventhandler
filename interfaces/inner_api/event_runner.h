@@ -33,6 +33,19 @@ enum class Mode: uint32_t {
     NO_WAIT,      // One poll mode
 };
 
+enum class ThreadMode: uint32_t {
+    DEFAULT = 0,    // for new thread mode, event handler create thread
+    FFRT,           // for new thread mode, use ffrt
+};
+
+struct RunnerAttribute {
+public:
+    bool inNewThread = true;
+    std::string threadName;
+    Mode mode = Mode::DEFAULT;
+    ThreadMode threadMode = ThreadMode::FFRT;
+};
+
 class EventRunner final {
 public:
     EventRunner() = delete;
@@ -63,6 +76,14 @@ public:
      * @return Returns shared pointer of the new 'EventRunner'.
      */
     static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT);
+
+    /**
+     * Create new 'EventRunner'.
+     *
+     * @param runnerAttribute runner of attribute.
+     * @return Returns shared pointer of the new 'EventRunner'.
+     */
+    static std::shared_ptr<EventRunner> Create(const RunnerAttribute &runnerAttribute);
 
     /**
      * Create new 'EventRunner' and start to run in a new thread.
@@ -290,6 +311,7 @@ private:
     static std::shared_ptr<EventRunner> mainRunner_;
     std::string currentEventInfo_;
     Mode runningMode_ = Mode::DEFAULT;
+    std::string runnerId_;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;
