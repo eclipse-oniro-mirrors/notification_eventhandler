@@ -32,6 +32,10 @@
 #include "event_logger.h"
 #include "securec.h"
 #include "singleton.h"
+#ifdef FFRT_USAGE_ENABLE
+#include "event_queue_ffrt.h"
+#include "ffrt_inner.h"
+#endif  // FFRT_USAGE_ENABLE
 
 
 namespace OHOS {
@@ -542,7 +546,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
         EH_LOGI_LIMIT("EventRunner created");
-        return Create(std::string(), mode);
+        return Create(std::string(), mode, ThreadMode::NEW_THREAD);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
@@ -555,23 +559,60 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
-
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode threadMode)
 {
-    HILOGD("threadName is %{public}s %{public}d", threadName.c_str(), mode);
+    HILOGD("inNewThread is %{public}d %{public}d", inNewThread, threadMode);
+    if (inNewThread) {
+        EH_LOGI_LIMIT("EventRunner created");
+        return Create(std::string(), Mode::DEFAULT, threadMode);
+    }
+
+    // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
+    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, Mode::DEFAULT));
+    if (sp == nullptr) {
+        HILOGI("Failed to create EventRunner Instance");
+        return nullptr;
+    }
+    auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    innerRunner->SetRunningMode(Mode::DEFAULT);
+    sp->innerRunner_ = innerRunner;
+    sp->queue_ = innerRunner->GetEventQueue();
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
+    return sp;
+}
+
+std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode, ThreadMode threadMode)
+{
+    HILOGD("threadName is %{public}s %{public}d %{public}d", threadName.c_str(), mode, threadMode);
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new EventRunner(true, mode));
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
     innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
-    sp->queue_ = innerRunner->GetEventQueue();
     innerRunner->SetThreadName(threadName);
+
+#ifdef FFRT_USAGE_ENABLE
+    if (threadMode == ThreadMode::FFRT && mode == Mode::DEFAULT) {
+        sp->threadMode_ = ThreadMode::FFRT;
+        sp->queue_ = std::make_shared<EventQueueFFRT>();
+    } else {
+        sp->threadMode_ = ThreadMode::NEW_THREAD;
+        sp->queue_ = innerRunner->GetEventQueue();
+    }
+    if (threadMode == ThreadMode::FFRT || mode == Mode::NO_WAIT) {
+        return sp;
+    }
+#else
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_ = innerRunner->GetEventQueue();
     if (mode == Mode::NO_WAIT) {
         return sp;
     }
+#endif
 
     // Start new thread
     auto thread =
@@ -585,18 +626,31 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(const RunnerAttribute &runnerAttribute)
-{
-    return Create(runnerAttribute.threadName, runnerAttribute.mode);
-}
-
 std::shared_ptr<EventRunner> EventRunner::Current()
 {
+#ifdef FFRT_USAGE_ENABLE
+    if (ffrt_this_task_get_id()) {
+        auto handler = ffrt_get_current_queue_eventhandler();
+        if (handler == nullptr) {
+            HILOGW("Current handler is null.");
+            return nullptr;
+        }
+        auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
+        return sharedHandler->GetEventRunner();
+    } else {
+        auto runner = EventInnerRunner::GetCurrentEventRunner();
+        if (runner) {
+            return runner;
+        }
+        return nullptr;
+    }
+#else
     auto runner = EventInnerRunner::GetCurrentEventRunner();
     if (runner) {
         return runner;
     }
     return nullptr;
+#endif
 }
 
 EventRunner::EventRunner(bool deposit, Mode runningMode) : deposit_(deposit), runningMode_(runningMode)
@@ -612,7 +666,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    HILOGI("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
+    EH_LOGI_LIMIT("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
     if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
@@ -714,12 +768,31 @@ void EventRunner::SetLogger(const std::shared_ptr<Logger> &logger)
 
 std::shared_ptr<EventQueue> EventRunner::GetCurrentEventQueue()
 {
+#ifdef FFRT_USAGE_ENABLE
+    if (ffrt_this_task_get_id()) {
+        auto handler = ffrt_get_current_queue_eventhandler();
+        if (handler == nullptr) {
+            HILOGW("Current handler is null.");
+            return nullptr;
+        }
+        auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
+        return sharedHandler->GetEventRunner()->GetEventQueue();
+    } else {
+        auto runner = EventRunner::Current();
+        if (!runner) {
+            HILOGE("current runner is nullptr");
+            return nullptr;
+        }
+        return runner->queue_;
+    }
+#else
     auto runner = EventRunner::Current();
     if (!runner) {
         HILOGE("current runner is nullptr");
         return nullptr;
     }
     return runner->queue_;
+#endif
 }
 
 uint64_t EventRunner::GetThreadId()
@@ -738,7 +811,21 @@ uint64_t EventRunner::GetKernelThreadId()
 
 bool EventRunner::IsCurrentRunnerThread()
 {
+#ifdef FFRT_USAGE_ENABLE
+    if (ffrt_this_task_get_id()) {
+        auto handler = ffrt_get_current_queue_eventhandler();
+        if (handler == nullptr) {
+            HILOGW("Current handler is null.");
+            return false;
+        }
+        auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
+        return queue_ == sharedHandler->GetEventRunner()->GetEventQueue();
+    } else {
+        return std::this_thread::get_id() == innerRunner_->GetThreadId();
+    }
+#else
     return std::this_thread::get_id() == innerRunner_->GetThreadId();
+#endif
 }
 
 std::shared_ptr<EventRunner> EventRunner::GetMainEventRunner()

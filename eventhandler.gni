@@ -24,6 +24,8 @@ if (!defined(global_parts_info) ||
   has_hichecker_native_part = false
 }
 
+eventhandler_ffrt_usage = true
+
 if (!defined(global_parts_info) ||
     defined(global_parts_info.hiviewdfx_hitrace)) {
   eh_hitrace_usage = true

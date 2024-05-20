@@ -22,6 +22,9 @@
 #ifdef HAS_HICHECKER_NATIVE_PART
 #include "hichecker.h"
 #endif // HAS_HICHECKER_NATIVE_PART
+#ifdef FFRT_USAGE_ENABLE
+#include "ffrt_inner.h"
+#endif // FFRT_USAGE_ENABLE
 #include "thread_local_data.h"
 #include "event_hitrace_meter_adapter.h"
 
@@ -35,7 +38,20 @@ thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
 
 std::shared_ptr<EventHandler> EventHandler::Current()
 {
+#ifdef FFRT_USAGE_ENABLE
+    if (ffrt_this_task_get_id()) {
+        auto handler = ffrt_get_current_queue_eventhandler();
+        if (handler == nullptr) {
+            HILOGW("Current handler is null.");
+            return nullptr;
+        }
+        return *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
+    } else {
+        return currentEventHandler.lock();
+    }
+#else
     return currentEventHandler.lock();
+#endif
 }
 
 EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRunner_(runner)
@@ -43,12 +59,12 @@ EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRu
     static std::atomic<uint64_t> handlerCount = 1;
     handlerId_ = std::to_string(handlerCount.load()) + "_" + std::to_string(GetTimeStamp());
     handlerCount.fetch_add(1);
-    HILOGI("Create eventHandler %{public}s", handlerId_.c_str());
+    EH_LOGI_LIMIT("Create eventHandler %{public}s", handlerId_.c_str());
 }
 
 EventHandler::~EventHandler()
 {
-    HILOGI("~EventHandler enter %{public}s", handlerId_.c_str());
+    EH_LOGI_LIMIT("~EventHandler enter %{public}s", handlerId_.c_str());
     if (eventRunner_) {
         HILOGD("eventRunner is alive");
         /*
@@ -56,7 +72,15 @@ EventHandler::~EventHandler()
          * But events only have weak pointer of this handler,
          * now weak pointer is invalid, so these events become orphans.
          */
+#ifdef FFRT_USAGE_ENABLE
+        if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+            eventRunner_->GetEventQueue()->RemoveOrphanByHandlerId(handlerId_);
+        } else {
+            eventRunner_->GetEventQueue()->RemoveOrphan();
+        }
+#else
         eventRunner_->GetEventQueue()->RemoveOrphan();
+#endif
     }
 }
 
@@ -76,7 +100,8 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     } else {
         event->SetHandleTime(now);
     }
-
+    event->SetOwnerId(handlerId_);
+    event->SetDelayTime(delayTime);
     event->SetOwner(shared_from_this());
     // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto traceId = event->GetOrCreateTraceId();
@@ -107,6 +132,8 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
         return false;
     }
 
+    event->SetDelayTime(0);
+    event->SetOwnerId(handlerId_);
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetHandleTime(now);
@@ -148,6 +175,30 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return false;
     }
 
+#ifdef FFRT_USAGE_ENABLE
+    if ((ffrt_this_task_get_id() && eventRunner_->threadMode_ == ThreadMode::FFRT) ||
+        eventRunner_ == EventRunner::Current()) {
+        DistributeEvent(event);
+        return true;
+    }
+
+    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
+    auto spanId = event->GetOrCreateTraceId();
+
+    if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+        eventRunner_->GetEventQueue()->InsertSyncEvent(event, priority);
+    } else {
+        // Create waiter, used to block.
+        auto waiter = event->CreateWaiter();
+        // Send this event as normal one.
+        if (!SendEvent(event, 0, priority)) {
+            HILOGE("SendEvent is failed");
+            return false;
+        }
+        // Wait until event is processed(recycled).
+        waiter->Wait();
+    }
+#else
     // If send a sync event in same event runner, distribute here.
     if (eventRunner_ == EventRunner::Current()) {
         DistributeEvent(event);
@@ -166,7 +217,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     }
     // Wait until event is processed(recycled).
     waiter->Wait();
-
+#endif
     if ((spanId) && (spanId->IsValid())) {
         HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
     }

@@ -81,7 +81,7 @@ public:
     /**
      * Remove events if its owner is invalid, for ffrt queue.
      */
-    virtual void RemoveOrphanByHandlerId() {};
+    virtual void RemoveOrphanByHandlerId(const std::string& handlerId) { (void)handlerId; };
 
     /**
      * Remove all events.
@@ -245,6 +245,22 @@ public:
     void SetNoWaitEpollWaiter(bool useNoWaitEpollWaiter)
     {
         useNoWaitEpollWaiter_ = useNoWaitEpollWaiter;
+    }
+
+    /**
+     * Get ffrt queue handler type, only for ffrt thread mode.
+     */
+    virtual void* GetFfrtQueue() { return nullptr; }
+
+    /**
+     * Insert task to ffrt queue, and wait to handled, only for ffrt thread mode.
+     */
+    virtual void InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+        EventInsertType insertType = EventInsertType::AT_END)
+    {
+        (void)event;
+        (void)priority;
+        (void)insertType;
     }
 private:
 
