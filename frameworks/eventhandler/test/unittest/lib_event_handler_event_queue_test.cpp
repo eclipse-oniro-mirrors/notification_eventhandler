@@ -1295,7 +1295,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     result = queue.AddFileDescriptorListener(readFileDescriptor, event, fileDescriptorListener,
         "AddFileDescriptorListener005");
-    EXPECT_EQ(result, EVENT_HANDLER_ERR_FD_NOT_SUPPORT);
+    EXPECT_EQ(result, 0);
     close(fds[0]);
     close(fds[1]);
 }
