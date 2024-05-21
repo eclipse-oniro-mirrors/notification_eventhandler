@@ -230,7 +230,7 @@ void InnerEvent::ClearEvent()
         // Clear members for task
         taskCallback_ = nullptr;
         taskName_.clear();
-        caller_ = {};
+        caller_.ClearCaller();
     } else {
         // Clear members for event
         if (smartPtrDtor_) {

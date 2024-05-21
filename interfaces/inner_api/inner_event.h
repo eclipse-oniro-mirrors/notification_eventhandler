@@ -62,6 +62,13 @@ struct Caller {
         std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) + ")]");
         return caller;
     }
+
+    void ClearCaller()
+    {
+        file_ = "";
+        func_ = "";
+        line_ = 0;
+    }
 };
 
 class InnerEvent final {
