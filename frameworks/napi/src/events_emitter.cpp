@@ -49,7 +49,7 @@ namespace {
     }
     std::shared_ptr<EventHandlerInstance> EventHandlerInstance::GetInstance()
     {
-        static auto runner = EventRunner::Create("OS_eventsEmtr");
+        static auto runner = EventRunner::Create("OS_eventsEmtr", ThreadMode::FFRT);
         if (runner.get() == nullptr) {
             HILOGE("failed to create EventRunner events_emitter");
             return nullptr;

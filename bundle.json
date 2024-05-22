@@ -25,6 +25,7 @@
                 "hilog",
                 "hichecker",
                 "napi",
+                "ffrt",
                 "c_utils"
             ]
         },

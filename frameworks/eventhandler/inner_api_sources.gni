@@ -23,3 +23,8 @@ inner_api_sources = [
   "${frameworks_path}/eventhandler/src/native_implement_eventhandler.cpp",
   "${frameworks_path}/eventhandler/src/none_io_waiter.cpp",
 ]
+
+if (eventhandler_ffrt_usage) {
+  inner_api_sources +=
+      [ "${frameworks_path}/eventhandler/src/event_queue_ffrt.cpp" ]
+}

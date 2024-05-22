@@ -62,6 +62,11 @@ ohos_shared_library("libeventhandler") {
     cflags_cc += [ "-DEH_HITRACE_METER_ENABLE" ]
   }
 
+  if (eventhandler_ffrt_usage) {
+    cflags_cc += [ "-DFFRT_USAGE_ENABLE" ]
+    external_deps += [ "ffrt:libffrt" ]
+  }
+
   install_images = [
     system_base_dir,
     updater_base_dir,
