@@ -43,6 +43,7 @@ struct Caller {
     std::string file_ {""};
     int         line_ {0};
     std::string func_ {""};
+    std::string dfxName_ {""};
 #if __has_builtin(__builtin_FILE)
     Caller(std::string file = __builtin_FILE(), int line = __builtin_LINE(),
            std::string func = __builtin_FUNCTION())
@@ -59,7 +60,8 @@ struct Caller {
         if (split == std::string::npos) {
             split = 0;
         }
-        std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) + ")]");
+        std::string caller("[" + file_.substr(split + 1) + "(" + func_ + ":" + std::to_string(line_) +
+            dfxName_ + ")]");
         return caller;
     }
 

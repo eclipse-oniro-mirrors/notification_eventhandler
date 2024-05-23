@@ -210,22 +210,28 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
     Remove(filter);
 }
 
-void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
+bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
 {
     HILOGD("enter");
     if ((!owner) || (name.empty())) {
         HILOGE("Invalid owner or task name");
-        return;
+        return false;
     }
 
-    auto filter = [&owner, &name](const InnerEvent::Pointer &p) {
+    bool removed = false;
+    auto filter = [&owner, &name, &removed](const InnerEvent::Pointer &p) {
         if (p == nullptr) {
             return false;
         }
-        return (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
+        bool ret = (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
+        if (!removed) {
+            removed = ret;
+        }
+        return ret;
     };
 
     Remove(filter);
+    return removed;
 }
 
 void EventQueueBase::Remove(const RemoveFilter &filter)

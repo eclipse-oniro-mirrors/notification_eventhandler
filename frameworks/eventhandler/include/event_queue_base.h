@@ -104,7 +104,7 @@ public:
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      * @param name Remove events by name of the task.
      */
-    void Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name) override;
+    bool Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name) override;
 
     /**
      * Get event from event queue one by one.
