@@ -402,17 +402,6 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEvent(InnerEvent::TimePoint &nextE
     return GetExpiredEventLocked(nextExpiredTime);
 }
 
-void EventQueueBase::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock)
-{
-    // Get a temp reference of IO waiter, otherwise it maybe released while waiting.
-    auto ioWaiterHolder = ioWaiter_;
-    if (!ioWaiterHolder->WaitFor(lock, TimePointToTimeOut(when))) {
-        HILOGE("Failed to call wait, reset IO waiter");
-        ioWaiter_ = std::make_shared<NoneIoWaiter>();
-        listeners_.clear();
-    }
-}
-
 void EventQueueBase::DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content)
 {
     if (innerEventId.index() == TYPE_U32_INDEX) {

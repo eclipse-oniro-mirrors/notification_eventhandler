@@ -449,9 +449,6 @@ public:
     inline void SetRunningMode(const Mode runningMode)
     {
         runningMode_ = runningMode;
-        if (queue_) {
-            queue_->SetNoWaitEpollWaiter(runningMode == Mode::NO_WAIT);
-        }
     }
 
 private:
@@ -560,6 +557,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_->SetIoWaiter(false);
     return sp;
 }
 
@@ -582,6 +580,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode th
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_->SetIoWaiter(false);
     return sp;
 }
 
@@ -599,9 +598,11 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
     if (threadMode == ThreadMode::FFRT && mode == Mode::DEFAULT) {
         sp->threadMode_ = ThreadMode::FFRT;
         sp->queue_ = std::make_shared<EventQueueFFRT>();
+        sp->queue_->SetIoWaiter(true);
     } else {
         sp->threadMode_ = ThreadMode::NEW_THREAD;
         sp->queue_ = innerRunner->GetEventQueue();
+        sp->queue_->SetIoWaiter(false);
     }
     if (threadMode == ThreadMode::FFRT || mode == Mode::NO_WAIT) {
         return sp;
@@ -609,6 +610,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
 #else
     sp->threadMode_ = ThreadMode::NEW_THREAD;
     sp->queue_ = innerRunner->GetEventQueue();
+    sp->queue_->SetIoWaiter(false);
     if (mode == Mode::NO_WAIT) {
         return sp;
     }

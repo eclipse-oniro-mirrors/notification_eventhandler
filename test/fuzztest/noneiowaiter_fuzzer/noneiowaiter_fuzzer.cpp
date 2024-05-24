@@ -21,13 +21,39 @@ namespace OHOS {
 namespace {
     constexpr size_t U32_AT_SIZE = 4;
 }
+class NoneFileDescriptorListener : public AppExecFwk::FileDescriptorListener {
+public:
+    NoneFileDescriptorListener()
+    {}
+    ~NoneFileDescriptorListener()
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnReadable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnWritable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnException(int32_t)
+    {}
+
+    NoneFileDescriptorListener(const NoneFileDescriptorListener &) = delete;
+    NoneFileDescriptorListener &operator=(const NoneFileDescriptorListener &) = delete;
+    NoneFileDescriptorListener(NoneFileDescriptorListener &&) = delete;
+    NoneFileDescriptorListener &operator=(NoneFileDescriptorListener &&) = delete;
+};
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     uint32_t events = *data;
     int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
     AppExecFwk::IoWaiter::FileDescriptorEventCallback callback;
     AppExecFwk::NoneIoWaiter noneIoWaiter;
-    noneIoWaiter.AddFileDescriptor(fileDescriptor, events, "DoSomethingInterestingWithMyAPI");
+    auto listener = std::make_shared<NoneFileDescriptorListener>();
+    noneIoWaiter.AddFileDescriptor(fileDescriptor, events, "DoSomethingInterestingWithMyAPI",
+        listener, AppExecFwk::EventQueue::Priority::HIGH);
     noneIoWaiter.RemoveFileDescriptor(fileDescriptor);
     noneIoWaiter.SetFileDescriptorEventCallback(callback);
     return true;

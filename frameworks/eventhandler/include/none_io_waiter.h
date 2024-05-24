@@ -38,7 +38,8 @@ public:
 
     bool SupportListeningFileDescriptor() const final;
 
-    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName) final;
+    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) final;
     void RemoveFileDescriptor(int32_t fileDescriptor) final;
 
     void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
