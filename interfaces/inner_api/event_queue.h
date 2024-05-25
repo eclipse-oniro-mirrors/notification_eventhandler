@@ -118,7 +118,7 @@ public:
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      * @param name Remove events by name of the task.
      */
-    virtual void Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name) = 0;
+    virtual bool Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name) = 0;
 
     /**
      * Add file descriptor listener for a file descriptor.

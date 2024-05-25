@@ -27,7 +27,7 @@ namespace {
 DEFINE_EH_HILOG_LABEL("EventQueueFFRT");
 constexpr static uint32_t MAX_DUMP_INFO_LENGTH = 120000;
 constexpr static uint32_t MILLI_TO_MICRO = 1000;
-
+static constexpr int FFRT_REMOVE_SUCC = 0;
 ffrt_inner_queue_priority_t TransferInnerPriority(EventQueue::Priority priority)
 {
     ffrt_inner_queue_priority_t innerPriority = ffrt_inner_queue_priority_t::ffrt_inner_queue_priority_low;
@@ -197,18 +197,18 @@ void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
     ffrt_queue_cancel_by_name(*queue, regular.c_str());
 }
 
-void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
+bool EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
 {
     HILOGD("Remove");
     if (!owner) {
         HILOGE("Invalid owner");
-        return;
+        return false;
     }
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
-        return;
+        return false;
     }
 
     // taskname: handler Id | has task | inner event id | param | task name
@@ -216,9 +216,10 @@ void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, const st
     ffrt_queue_t* queue = TransferQueuePtr(ffrtQueue_);
     if (queue == nullptr) {
         HILOGW("Remove is unavailable.");
-        return;
+        return false;
     }
-    ffrt_queue_cancel_by_name(*queue, regular.c_str());
+    int ret = ffrt_queue_cancel_by_name(*queue, regular.c_str());
+    return ret == FFRT_REMOVE_SUCC ? true : false;
 }
 
 bool EventQueueFFRT::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId)

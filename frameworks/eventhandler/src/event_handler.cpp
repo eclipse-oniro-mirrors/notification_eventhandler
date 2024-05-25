@@ -32,6 +32,8 @@ using namespace OHOS::HiviewDFX;
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+static constexpr int FFRT_TASK_REMOVE_SUCCESS = 0;
+static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
@@ -267,6 +269,18 @@ void EventHandler::RemoveTask(const std::string &name)
     }
 
     eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
+}
+
+int EventHandler::RemoveTaskWithRet(const std::string &name)
+{
+    HILOGD("RemoveTaskWithRet enter");
+    if (!eventRunner_) {
+        HILOGE("MUST Ret Set event runner before removing events by task name");
+        return FFRT_TASK_REMOVE_FAIL;
+    }
+
+    bool ret = eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
+    return ret ? FFRT_TASK_REMOVE_SUCCESS : FFRT_TASK_REMOVE_FAIL;
 }
 
 ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
@@ -577,8 +591,7 @@ extern "C" void* GetCurrentEventHandlerForFFRT()
     return &currentHandler;
 }
 
-extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callback,
-    const std::string &name, int64_t delayTime, EventQueue::Priority priority)
+extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions &task)
 {
     HILOGD("PostTaskByFFRT enter");
     if (handler == nullptr) {
@@ -586,7 +599,9 @@ extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callb
         return false;
     }
     std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
-    return (*ptr)->PostTask(callback, name, delayTime, priority);
+    Caller caller = {};
+    caller.dfxName_ = task.dfxName_;
+    return (*ptr)->PostTask(callback, std::to_string(task.taskId_), task.delayTime_, task.priority_, caller);
 }
 
 extern "C" bool PostSyncTaskByFFRT(void* handler, const std::function<void()>& callback,
@@ -601,15 +616,15 @@ extern "C" bool PostSyncTaskByFFRT(void* handler, const std::function<void()>& c
     return (*ptr)->PostSyncTask(callback, name, priority);
 }
 
-extern "C" void RemoveTaskForFFRT(void* handler, const std::string &name)
+extern "C" int RemoveTaskForFFRT(void* handler, const uintptr_t taskId)
 {
     HILOGD("RemoveTaskForFFRT enter");
     if (handler == nullptr) {
         HILOGW("RemoveTaskForFFRT execute fail, handler is nullptr");
-        return;
+        return FFRT_TASK_REMOVE_FAIL;
     }
     std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
-    (*ptr)->RemoveTask(name);
+    return (*ptr)->RemoveTaskWithRet(std::to_string(taskId));
 }
 
 extern "C" void RemoveAllTaskForFFRT(void* handler)
