@@ -20,15 +20,31 @@
 #include <cstdint>
 #include <functional>
 #include <mutex>
+#include "event_queue.h"
+#include "file_descriptor_listener.h"
 
 #include "nocopyable.h"
 
 namespace OHOS {
 namespace AppExecFwk {
+
+class FileDescriptorInfo {
+public:
+    DISALLOW_COPY_AND_MOVE(FileDescriptorInfo);
+    FileDescriptorInfo() {}
+    FileDescriptorInfo(std::string taskName, EventQueue::Priority priority,
+        std::shared_ptr<FileDescriptorListener>listener): taskName_(taskName), priority_(priority),
+        listener_(listener) {}
+    std::string taskName_;
+    EventQueue::Priority priority_;
+    std::shared_ptr<FileDescriptorListener> listener_;
+};
+
 // Interface of IO waiter
 class IoWaiter {
 public:
-    using FileDescriptorEventCallback = std::function<void(int32_t, uint32_t, const std::string&)>;
+    using FileDescriptorEventCallback = std::function<void(int32_t, uint32_t, const std::string&,
+        EventQueue::Priority priority)>;
 
     IoWaiter() = default;
     virtual ~IoWaiter() = default;
@@ -67,7 +83,8 @@ public:
      * @param events Events from file descriptor, such as input, output.
      * @return True if succeeded.
      */
-    virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName) = 0;
+    virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) = 0;
 
     /**
      * Remove file descriptor.

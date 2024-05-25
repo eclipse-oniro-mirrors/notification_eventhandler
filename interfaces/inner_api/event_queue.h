@@ -30,7 +30,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
-class EpollIoWaiter;
+class DeamonIoWaiter;
 
 enum class EventInsertType: uint32_t {
     // Insert event at end
@@ -240,11 +240,11 @@ public:
     void CheckFileDescriptorEvent();
 
     /**
-     * Set epoll waiter mode
+     * Set waiter mode, true for deamon io waiter
      */
-    void SetNoWaitEpollWaiter(bool useNoWaitEpollWaiter)
+    void SetIoWaiter(bool useDeamonIoWaiter)
     {
-        useNoWaitEpollWaiter_ = useNoWaitEpollWaiter;
+        useDeamonIoWaiter_ = useDeamonIoWaiter;
     }
 
     /**
@@ -264,18 +264,15 @@ public:
     }
 private:
 
-    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name);
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
+        Priority priority);
     bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
-    void RemoveFileDescriptorByFd(int32_t fileDescriptor);
     bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
-    bool EnsureIoWaiterForDefault();
-    bool EnsureIoWaiterForNoWait();
-
 protected:
 
     void RemoveInvalidFileDescriptor();
-
+    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -289,10 +286,7 @@ protected:
     std::shared_ptr<IoWaiter> ioWaiter_;
 
     // select different epoll
-    bool useNoWaitEpollWaiter_ = false;
-
-    // Epoll io waiter for no wait mdoe
-    std::shared_ptr<EpollIoWaiter> epollIoWaiter_;
+    bool useDeamonIoWaiter_ = false;
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;

@@ -75,7 +75,8 @@ bool NoneIoWaiter::SupportListeningFileDescriptor() const
     return false;
 }
 
-bool NoneIoWaiter::AddFileDescriptor(int32_t, uint32_t, const std::string&)
+bool NoneIoWaiter::AddFileDescriptor(int32_t, uint32_t, const std::string&,
+    const std::shared_ptr<FileDescriptorListener>&, EventQueue::Priority)
 {
     HILOGW("Function is not supported !!!");
     return false;

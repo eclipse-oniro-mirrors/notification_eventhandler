@@ -218,7 +218,6 @@ private:
     bool HasInnerEvent(const HasFilter &filter);
     InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime);
     InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
-    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     std::string HistoryQueueDump(const HistoryEvent &historyEvent);
     std::string DumpCurrentRunning();
     void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
