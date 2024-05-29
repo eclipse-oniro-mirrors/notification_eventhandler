@@ -148,6 +148,7 @@ void DeamonIoWaiter::StopEpollIoWaiter()
 }
 
 void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
+    __attribute__((no_sanitize("cfi")))
 {
     auto fileDescriptorInfo = GetFileDescriptorMap(fileDescriptor);
     if (fileDescriptorInfo != nullptr && fileDescriptorInfo->listener_ != nullptr) {
