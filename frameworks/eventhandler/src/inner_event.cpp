@@ -356,6 +356,7 @@ std::string InnerEvent::TraceInfo()
                 content.append("," + std::get<std::string>(innerEventId_));
             }
         }
+        content.append("," + std::to_string(priority));
         content.append("," + caller_.ToString());
     } else {
         content.append("NA");
