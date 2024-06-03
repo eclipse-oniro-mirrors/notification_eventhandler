@@ -21,6 +21,7 @@
 
 #include "eventhandler_fuzzer.h"
 #include "securec.h"
+#include "deamon_io_waiter.h"
 
 namespace OHOS {
 namespace {
@@ -96,6 +97,15 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventHandler.GetEventRunner();
     eventHandler.DistributeEvent(event);
     eventHandler.HasInnerEvent(taskTime);
+    AppExecFwk::DeamonIoWaiter deamonIoWaiter(runner);
+    deamonIoWaiter.Init();
+    deamonIoWaiter.GetInstance();
+    deamonIoWaiter.StartEpollIoWaiter();
+    deamonIoWaiter.EpollWaitFor()
+    deamonIoWaiter.StopEpollIoWaiter();
+    deamonIoWaiter.NotifyOne();
+    deamonIoWaiter.NotifyAll();
+    deamonIoWaiter.SupportListeningFileDescriptor();
     return eventHandler.HasInnerEvent(innerEventId);
 }
 }
