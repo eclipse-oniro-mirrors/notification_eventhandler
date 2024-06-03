@@ -97,15 +97,12 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventHandler.GetEventRunner();
     eventHandler.DistributeEvent(event);
     eventHandler.HasInnerEvent(taskTime);
-    AppExecFwk::DeamonIoWaiter deamonIoWaiter(runner);
-    deamonIoWaiter.Init();
-    deamonIoWaiter.GetInstance();
-    deamonIoWaiter.StartEpollIoWaiter();
-    deamonIoWaiter.EpollWaitFor()
-    deamonIoWaiter.StopEpollIoWaiter();
-    deamonIoWaiter.NotifyOne();
-    deamonIoWaiter.NotifyAll();
-    deamonIoWaiter.SupportListeningFileDescriptor();
+    AppExecFwk::DeamonIoWaiter::GetInstance().Init();
+    AppExecFwk::DeamonIoWaiter::GetInstance().StartEpollIoWaiter();
+    AppExecFwk::DeamonIoWaiter::GetInstance().StopEpollIoWaiter();
+    AppExecFwk::DeamonIoWaiter::GetInstance().NotifyOne();
+    AppExecFwk::DeamonIoWaiter::GetInstance().NotifyAll();
+    AppExecFwk::DeamonIoWaiter::GetInstance().SupportListeningFileDescriptor();
     return eventHandler.HasInnerEvent(innerEventId);
 }
 }
