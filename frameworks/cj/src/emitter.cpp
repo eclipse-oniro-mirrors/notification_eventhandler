@@ -35,8 +35,8 @@ namespace OHOS::EventsEmitter {
         CallbackInfo* callbackInfo;
     };
 
-    static std::mutex emitterInsMutex;
-    static std::map<InnerEvent::EventId, std::vector<CallbackInfo *>> emitterImpls;
+    static std::mutex g_emitterInsMutex;
+    static std::map<InnerEvent::EventId, std::vector<CallbackInfo *>> g_emitterImpls;
     std::shared_ptr<EventHandlerImpl> eventHandler = EventHandlerImpl::GetEventHandler();
 
     CallbackImpl::CallbackImpl(std::string name, std::function<void(CEventData)> callback)
@@ -50,9 +50,9 @@ namespace OHOS::EventsEmitter {
 
     bool IsExistValidCallback(const InnerEvent::EventId &eventId)
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
-        auto subscribe = emitterImpls.find(eventId);
-        if (subscribe == emitterImpls.end()) {
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        auto subscribe = g_emitterImpls.find(eventId);
+        if (subscribe == g_emitterImpls.end()) {
             LOGW("emit has no callback");
             return false;
         }
@@ -84,8 +84,8 @@ namespace OHOS::EventsEmitter {
 
     CallbackInfo *SearchCallbackInfo(const InnerEvent::EventId &eventIdValue, CallbackImpl *callback)
     {
-        auto subscribe = emitterImpls.find(eventIdValue);
-        if (subscribe == emitterImpls.end()) {
+        auto subscribe = g_emitterImpls.find(eventIdValue);
+        if (subscribe == g_emitterImpls.end()) {
             return nullptr;
         }
         for (auto callbackInfo : subscribe->second) {
@@ -132,7 +132,7 @@ namespace OHOS::EventsEmitter {
     int32_t OnOrOnce(InnerEvent::EventId eventId, CallbackImpl *callback, bool once)
     {
         OutPutEventIdLog(eventId);
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(eventId, callback);
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
@@ -145,7 +145,7 @@ namespace OHOS::EventsEmitter {
         }
         callbackInfo->callbackImpl = callback;
         callbackInfo->once = once;
-        emitterImpls[eventId].push_back(callbackInfo);
+        g_emitterImpls[eventId].push_back(callbackInfo);
         return SUCCESS;
     }
 
@@ -175,9 +175,9 @@ namespace OHOS::EventsEmitter {
 
     void Unsubscribe(InnerEvent::EventId eventId)
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
-        auto subscribe = emitterImpls.find(eventId);
-        if (subscribe != emitterImpls.end()) {
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        auto subscribe = g_emitterImpls.find(eventId);
+        if (subscribe != g_emitterImpls.end()) {
             for (auto callbackInfo : subscribe->second) {
                 callbackInfo->isDeleted = true;
             }
@@ -186,7 +186,7 @@ namespace OHOS::EventsEmitter {
 
     void Unsubscribe(InnerEvent::EventId eventId, CallbackImpl *callback)
     {
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(eventId, callback);
         if (callbackInfo != nullptr) {
             callbackInfo->isDeleted = true;
@@ -232,9 +232,9 @@ namespace OHOS::EventsEmitter {
     uint32_t GetListenerCountByEventId(InnerEvent::EventId eventId)
     {
         uint32_t count = 0;
-        std::lock_guard<std::mutex> lock(emitterInsMutex);
-        auto subscribe = emitterImpls.find(eventId);
-        if (subscribe != emitterImpls.end()) {
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        auto subscribe = g_emitterImpls.find(eventId);
+        if (subscribe != g_emitterImpls.end()) {
             for (auto callbackInfo : subscribe->second) {
                 if (!callbackInfo->isDeleted) {
                     ++count;
@@ -263,9 +263,9 @@ namespace OHOS::EventsEmitter {
         OutPutEventIdLog(eventId);
         std::vector<CallbackInfo *> callbackInfos;
         {
-            std::lock_guard<std::mutex> lock(emitterInsMutex);
-            auto subscribe = emitterImpls.find(eventId);
-            if (subscribe == emitterImpls.end()) {
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+            auto subscribe = g_emitterImpls.find(eventId);
+            if (subscribe == g_emitterImpls.end()) {
                 LOGW("ProcessEvent has no callback");
                 return;
             }
@@ -300,7 +300,7 @@ namespace OHOS::EventsEmitter {
             callbackInfo->processed = true;
         }
         if (callbackInfos.empty()) {
-            emitterImpls.erase(eventId);
+            g_emitterImpls.erase(eventId);
             LOGD("ProcessEvent delete the last callback");
         }
     }
