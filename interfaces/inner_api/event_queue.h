@@ -30,21 +30,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
-class EpollIoWaiter;
-
-struct CurrentRunningEvent {
-    InnerEvent::TimePoint beginTime_;
-    std::weak_ptr<EventHandler> owner_;
-    uint64_t senderKernelThreadId_{0};
-    InnerEvent::TimePoint sendTime_;
-    InnerEvent::TimePoint handleTime_;
-    int64_t param_{0};
-    bool hasTask_{false};
-    std::string taskName_;
-    InnerEvent::EventId innerEventId_ = 0u;
-    CurrentRunningEvent();
-    CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event);
-};
+class DeamonIoWaiter;
 
 enum class EventInsertType: uint32_t {
     // Insert event at end
@@ -53,7 +39,7 @@ enum class EventInsertType: uint32_t {
     AT_FRONT
 };
 
-class EventQueue final {
+class EventQueue {
 public:
     // Priority for the events
     enum class Priority : uint32_t {
@@ -71,7 +57,7 @@ public:
 
     EventQueue();
     explicit EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter);
-    ~EventQueue();
+    virtual ~EventQueue();
     DISALLOW_COPY_AND_MOVE(EventQueue);
 
     /**
@@ -84,25 +70,30 @@ public:
      *
      * @see #Priority
      */
-    void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END);
+    virtual void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+        EventInsertType insertType = EventInsertType::AT_END) = 0;
 
     /**
-     * Remove events if its owner is invalid.
+     * Remove events if its owner is invalid, for base queue.
      */
-    void RemoveOrphan();
+    virtual void RemoveOrphan() {};
+
+    /**
+     * Remove events if its owner is invalid, for ffrt queue.
+     */
+    virtual void RemoveOrphanByHandlerId(const std::string& handlerId) { (void)handlerId; };
 
     /**
      * Remove all events.
      */
-    void RemoveAll();
+    virtual void RemoveAll() = 0;
 
     /**
      * Remove events with specified requirements.
      *
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      */
-    void Remove(const std::shared_ptr<EventHandler> &owner);
+    virtual void Remove(const std::shared_ptr<EventHandler> &owner) = 0;
 
     /**
      * Remove events with specified requirements.
@@ -110,7 +101,7 @@ public:
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      * @param innerEventId Remove events by event id.
      */
-    void Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId);
+    virtual void Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId) = 0;
 
     /**
      * Remove events with specified requirements.
@@ -119,7 +110,7 @@ public:
      * @param innerEventId Remove events by event id.
      * @param param Remove events by value of param.
      */
-    void Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId, int64_t param);
+    virtual void Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId, int64_t param) = 0;
 
     /**
      * Remove events with specified requirements.
@@ -127,7 +118,7 @@ public:
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      * @param name Remove events by name of the task.
      */
-    void Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name);
+    virtual bool Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name) = 0;
 
     /**
      * Add file descriptor listener for a file descriptor.
@@ -176,7 +167,7 @@ public:
      * @return Returns nullptr if event queue is not prepared yet, or {@link #Finish} is called.
      * Otherwise returns event instance.
      */
-    InnerEvent::Pointer GetEvent();
+    virtual InnerEvent::Pointer GetEvent();
 
     /**
      * Get expired event from event queue one by one.
@@ -186,7 +177,7 @@ public:
      * @return Returns nullptr if none in event queue is expired.
      * Otherwise returns event instance.
      */
-    InnerEvent::Pointer GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime);
+    virtual InnerEvent::Pointer GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime);
 
     /**
      * Prints out the internal information about an object in the specified format,
@@ -194,7 +185,7 @@ public:
      *
      * @param dumper The Dumper object you have implemented to process the output internal information.
      */
-    void Dump(Dumper &dumper);
+    virtual void Dump(Dumper &dumper) = 0;
 
     /**
      * Print out the internal information about an object in the specified format,
@@ -202,21 +193,21 @@ public:
      *
      * @param queueInfo queue Info.
      */
-    void DumpQueueInfo(std::string& queueInfo);
+    virtual void DumpQueueInfo(std::string& queueInfo) = 0;
 
     /**
      * Checks whether the current EventHandler is idle.
      *
      * @return Returns true if all events have been processed; returns false otherwise.
      */
-    bool IsIdle();
+    virtual bool IsIdle() = 0;
 
     /**
      * Check whether this event queue is empty.
      *
      * @return If queue is empty return true otherwise return false.
      */
-    bool IsQueueEmpty();
+    virtual bool IsQueueEmpty() = 0;
 
     /**
      * Check whether an event with the given ID can be found among the events that have been sent but not processed.
@@ -224,7 +215,7 @@ public:
      * @param owner Owner of the event which is point to an instance of 'EventHandler'.
      * @param innerEventId The id of the event.
      */
-    bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId);
+    virtual bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId) = 0;
 
     /**
      * Check whether an event carrying the given param can be found among the events that have been sent but not
@@ -233,15 +224,15 @@ public:
      * @param owner The owner of the event which is point to an instance of 'EventHandler'.
      * @param param The basic parameter of the event.
      */
-    bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param);
+    virtual bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param) = 0;
 
-    void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event);
+    virtual void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) {}
 
-    void PushHistoryQueueAfterDistribute();
+    virtual void PushHistoryQueueAfterDistribute() {}
 
-    bool HasPreferEvent(int basePrio);
+    virtual bool HasPreferEvent(int basePrio) = 0;
 
-    std::string DumpCurrentQueueSize();
+    virtual std::string DumpCurrentQueueSize() = 0;
 
     /**
      * Check whether there are currenty file descriptors is need to be processed.
@@ -249,75 +240,42 @@ public:
     void CheckFileDescriptorEvent();
 
     /**
-     * Set epoll waiter mode
+     * Set waiter mode, true for deamon io waiter
      */
-    void SetNoWaitEpollWaiter(bool useNoWaitEpollWaiter)
+    void SetIoWaiter(bool useDeamonIoWaiter)
     {
-        useNoWaitEpollWaiter_ = useNoWaitEpollWaiter;
+        useDeamonIoWaiter_ = useDeamonIoWaiter;
+    }
+
+    /**
+     * Get ffrt queue handler type, only for ffrt thread mode.
+     */
+    virtual void* GetFfrtQueue() { return nullptr; }
+
+    /**
+     * Insert task to ffrt queue, and wait to handled, only for ffrt thread mode.
+     */
+    virtual void InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+        EventInsertType insertType = EventInsertType::AT_END)
+    {
+        (void)event;
+        (void)priority;
+        (void)insertType;
     }
 private:
-    using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
-    using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
 
-    struct HistoryEvent {
-        uint64_t senderKernelThreadId{0};
-        std::string taskName;
-        InnerEvent::EventId innerEventId = 0u;
-        bool hasTask{false};
-        InnerEvent::TimePoint sendTime;
-        InnerEvent::TimePoint handleTime;
-        InnerEvent::TimePoint triggerTime;
-        InnerEvent::TimePoint completeTime;
-        int32_t priority = -1;
-    };
-
-    /*
-     * To avoid starvation of lower priority event queue, give a chance to process lower priority events,
-     * after continuous processing several higher priority events.
-     */
-    static const uint32_t DEFAULT_MAX_HANDLED_EVENT_COUNT = 5;
-
-    // Sub event queues for IMMEDIATE, HIGH and LOW priority. So use value of IDLE as size.
-    static const uint32_t SUB_EVENT_QUEUE_NUM = static_cast<uint32_t>(Priority::IDLE);
-
-    struct SubEventQueue {
-        std::list<InnerEvent::Pointer> queue;
-        uint32_t handledEventsCount{0};
-        uint32_t maxHandledEventsCount{DEFAULT_MAX_HANDLED_EVENT_COUNT};
-    };
-
-    void Remove(const RemoveFilter &filter);
-    void RemoveOrphan(const RemoveFilter &filter);
-    bool HasInnerEvent(const HasFilter &filter);
-    InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime);
-    InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
-    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
-    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name);
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
+        Priority priority);
     bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
-    std::string HistoryQueueDump(const HistoryEvent &historyEvent);
-    std::string DumpCurrentRunning();
-    void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
-    void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
-    void RemoveFileDescriptorByFd(int32_t fileDescriptor);
     bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
-    bool EnsureIoWaiterForDefault();
-    bool EnsureIoWaiterForNoWait();
+protected:
+
+    void RemoveInvalidFileDescriptor();
+    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
-
-    // Sub event queues for different priority.
-    std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> subEventQueues_;
-
-    // Event queue for IDLE events.
-    std::list<InnerEvent::Pointer> idleEvents_;
-
-    // Next wake up time when block in 'GetEvent'.
-    InnerEvent::TimePoint wakeUpTime_ { InnerEvent::TimePoint::max() };
-
-    // Mark if in idle mode, and record the start time of idle.
-    InnerEvent::TimePoint idleTimeStamp_ { InnerEvent::Clock::now() };
 
     bool isIdle_ {true};
 
@@ -328,20 +286,10 @@ private:
     std::shared_ptr<IoWaiter> ioWaiter_;
 
     // select different epoll
-    bool useNoWaitEpollWaiter_ = false;
-
-    // Epoll io waiter for no wait mdoe
-    std::shared_ptr<EpollIoWaiter> epollIoWaiter_;
+    bool useDeamonIoWaiter_ = false;
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
-
-    // current running event info
-    CurrentRunningEvent currentRunningEvent_;
-
-    static const uint8_t HISTORY_EVENT_NUM_POWER = 32; // 必须是2的幂次，使用位运算取余
-    std::vector<HistoryEvent> historyEvents_;
-    uint8_t historyEventIndex_ = 0;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

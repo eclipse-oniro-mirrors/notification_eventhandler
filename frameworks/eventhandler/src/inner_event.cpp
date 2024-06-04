@@ -230,7 +230,7 @@ void InnerEvent::ClearEvent()
         // Clear members for task
         taskCallback_ = nullptr;
         taskName_.clear();
-        caller_ = {};
+        caller_.ClearCaller();
     } else {
         // Clear members for event
         if (smartPtrDtor_) {
@@ -356,6 +356,7 @@ std::string InnerEvent::TraceInfo()
                 content.append("," + std::get<std::string>(innerEventId_));
             }
         }
+        content.append("," + std::to_string(priority));
         content.append("," + caller_.ToString());
     } else {
         content.append("NA");

@@ -17,6 +17,7 @@
 
 #include "event_handler.h"
 #include "event_queue.h"
+#include "event_queue_base.h"
 #include "event_runner.h"
 #include "inner_event.h"
 
@@ -62,7 +63,7 @@ void EmsEventQueueSystemTest::TearDown(void)
  */
 HWTEST_F(EmsEventQueueSystemTest, IsQueueEmpty001, TestSize.Level1)
 {
-    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueue>();
+    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueueBase>();
     bool ret = queue->IsQueueEmpty();
     EXPECT_TRUE(ret);
 }
@@ -83,7 +84,7 @@ HWTEST_F(EmsEventQueueSystemTest, IsQueueEmpty002, TestSize.Level1)
      * @tc.expected: step1. when queue is not empty has low event IsQueueEmpty return false
      */
     handler->SendEvent(event, DELAY_TIME, EventQueue::Priority::LOW);
-    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueue>();
+    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueueBase>();
     bool ret = queue->IsQueueEmpty();
     EXPECT_TRUE(ret);
 }
@@ -99,7 +100,7 @@ HWTEST_F(EmsEventQueueSystemTest, IsQueueEmpty003, TestSize.Level1)
     auto handler = std::make_shared<EventHandler>(runner);
     auto event = InnerEvent::Get(EVENT_ID, EVENT_PARAM);
     handler->SendEvent(event, DELAY_TIME, EventQueue::Priority::IMMEDIATE);
-    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueue>();
+    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueueBase>();
     bool ret = queue->IsQueueEmpty();
     EXPECT_TRUE(ret);
 }
@@ -111,7 +112,7 @@ HWTEST_F(EmsEventQueueSystemTest, IsQueueEmpty003, TestSize.Level1)
  */
 HWTEST_F(EmsEventQueueSystemTest, IsIdle001, TestSize.Level1)
 {
-    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueue>();
+    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueueBase>();
     bool ret = queue->IsIdle();
     EXPECT_TRUE(ret);
 }
@@ -125,7 +126,7 @@ HWTEST_F(EmsEventQueueSystemTest, HasInnerEvent001, TestSize.Level1)
 {
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
-    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueue>();
+    std::shared_ptr<EventQueue> queue = std::make_shared<EventQueueBase>();
     bool ret = queue->HasInnerEvent(handler, EVENT_ID);
     EXPECT_FALSE(ret);
 }

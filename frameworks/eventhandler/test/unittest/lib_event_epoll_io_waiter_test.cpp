@@ -43,6 +43,31 @@ void LibEventHandlerEpollIoWaiterTest::SetUp(void)
 void LibEventHandlerEpollIoWaiterTest::TearDown(void)
 {}
 
+class IoFileDescriptorListener : public FileDescriptorListener {
+public:
+    IoFileDescriptorListener()
+    {}
+    ~IoFileDescriptorListener()
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnReadable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnWritable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnException(int32_t)
+    {}
+
+    IoFileDescriptorListener(const IoFileDescriptorListener &) = delete;
+    IoFileDescriptorListener &operator=(const IoFileDescriptorListener &) = delete;
+    IoFileDescriptorListener(IoFileDescriptorListener &&) = delete;
+    IoFileDescriptorListener &operator=(IoFileDescriptorListener &&) = delete;
+};
+
 /*
  * @tc.name: Init001
  * @tc.desc: Init
@@ -75,7 +100,9 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor001, TestSize.Level1
 
     int32_t fileDescriptor = -1;
     uint32_t events = 1;
-    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor001");
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor001",
+        listener, EventQueue::Priority::HIGH);
     EXPECT_EQ(result, true);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
@@ -95,7 +122,9 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor002, TestSize.Level1
 
     int32_t fileDescriptor = 1;
     uint32_t events = 0;
-    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor002");
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor002",
+        listener, EventQueue::Priority::HIGH);
     EXPECT_EQ(result, true);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
@@ -115,7 +144,9 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor003, TestSize.Level1
 
     int32_t fileDescriptor = 1;
     uint32_t events = 1;
-    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor003");
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor003",
+        listener, EventQueue::Priority::HIGH);
     EXPECT_EQ(result, true);
 }
 

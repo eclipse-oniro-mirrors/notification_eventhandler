@@ -33,6 +33,11 @@ enum class Mode: uint32_t {
     NO_WAIT,      // One poll mode
 };
 
+enum class ThreadMode: uint32_t {
+    NEW_THREAD = 0,    // for new thread mode, event handler create thread
+    FFRT,           // for new thread mode, use ffrt
+};
+
 class EventRunner final {
 public:
     EventRunner() = delete;
@@ -56,13 +61,37 @@ public:
     static std::shared_ptr<EventRunner> Create(bool inNewThread = true, Mode mode = Mode::DEFAULT);
 
     /**
+     * Create new 'EventRunner'.
+     *
+     * @param inNewThread True if create new thread to start the 'EventRunner' automatically.
+     * @param threadMode thread mode, use ffrt or new thread, for inNewThread = true.
+     * @return Returns shared pointer of the new 'EventRunner'.
+     */
+    static std::shared_ptr<EventRunner> Create(bool inNewThread, ThreadMode threadMode);
+
+    /**
      * Create new 'EventRunner' and start to run in a new thread.
      *
      * @param threadName Thread name of the new created thread.
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT);
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT)
+    {
+        return Create(threadName, mode, ThreadMode::NEW_THREAD);
+    }
+
+    /**
+     * Create new 'EventRunner' and start to run in a new thread.
+     *
+     * @param threadName Thread name of the new created thread.
+     * @param threadMode thread mode, use ffrt or new thread.
+     * @return Returns shared pointer of the new 'EventRunner'.
+     */
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, ThreadMode threadMode)
+    {
+        return Create(threadName, Mode::DEFAULT, threadMode);
+    }
 
     /**
      * Create new 'EventRunner' and start to run in a new thread.
@@ -74,7 +103,20 @@ public:
      */
     static inline std::shared_ptr<EventRunner> Create(const char *threadName, Mode mode = Mode::DEFAULT)
     {
-        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode);
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode, ThreadMode::NEW_THREAD);
+    }
+
+    /**
+     * Create new 'EventRunner' and start to run in a new thread.
+     * Eliminate ambiguity, while calling like 'EventRunner::Create("threadName")'.
+     *
+     * @param threadName Thread name of the new created thread.
+     * @param threadMode thread mode, use ffrt or new thread.
+     * @return Returns shared pointer of the new 'EventRunner'.
+     */
+    static inline std::shared_ptr<EventRunner> Create(const char *threadName, ThreadMode threadMode)
+    {
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), Mode::DEFAULT, threadMode);
     }
 
     /**
@@ -264,6 +306,8 @@ private:
 
     friend class EventHandler;
 
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode, ThreadMode threadMode);
+
     /**
      * Check whether this event runner is running.
      *
@@ -290,6 +334,8 @@ private:
     static std::shared_ptr<EventRunner> mainRunner_;
     std::string currentEventInfo_;
     Mode runningMode_ = Mode::DEFAULT;
+    ThreadMode threadMode_ = ThreadMode::NEW_THREAD;
+    std::string runnerId_;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

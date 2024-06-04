@@ -13,24 +13,27 @@
  * limitations under the License.
  */
 
-#include "epoll_io_waiter.h"
+#include "deamon_io_waiter.h"
 
 #include <chrono>
 
 #include <mutex>
-#include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
 
 #include "event_handler_utils.h"
 #include "event_logger.h"
-#include "file_descriptor_listener.h"
+#include "event_handler.h"
+#ifdef RES_SCHED_ENABLE
+#include "res_type.h"
+#include "res_sched_client.h"
+#endif
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
 const size_t MAX_EPOLL_EVENTS_SIZE = 8;
-DEFINE_EH_HILOG_LABEL("EpollIoWaiter");
+DEFINE_EH_HILOG_LABEL("DeamonIoWaiter");
 
 inline int32_t EpollCtrl(int32_t epollFd, int32_t operation, int32_t fileDescriptor, uint32_t epollEvents)
 {
@@ -43,9 +46,12 @@ inline int32_t EpollCtrl(int32_t epollFd, int32_t operation, int32_t fileDescrip
 }
 }  // unnamed namespace
 
-EpollIoWaiter::~EpollIoWaiter()
+DeamonIoWaiter::~DeamonIoWaiter()
 {
     HILOGD("enter");
+    if (!isFinished_) {
+        StopEpollIoWaiter();
+    }
     // Close all valid file descriptors.
     if (epollFd_ >= 0) {
         close(epollFd_);
@@ -58,9 +64,18 @@ EpollIoWaiter::~EpollIoWaiter()
     }
 }
 
-bool EpollIoWaiter::Init()
+DeamonIoWaiter& DeamonIoWaiter::GetInstance()
+{
+    static DeamonIoWaiter DeamonIoWaiter;
+    return DeamonIoWaiter;
+}
+
+bool DeamonIoWaiter::Init()
 {
     HILOGD("enter");
+    if (running_.load() == true) {
+        return true;
+    }
     if (epollFd_ >= 0) {
         HILOGE("Already initialized");
         return true;
@@ -113,78 +128,147 @@ bool EpollIoWaiter::Init()
     return false;
 }
 
-bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
+void DeamonIoWaiter::StartEpollIoWaiter()
+{
+    if (running_.exchange(true)) {
+        return;
+    }
+    auto task = std::bind(&DeamonIoWaiter::EpollWaitFor, this);
+    epollThread_ = std::make_unique<std::thread>(task);
+}
+
+void DeamonIoWaiter::StopEpollIoWaiter()
+{
+    isFinished_ = true;
+    NotifyAll();
+    if (epollThread_ != nullptr && epollThread_->joinable()) {
+        epollThread_->join();
+    }
+    running_.store(false);
+}
+
+void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
+    __attribute__((no_sanitize("cfi")))
+{
+    auto fileDescriptorInfo = GetFileDescriptorMap(fileDescriptor);
+    if (fileDescriptorInfo != nullptr && fileDescriptorInfo->listener_ != nullptr) {
+        auto handler = fileDescriptorInfo->listener_->GetOwner();
+        if (!handler) {
+            HILOGW("Owner of listener is released %{public}d.", fileDescriptor);
+            return;
+        }
+
+        std::weak_ptr<FileDescriptorListener> wp = fileDescriptorInfo->listener_;
+        auto f = [fileDescriptor, events, wp]() {
+            auto listener = wp.lock();
+            if (!listener) {
+                HILOGW("Listener is released");
+                return;
+            }
+
+            if ((events & FILE_DESCRIPTOR_INPUT_EVENT) != 0) {
+                listener->OnReadable(fileDescriptor);
+            }
+
+            if ((events & FILE_DESCRIPTOR_OUTPUT_EVENT) != 0) {
+                listener->OnWritable(fileDescriptor);
+            }
+
+            if ((events & FILE_DESCRIPTOR_SHUTDOWN_EVENT) != 0) {
+                listener->OnShutdown(fileDescriptor);
+            }
+
+            if ((events & FILE_DESCRIPTOR_EXCEPTION_EVENT) != 0) {
+                listener->OnException(fileDescriptor);
+            }
+        };
+
+        HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor,
+            fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_);
+        // Post a high priority task to handle file descriptor events.
+        handler->PostTask(f, fileDescriptorInfo->taskName_, 0, fileDescriptorInfo->priority_);
+    }
+}
+
+void DeamonIoWaiter::HandleEpollEvents(struct epoll_event *epollEvents, int32_t eventsCount)
+{
+    for (int32_t i = 0; i < eventsCount; ++i) {
+        if (epollEvents[i].data.fd == awakenFd_) {
+            // Drain awaken pipe, if woken up by it.
+            DrainAwakenPipe();
+            continue;
+        }
+
+        // Transform epoll events into file descriptor listener events.
+        uint32_t events = 0;
+        if ((epollEvents[i].events & EPOLLIN) != 0) {
+            events |= FILE_DESCRIPTOR_INPUT_EVENT;
+        }
+
+        if ((epollEvents[i].events & EPOLLOUT) != 0) {
+            events |= FILE_DESCRIPTOR_OUTPUT_EVENT;
+        }
+
+        if ((epollEvents[i].events & (EPOLLHUP)) != 0) {
+            events |= FILE_DESCRIPTOR_SHUTDOWN_EVENT;
+        }
+
+        if ((epollEvents[i].events & (EPOLLERR)) != 0) {
+            events |= FILE_DESCRIPTOR_EXCEPTION_EVENT;
+        }
+        HandleFileDescriptorEvent(epollEvents[i].data.fd, events);
+    }
+}
+
+void DeamonIoWaiter::EpollWaitFor()
 {
     if (epollFd_ < 0) {
         HILOGE("MUST initialized before waiting");
-        return false;
+        return;
     }
+    HILOGD("Epoll io waiter start polling.");
+    pthread_setname_np(pthread_self(), "OS_EVENT_POLL");
+#ifdef RES_SCHED_ENABLE
+    std::unordered_map<std::string, std::string> payload {
+        {"pid", std::to_string(getprocpid())}
+    };
+    uint32_t type = ResourceSchedule::ResType::RES_TYPE_REPORT_DISTRIBUTE_TID;
+    int64_t value = getproctid();
+    ResourceSchedule::ResSchedClient::GetInstance().ReportData(type, value, payload);
+    HILOGD("Epoll io waiter set thread sched. pid: %{public}d, tid: %{public}d", getprocpid(), getproctid());
+#endif
+    while (!isFinished_) {
+        // Increasment of waiting count MUST be done before unlock.
+        ++waitingCount_;
 
-    // Increasment of waiting count MUST be done before unlock.
-    ++waitingCount_;
-    lock.unlock();
-
-    // Block on epoll_wait outside of the lock.
-    struct epoll_event epollEvents[MAX_EPOLL_EVENTS_SIZE];
-    int32_t retVal = epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, NanosecondsToTimeout(nanoseconds));
-    // Decrease waiting count after block at once.
-    --waitingCount_;
-    if (waitingCount_ < 0) {
-        HILOGE("WaitingCount_ become negative: %{public}d", waitingCount_.load());
-    }
-
-    bool result = true;
-    if (retVal < 0) {
-        if (errno != EINTR && errno != EINVAL) {
-            char errmsg[MAX_ERRORMSG_LEN] = {0};
-            GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-            HILOGE("Failed to wait epoll, %{public}s", errmsg);
-            result = false;
+        // Block on epoll_wait outside of the lock.
+        struct epoll_event epollEvents[MAX_EPOLL_EVENTS_SIZE];
+        int32_t retVal = epoll_wait(epollFd_, epollEvents, MAX_EPOLL_EVENTS_SIZE, -1);
+        // Decrease waiting count after block at once.
+        --waitingCount_;
+        if (waitingCount_ < 0) {
+            HILOGE("WaitingCount_ become negative: %{public}d", waitingCount_.load());
         }
-    } else {
-        for (int32_t i = 0; i < retVal; ++i) {
-            if (epollEvents[i].data.fd == awakenFd_) {
-                // Drain awaken pipe, if woken up by it.
-                DrainAwakenPipe();
-                continue;
-            }
 
-            // Transform epoll events into file descriptor listener events.
-            uint32_t events = 0;
-            if ((epollEvents[i].events & EPOLLIN) != 0) {
-                events |= FILE_DESCRIPTOR_INPUT_EVENT;
+        if (retVal < 0) {
+            if (errno != EINTR && errno != EINVAL) {
+                char errmsg[MAX_ERRORMSG_LEN] = {0};
+                GetLastErr(errmsg, MAX_ERRORMSG_LEN);
+                HILOGE("Failed to wait epoll, %{public}s", errmsg);
             }
-
-            if ((epollEvents[i].events & EPOLLOUT) != 0) {
-                events |= FILE_DESCRIPTOR_OUTPUT_EVENT;
-            }
-
-            if ((epollEvents[i].events & (EPOLLHUP)) != 0) {
-                events |= FILE_DESCRIPTOR_SHUTDOWN_EVENT;
-            }
-
-            if ((epollEvents[i].events & (EPOLLERR)) != 0) {
-                events |= FILE_DESCRIPTOR_EXCEPTION_EVENT;
-            }
-            auto fileDescriptorInfo = GetFileDescriptorMap(epollEvents[i].data.fd);
-            if (callback_ && fileDescriptorInfo != nullptr) {
-                callback_(epollEvents[i].data.fd, events, fileDescriptorInfo->taskName_,
-                    fileDescriptorInfo->priority_);
-            }
+        } else {
+            HandleEpollEvents(epollEvents, retVal);
         }
     }
-
-    lock.lock();
-    return result;
 }
 
-void EpollIoWaiter::NotifyOne()
+void DeamonIoWaiter::NotifyOne()
 {
     // Epoll only support wake up all waiting thread.
     NotifyAll();
 }
 
-void EpollIoWaiter::NotifyAll()
+void DeamonIoWaiter::NotifyAll()
 {
     if (awakenFd_ < 0) {
         HILOGE("MUST initialized before notifying");
@@ -205,12 +289,12 @@ void EpollIoWaiter::NotifyAll()
     }
 }
 
-bool EpollIoWaiter::SupportListeningFileDescriptor() const
+bool DeamonIoWaiter::SupportListeningFileDescriptor() const
 {
     return true;
 }
 
-bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+bool DeamonIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
     const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
 {
     if ((fileDescriptor < 0) || ((events & FILE_DESCRIPTOR_EVENTS_MASK) == 0)) {
@@ -234,17 +318,18 @@ bool EpollIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, c
     }
 
     InsertFileDescriptorMap(fileDescriptor, taskName, priority, listener);
-    if (EpollCtrl(epollFd_, EPOLL_CTL_ADD, fileDescriptor, epollEvents) < 0) {
+    if (EpollCtrl(epollFd_, EPOLL_CTL_ADD, fileDescriptor, epollEvents | EPOLLET) < 0) {
         RemoveFileDescriptor(fileDescriptor);
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
         HILOGE("Failed to add file descriptor into epoll, %{public}s", errmsg);
         return false;
     }
+    HILOGD("DeamonIoWaiter add file %{public}d, %{public}s, %{public}d", fileDescriptor, taskName.c_str(), priority);
     return true;
 }
 
-void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
+void DeamonIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
 {
     if (fileDescriptor < 0) {
         HILOGE("Invalid param while removing fd, fd = %{public}d", fileDescriptor);
@@ -265,7 +350,7 @@ void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
     EraseFileDescriptorMap(fileDescriptor);
 }
 
-void EpollIoWaiter::DrainAwakenPipe() const
+void DeamonIoWaiter::DrainAwakenPipe() const
 {
     uint64_t value = 0;
     ssize_t retVal = read(awakenFd_, &value, sizeof(value));
@@ -276,12 +361,7 @@ void EpollIoWaiter::DrainAwakenPipe() const
     }
 }
 
-void EpollIoWaiter::SetFileDescriptorEventCallback(const IoWaiter::FileDescriptorEventCallback &callback)
-{
-    callback_ = callback;
-}
-
-void EpollIoWaiter::InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
+void DeamonIoWaiter::InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
     EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener)
 {
     std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
@@ -290,18 +370,18 @@ void EpollIoWaiter::InsertFileDescriptorMap(int32_t fileDescriptor, const std::s
     fileDescriptorMap_.emplace(fileDescriptor, fileDescriptorInfo);
 }
 
-void EpollIoWaiter::EraseFileDescriptorMap(int32_t fileDescriptor)
+void DeamonIoWaiter::EraseFileDescriptorMap(int32_t fileDescriptor)
 {
     std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
     fileDescriptorMap_.erase(fileDescriptor);
 }
 
-std::shared_ptr<FileDescriptorInfo> EpollIoWaiter::GetFileDescriptorMap(int32_t fileDescriptor)
+std::shared_ptr<FileDescriptorInfo> DeamonIoWaiter::GetFileDescriptorMap(int32_t fileDescriptor)
 {
     std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
     auto it = fileDescriptorMap_.find(fileDescriptor);
     if (it == fileDescriptorMap_.end()) {
-        HILOGW("EpollIoWaiter get file descriptor failed %{public}d", fileDescriptor);
+        HILOGW("DeamonIoWaiter get file descriptor failed %{public}d", fileDescriptor);
         return nullptr;
     }
     return it->second;

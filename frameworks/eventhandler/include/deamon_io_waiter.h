@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EPOLL_IO_WAITER_H
-#define BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EPOLL_IO_WAITER_H
+#ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_DEAMON_IO_WAITER_H
+#define BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_DEAMON_IO_WAITER_H
 
 #include <atomic>
 #include <map>
@@ -31,11 +31,12 @@ namespace AppExecFwk {
 class EventHandler;
 
 // Use epoll to listen file descriptor.
-class EpollIoWaiter final : public IoWaiter {
+class DeamonIoWaiter {
 public:
-    EpollIoWaiter() = default;
-    ~EpollIoWaiter() final;
-    DISALLOW_COPY_AND_MOVE(EpollIoWaiter);
+    DeamonIoWaiter() = default;
+    ~DeamonIoWaiter();
+    static DeamonIoWaiter& GetInstance();
+    DISALLOW_COPY_AND_MOVE(DeamonIoWaiter);
 
     /**
      * Initialize epoll.
@@ -44,34 +45,38 @@ public:
      */
     bool Init();
 
-    bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
-
-    void NotifyOne() final;
-    void NotifyAll() final;
-    bool SupportListeningFileDescriptor() const final;
+    void NotifyOne();
+    void NotifyAll();
+    void StopEpollIoWaiter();
+    void StartEpollIoWaiter();
+    bool SupportListeningFileDescriptor() const;
 
     bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
-        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) final;
-    void RemoveFileDescriptor(int32_t fileDescriptor) final;
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
+    void RemoveFileDescriptor(int32_t fileDescriptor);
 
-    void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
     void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
         EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener);
     void EraseFileDescriptorMap(int32_t fileDescriptor);
     std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
 private:
+    void EpollWaitFor();
     void DrainAwakenPipe() const;
+    void HandleEpollEvents(struct epoll_event *epollEvents, int32_t eventsCount);
 
     // File descriptor for epoll.
     int32_t epollFd_{-1};
     // File descriptor used to wake up epoll.
     int32_t awakenFd_{-1};
     std::mutex fileDescriptorMapLock;
-    FileDescriptorEventCallback callback_;
     std::atomic<int32_t> waitingCount_{0};
+    std::atomic<bool> running_ = false;
+    std::atomic<bool> isFinished_ = false;
+    std::unique_ptr<std::thread> epollThread_;
     std::map<int32_t, std::shared_ptr<FileDescriptorInfo>> fileDescriptorMap_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
 
-#endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_EPOLL_IO_WAITER_H
+#endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_DEAMON_IO_WAITER_H
