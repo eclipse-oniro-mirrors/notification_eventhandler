@@ -20,6 +20,7 @@
 
 #include "event_handler.h"
 #include "event_queue.h"
+#include "event_queue_base.h"
 #include "event_runner.h"
 #include "inner_event.h"
 #define private public
@@ -461,7 +462,7 @@ HWTEST_F(LibEventHandlerEventTest, Dump001, TestSize.Level1)
     std::string runnerInfo = "aa";
     auto runner = EventRunner::Create(true);
     runner->DumpRunnerInfo(runnerInfo);
-    EventQueue queue;
+    EventQueueBase queue;
     queue.DumpQueueInfo(runnerInfo);
     auto event = InnerEvent::Get(eventId, eventParam);
     std::string result = event->Dump();

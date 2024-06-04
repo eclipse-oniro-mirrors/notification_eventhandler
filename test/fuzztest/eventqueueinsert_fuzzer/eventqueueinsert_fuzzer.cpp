@@ -14,6 +14,7 @@
  */
 
 #include "event_queue.h"
+#include "event_queue_base.h"
 #include "eventqueueinsert_fuzzer.h"
 #include "securec.h"
 
@@ -25,7 +26,7 @@ namespace {
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueue eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
     std::list<AppExecFwk::InnerEvent::Pointer> events;
     AppExecFwk::InnerEvent::Pointer event = std::move(events.front());
     AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::LOW;

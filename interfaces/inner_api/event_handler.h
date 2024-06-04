@@ -35,6 +35,15 @@ enum class EventType {
 template<typename T>
 class ThreadLocalData;
 
+struct TaskOptions {
+    std::string dfxName_;
+    int64_t delayTime_;
+    EventQueue::Priority priority_;
+    uintptr_t taskId_;
+    TaskOptions(std::string dfxName, int64_t delayTime, EventQueue::Priority priority, uintptr_t taskId)
+        : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}
+};
+
 class EventHandler : public std::enable_shared_from_this<EventHandler> {
 public:
     using CallbackTimeout = std::function<void()>;
@@ -892,6 +901,13 @@ public:
     void RemoveTask(const std::string &name);
 
     /**
+     * Remove a task.
+     *
+     * @param name Name of the task.
+     */
+    int RemoveTaskWithRet(const std::string &name);
+
+    /**
      * Add file descriptor listener for a file descriptor.
      *
      * @param fileDescriptor File descriptor.
@@ -1025,6 +1041,14 @@ public:
      */
     void EnableEventLog(bool enableEventLog = false);
 
+    /**
+     * Get handler id, only for inner use
+     */
+    inline std::string GetHandlerId()
+    {
+        return handlerId_;
+    }
+
 protected:
     /**
      * Process the event. Developers should override this method.
@@ -1034,6 +1058,7 @@ protected:
     virtual void ProcessEvent(const InnerEvent::Pointer &event);
 
 private:
+    std::string handlerId_;
     bool enableEventLog_ {false};
     std::shared_ptr<EventRunner> eventRunner_;
     CallbackTimeout deliveryTimeoutCallback_;

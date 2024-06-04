@@ -22,6 +22,9 @@
 #ifdef HAS_HICHECKER_NATIVE_PART
 #include "hichecker.h"
 #endif // HAS_HICHECKER_NATIVE_PART
+#ifdef FFRT_USAGE_ENABLE
+#include "ffrt_inner.h"
+#endif // FFRT_USAGE_ENABLE
 #include "thread_local_data.h"
 #include "event_hitrace_meter_adapter.h"
 
@@ -29,23 +32,41 @@ using namespace OHOS::HiviewDFX;
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
+static constexpr int FFRT_TASK_REMOVE_SUCCESS = 0;
+static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
 
 std::shared_ptr<EventHandler> EventHandler::Current()
 {
+#ifdef FFRT_USAGE_ENABLE
+    if (ffrt_this_task_get_id()) {
+        auto handler = ffrt_get_current_queue_eventhandler();
+        if (handler == nullptr) {
+            HILOGW("Current handler is null.");
+            return nullptr;
+        }
+        return *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
+    } else {
+        return currentEventHandler.lock();
+    }
+#else
     return currentEventHandler.lock();
+#endif
 }
 
 EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRunner_(runner)
 {
-    HILOGD("enter");
+    static std::atomic<uint64_t> handlerCount = 1;
+    handlerId_ = std::to_string(handlerCount.load()) + "_" + std::to_string(GetTimeStamp());
+    handlerCount.fetch_add(1);
+    EH_LOGI_LIMIT("Create eventHandler %{public}s", handlerId_.c_str());
 }
 
 EventHandler::~EventHandler()
 {
-    HILOGD("~EventHandler enter");
+    EH_LOGI_LIMIT("~EventHandler enter %{public}s", handlerId_.c_str());
     if (eventRunner_) {
         HILOGD("eventRunner is alive");
         /*
@@ -53,7 +74,15 @@ EventHandler::~EventHandler()
          * But events only have weak pointer of this handler,
          * now weak pointer is invalid, so these events become orphans.
          */
+#ifdef FFRT_USAGE_ENABLE
+        if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+            eventRunner_->GetEventQueue()->RemoveOrphanByHandlerId(handlerId_);
+        } else {
+            eventRunner_->GetEventQueue()->RemoveOrphan();
+        }
+#else
         eventRunner_->GetEventQueue()->RemoveOrphan();
+#endif
     }
 }
 
@@ -73,7 +102,8 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     } else {
         event->SetHandleTime(now);
     }
-
+    event->SetOwnerId(handlerId_);
+    event->SetDelayTime(delayTime);
     event->SetOwner(shared_from_this());
     // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto traceId = event->GetOrCreateTraceId();
@@ -104,6 +134,8 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
         return false;
     }
 
+    event->SetDelayTime(0);
+    event->SetOwnerId(handlerId_);
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetHandleTime(now);
@@ -145,6 +177,30 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return false;
     }
 
+#ifdef FFRT_USAGE_ENABLE
+    if ((ffrt_this_task_get_id() && eventRunner_->threadMode_ == ThreadMode::FFRT) ||
+        eventRunner_ == EventRunner::Current()) {
+        DistributeEvent(event);
+        return true;
+    }
+
+    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
+    auto spanId = event->GetOrCreateTraceId();
+
+    if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+        eventRunner_->GetEventQueue()->InsertSyncEvent(event, priority);
+    } else {
+        // Create waiter, used to block.
+        auto waiter = event->CreateWaiter();
+        // Send this event as normal one.
+        if (!SendEvent(event, 0, priority)) {
+            HILOGE("SendEvent is failed");
+            return false;
+        }
+        // Wait until event is processed(recycled).
+        waiter->Wait();
+    }
+#else
     // If send a sync event in same event runner, distribute here.
     if (eventRunner_ == EventRunner::Current()) {
         DistributeEvent(event);
@@ -163,7 +219,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     }
     // Wait until event is processed(recycled).
     waiter->Wait();
-
+#endif
     if ((spanId) && (spanId->IsValid())) {
         HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
     }
@@ -213,6 +269,18 @@ void EventHandler::RemoveTask(const std::string &name)
     }
 
     eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
+}
+
+int EventHandler::RemoveTaskWithRet(const std::string &name)
+{
+    HILOGD("RemoveTaskWithRet enter");
+    if (!eventRunner_) {
+        HILOGE("MUST Ret Set event runner before removing events by task name");
+        return FFRT_TASK_REMOVE_FAIL;
+    }
+
+    bool ret = eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
+    return ret ? FFRT_TASK_REMOVE_SUCCESS : FFRT_TASK_REMOVE_FAIL;
 }
 
 ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
@@ -523,8 +591,7 @@ extern "C" void* GetCurrentEventHandlerForFFRT()
     return &currentHandler;
 }
 
-extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callback,
-    const std::string &name, int64_t delayTime, EventQueue::Priority priority)
+extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions &task)
 {
     HILOGD("PostTaskByFFRT enter");
     if (handler == nullptr) {
@@ -532,7 +599,9 @@ extern "C" bool PostTaskByFFRT(void* handler, const std::function<void()>& callb
         return false;
     }
     std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
-    return (*ptr)->PostTask(callback, name, delayTime, priority);
+    Caller caller = {};
+    caller.dfxName_ = task.dfxName_;
+    return (*ptr)->PostTask(callback, std::to_string(task.taskId_), task.delayTime_, task.priority_, caller);
 }
 
 extern "C" bool PostSyncTaskByFFRT(void* handler, const std::function<void()>& callback,
@@ -547,15 +616,15 @@ extern "C" bool PostSyncTaskByFFRT(void* handler, const std::function<void()>& c
     return (*ptr)->PostSyncTask(callback, name, priority);
 }
 
-extern "C" void RemoveTaskForFFRT(void* handler, const std::string &name)
+extern "C" int RemoveTaskForFFRT(void* handler, const uintptr_t taskId)
 {
     HILOGD("RemoveTaskForFFRT enter");
     if (handler == nullptr) {
         HILOGW("RemoveTaskForFFRT execute fail, handler is nullptr");
-        return;
+        return FFRT_TASK_REMOVE_FAIL;
     }
     std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
-    (*ptr)->RemoveTask(name);
+    return (*ptr)->RemoveTaskWithRet(std::to_string(taskId));
 }
 
 extern "C" void RemoveAllTaskForFFRT(void* handler)

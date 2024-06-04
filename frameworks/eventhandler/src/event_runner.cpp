@@ -27,6 +27,7 @@
 #include <sys/syscall.h>
 
 #include "event_handler.h"
+#include "event_queue_base.h"
 #include "event_inner_runner.h"
 #include "event_logger.h"
 #include "securec.h"
@@ -289,7 +290,7 @@ public:
     explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner) : EventInnerRunner(runner)
     {
         HILOGD("enter");
-        queue_ = std::make_shared<EventQueue>();
+        queue_ = std::make_shared<EventQueueBase>();
     }
 
     ~EventRunnerImpl() final
@@ -444,9 +445,6 @@ public:
     inline void SetRunningMode(const Mode runningMode)
     {
         runningMode_ = runningMode;
-        if (queue_) {
-            queue_->SetNoWaitEpollWaiter(runningMode == Mode::NO_WAIT);
-        }
     }
 
 private:
@@ -541,7 +539,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
         EH_LOGI_LIMIT("EventRunner created");
-        return Create(std::string(), mode);
+        return Create(std::string(), mode, ThreadMode::NEW_THREAD);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
@@ -554,20 +552,47 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
-
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_->SetIoWaiter(false);
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode threadMode)
 {
-    HILOGD("threadName is %{public}s %{public}d", threadName.c_str(), mode);
+    HILOGD("inNewThread is %{public}d %{public}d", inNewThread, threadMode);
+    if (inNewThread) {
+        EH_LOGI_LIMIT("EventRunner created");
+        return Create(std::string(), Mode::DEFAULT, threadMode);
+    }
+
+    // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
+    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, Mode::DEFAULT));
+    if (sp == nullptr) {
+        HILOGI("Failed to create EventRunner Instance");
+        return nullptr;
+    }
+    auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    innerRunner->SetRunningMode(Mode::DEFAULT);
+    sp->innerRunner_ = innerRunner;
+    sp->queue_ = innerRunner->GetEventQueue();
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_->SetIoWaiter(false);
+    return sp;
+}
+
+std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode, ThreadMode threadMode)
+{
+    HILOGD("threadName is %{public}s %{public}d %{public}d", threadName.c_str(), mode, threadMode);
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new EventRunner(true, mode));
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
     innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
-    sp->queue_ = innerRunner->GetEventQueue();
     innerRunner->SetThreadName(threadName);
+
+    sp->threadMode_ = ThreadMode::NEW_THREAD;
+    sp->queue_ = innerRunner->GetEventQueue();
+    sp->queue_->SetIoWaiter(false);
     if (mode == Mode::NO_WAIT) {
         return sp;
     }
@@ -595,6 +620,7 @@ std::shared_ptr<EventRunner> EventRunner::Current()
 
 EventRunner::EventRunner(bool deposit, Mode runningMode) : deposit_(deposit), runningMode_(runningMode)
 {
+    runnerId_ = std::to_string(GetTimeStamp());
     HILOGD("deposit_ is %{public}d %{public}d", deposit_, runningMode_);
 }
 
@@ -605,7 +631,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    HILOGD("~EventRunner deposit_ is %{public}d", deposit_);
+    EH_LOGI_LIMIT("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
     if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
@@ -637,6 +663,7 @@ ErrCode EventRunner::Run()
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
+    runnerId_ += "_" + std::to_string(getproctid());
     if (deposit_ && runningMode_ == Mode::NO_WAIT) {
         // Start new thread for NO_WAIT Mode
         StartRunningForNoWait();
