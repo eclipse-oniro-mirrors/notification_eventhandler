@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "event_handler.h"
 #include "event_queue.h"
@@ -744,6 +745,64 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent008, TestSize.Level1)
      * @tc.expected: step1. the delay time we get event from queue is about 0ms with tolerable error.
      */
     DelayTest(delayTime);
+}
+
+/*
+ * @tc.name: EventQueue_001
+ * @tc.desc: test RemoveOrphanByHandlerId
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    const std::string handlerId = "handlerId";
+    queue.RemoveOrphanByHandlerId(handlerId);
+}
+
+/*
+ * @tc.name: EventQueue_002
+ * @tc.desc: test PushHistoryQueueBeforeDistribute
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_002, TestSize.Level1)
+{
+    EventQueueBase queue;
+    auto event = queue.GetEvent();
+    queue.PushHistoryQueueBeforeDistribute(event);
+}
+
+/*
+ * @tc.name: EventQueue_003
+ * @tc.desc: test PushHistoryQueueAfterDistribute
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_003, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.PushHistoryQueueAfterDistribute();
+}
+
+/*
+ * @tc.name: EventQueue_004
+ * @tc.desc: test GetFfrtQueue
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.GetFfrtQueue();
+}
+
+/*
+ * @tc.name: EventQueue_005
+ * @tc.desc: test InsertSyncEvent
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_005, TestSize.Level1)
+{
+    EventQueueBase queue;
+    auto event = queue.GetEvent();
+    queue.InsertSyncEvent(event);
 }
 
 /*
