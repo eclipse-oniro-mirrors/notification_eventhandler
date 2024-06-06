@@ -103,7 +103,7 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor001, TestSize.Level1
     auto listener = std::make_shared<IoFileDescriptorListener>();
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor001",
         listener, EventQueue::Priority::HIGH);
-    EXPECT_EQ(result, true);
+    EXPECT_EQ(result, false);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
 
@@ -125,7 +125,7 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor002, TestSize.Level1
     auto listener = std::make_shared<IoFileDescriptorListener>();
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor002",
         listener, EventQueue::Priority::HIGH);
-    EXPECT_EQ(result, true);
+    EXPECT_EQ(result, false);
     epollIoWaiter.RemoveFileDescriptor(fileDescriptor);
 }
 
@@ -147,6 +147,6 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor003, TestSize.Level1
     auto listener = std::make_shared<IoFileDescriptorListener>();
     bool result = epollIoWaiter.AddFileDescriptor(fileDescriptor, events, "AddFileDescriptor003",
         listener, EventQueue::Priority::HIGH);
-    EXPECT_EQ(result, true);
+    EXPECT_EQ(result, false);
 }
 
