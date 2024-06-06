@@ -14,7 +14,7 @@
  */
 
 #include <mutex>
-#include <vector>
+#include <unordered_set>
 #include <map>
 #include <memory>
 
@@ -36,7 +36,7 @@ namespace OHOS::EventsEmitter {
     };
 
     static std::mutex g_emitterInsMutex;
-    static std::map<InnerEvent::EventId, std::vector<CallbackInfo *>> g_emitterImpls;
+    static std::map<InnerEvent::EventId, std::unordered_set<CallbackInfo *>> g_emitterImpls;
     std::shared_ptr<EventHandlerImpl> eventHandler = EventHandlerImpl::GetEventHandler();
 
     CallbackImpl::CallbackImpl(std::string name, std::function<void(CEventData)> callback)
@@ -56,10 +56,8 @@ namespace OHOS::EventsEmitter {
             LOGW("emit has no callback");
             return false;
         }
-        std::vector<CallbackInfo *> callbackInfo = subscribe->second;
-        size_t callbackSize = callbackInfo.size();
-        for (size_t i = 0; i < callbackSize; i++) {
-            if (!callbackInfo[i]->isDeleted) {
+        for (auto callbackInfo : subscribe->second) {
+            if (!callbackInfo->isDeleted) {
                 return true;
             }
         }
@@ -145,7 +143,7 @@ namespace OHOS::EventsEmitter {
         }
         callbackInfo->callbackImpl = callback;
         callbackInfo->once = once;
-        g_emitterImpls[eventId].push_back(callbackInfo);
+        g_emitterImpls[eventId].insert(callbackInfo);
         return SUCCESS;
     }
 
@@ -256,23 +254,8 @@ namespace OHOS::EventsEmitter {
         return GetListenerCountByEventId(id);
     }
 
-    void EventHandlerImpl::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
+    void ProcessCallback(const InnerEvent::Pointer& event, std::unordered_set<CallbackInfo *>& callbackInfos)
     {
-        LOGI("ProcessEvent");
-        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
-        OutPutEventIdLog(eventId);
-        std::vector<CallbackInfo *> callbackInfos;
-        {
-            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-            auto subscribe = g_emitterImpls.find(eventId);
-            if (subscribe == g_emitterImpls.end()) {
-                LOGW("ProcessEvent has no callback");
-                return;
-            }
-            callbackInfos = subscribe->second;
-        }
-
-        LOGD("size = %{public}zu", callbackInfos.size());
         auto value = event->GetUniqueObject<CEventData>();
         CEventData eventData = { .parameters = nullptr, .size = 0};
         if (value != nullptr) {
@@ -299,9 +282,32 @@ namespace OHOS::EventsEmitter {
             }
             callbackInfo->processed = true;
         }
+    }
+
+    void EventHandlerImpl::ProcessEvent(const InnerEvent::Pointer& event)
+    {
+        LOGI("ProcessEvent");
+        InnerEvent::EventId eventId = event->GetInnerEventIdEx();
+        OutPutEventIdLog(eventId);
+        std::unordered_set<CallbackInfo *> callbackInfos;
+        {
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+            auto subscribe = g_emitterImpls.find(eventId);
+            if (subscribe == g_emitterImpls.end()) {
+                LOGW("ProcessEvent has no callback");
+                return;
+            }
+            callbackInfos = subscribe->second;
+        }
+        LOGD("size = %{public}zu", callbackInfos.size());
+        ProcessCallback(event, callbackInfos);
         if (callbackInfos.empty()) {
             g_emitterImpls.erase(eventId);
             LOGD("ProcessEvent delete the last callback");
+        } else {
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+            auto subscribe = g_emitterImpls.find(eventId);
+            subscribe->second = callbackInfos;
         }
     }
 }
