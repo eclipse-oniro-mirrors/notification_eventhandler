@@ -626,7 +626,7 @@ CurrentRunningEvent::CurrentRunningEvent()
 CurrentRunningEvent::CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event)
 {
     beginTime_ = time;
-    owner_ = event->GetOwner();
+    owner_ = event->GetWeakOwner();
     senderKernelThreadId_ = event->GetSenderKernelThreadId();
     sendTime_ = event->GetSendTime();
     handleTime_ = event->GetHandleTime();

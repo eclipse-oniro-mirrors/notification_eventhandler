@@ -429,6 +429,16 @@ public:
     }
 
     /**
+     * Get weak owner of the event.
+     *
+     * @return Returns owner of the event after it has been sent.
+     */
+    inline std::weak_ptr<EventHandler> GetWeakOwner() const
+    {
+        return owner_;
+    }
+
+    /**
      * Set owner of the event.
      *
      * @param owner Owner for the event.
