@@ -134,7 +134,8 @@ namespace {
             callbackInfos = iter->second;
         }
 
-        HILOGD("size = %{public}zu", callbackInfos.size());
+        size_t callbackSize = callbackInfos.size();
+        HILOGD("size = %{public}zu", callbackSize);
         auto value = event->GetUniqueObject<napi_value>();
         std::shared_ptr<napi_value> eventData(value.release(), [this](napi_value* pData) {
             if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
@@ -142,17 +143,27 @@ namespace {
             }
         });
         for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
+            callbackSize--;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
             if (!eventDataWorker) {
                 HILOGE("new object failed");
+                if (callbackSize == 0) {
+                    HILOGW("EventData maybe release at process");
+                }
                 continue;
             }
             if ((*it)->env == nullptr || (*it)->isDeleted) {
                 HILOGE("env is release");
+                if (callbackSize == 0) {
+                    HILOGW("EventData maybe release at nullptr");
+                }
                 continue;
             }
             deleteEnv = (*it)->env;
             eventDataWorker->data = eventData;
+            if (callbackSize == 0) {
+                eventData.reset();
+            }
             eventDataWorker->callbackInfo = (*it);
             napi_acquire_threadsafe_function((*it)->tsfn);
             napi_call_threadsafe_function((*it)->tsfn, eventDataWorker, napi_tsfn_nonblocking);
