@@ -74,35 +74,6 @@ public:
 
     InnerEvent::Pointer Get()
     {
-        size_t newPeakUsingCount = 0;
-
-        {
-            // Check whether pool is empty.
-            std::lock_guard<std::mutex> lock(poolLock_);
-            ++usingCount_;
-            if (!events_.empty()) {
-                auto event = std::move(events_.back());
-                events_.pop_back();
-                return InnerEvent::Pointer(event.release(), Drop);
-            }
-
-            // Update peak using events count.
-            if (usingCount_ >= nextPeakUsingCount_) {
-                if (UINT32_MAX - nextPeakUsingCount_ > MAX_BUFFER_POOL_SIZE) {
-                    nextPeakUsingCount_ += MAX_BUFFER_POOL_SIZE;
-                } else {
-                    nextPeakUsingCount_ = UINT32_MAX;
-                }
-
-                newPeakUsingCount = usingCount_;
-            }
-        }
-
-        // Print the new peak using count of inner events
-        if (newPeakUsingCount > 0) {
-            HILOGD("Peak using count of inner events is up to %{public}zu", newPeakUsingCount);
-        }
-
         // Allocate new memory, while pool is empty.
         return InnerEvent::Pointer(new (std::nothrow) InnerEvent, Drop);
     }
@@ -114,52 +85,22 @@ private:
             return;
         }
 
-        auto destructor = [](InnerEvent *event) {
-            if (event != nullptr) {
-                delete event;
-            }
-        };
-
         // Clear content of the event
         event->ClearEvent();
-        // Put event into event buffer pool
-        GetInstance().Put(InnerEvent::Pointer(event, destructor));
-    }
-
-    void Put(InnerEvent::Pointer &&event)
-    {
-        // Check whether pool is full.
-        std::lock_guard<std::mutex> lock(poolLock_);
-        --usingCount_;
-        if (events_.size() < MAX_BUFFER_POOL_SIZE) {
-            events_.push_back(std::move(event));
+        if (event != nullptr) {
+            delete event;
         }
     }
-
-    static const size_t MAX_BUFFER_POOL_SIZE = 64;
-
-    std::mutex poolLock_;
-    std::vector<InnerEvent::Pointer> events_;
-
-    // Used to statistical peak value of count of using inner events.
-    size_t usingCount_ {0};
-    size_t nextPeakUsingCount_ {MAX_BUFFER_POOL_SIZE};
 };
 
-InnerEventPool::InnerEventPool() : poolLock_(), events_()
+InnerEventPool::InnerEventPool()
 {
-    HILOGD("enter");
-    // Reserve enough memory
-    std::lock_guard<std::mutex> lock(poolLock_);
-    events_.reserve(MAX_BUFFER_POOL_SIZE);
+    HILOGD("InnerEventPool enter");
 }
 
 InnerEventPool::~InnerEventPool()
 {
-    HILOGD("enter");
-    // Release all memory in the poll
-    std::lock_guard<std::mutex> lock(poolLock_);
-    events_.clear();
+    HILOGD("~InnerEventPool enter");
 }
 
 InnerEvent::Pointer InnerEvent::Get()
