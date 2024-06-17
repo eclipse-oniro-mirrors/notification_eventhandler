@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <cstdint>
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -30,6 +31,7 @@
 #include "event_queue_base.h"
 #include "event_runner.h"
 #include "inner_event.h"
+#include "event_queue_ffrt.h"
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -1936,4 +1938,58 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasPreferEvent002, TestSize.Level1)
      */
     bool hasPreferEvent = queue.HasPreferEvent(static_cast<int>(EventQueue::Priority::LOW));
     EXPECT_TRUE(hasPreferEvent);
+}
+
+/*
+ * @tc.name: TransferInnerPriority_001
+ * @tc.desc: TransferInnerPriority_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+
+    InnerEvent::Pointer event(nullptr, nullptr);
+    EventQueue::Priority priority;
+    EventInsertType insertType;
+    priority = EventQueue::Priority::VIP;
+    insertType = EventInsertType::AT_END;
+    queue.Insert(event, priority, insertType);
+    queue.InsertSyncEvent(event, priority, insertType);
+
+    queue.RemoveAll();
+
+    std::shared_ptr<EventHandler> owner = nullptr;
+    queue.Remove(owner);
+    queue.Remove(owner, 0);
+    queue.Remove(owner, 0, 0);
+    queue.Remove(owner, "test");
+
+    uint32_t eventId = 0;
+    int64_t param = 0;
+    bool re = queue.HasInnerEvent(owner, eventId);
+    EXPECT_EQ(re, false);
+    bool re2 = queue.HasInnerEvent(owner, param);
+    EXPECT_EQ(re2, false);
+
+    DumpTest dumper;
+    queue.Dump(dumper);
+    
+    std::string queueInfo;
+    queue.DumpQueueInfo(queueInfo);
+
+    bool re3 = queue.IsIdle();
+
+    bool re4 = queue.IsQueueEmpty();
+
+    std::string re5 = queue.DumpCurrentQueueSize();
+
+    int re6 = queue.HasPreferEvent(1);
+    EXPECT_EQ(re6, false);
+
+    queue.GetFfrtQueue();
 }
