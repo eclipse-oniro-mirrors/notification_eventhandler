@@ -140,22 +140,25 @@ namespace {
         std::shared_ptr<napi_value> eventData(value.release(), [this](napi_value* pData) {
             if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
                 napi_delete_serialization_data(deleteEnv, *pData);
+            } else {
+                HILOGW("EventData delete release failed.");
             }
         });
+        deleteEnv = nullptr;
         for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
             callbackSize--;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
             if (!eventDataWorker) {
                 HILOGE("new object failed");
                 if (callbackSize == 0) {
-                    HILOGW("EventData maybe release at process");
+                    HILOGW("EventData maybe release at process %{public}zu", callbackInfos.size());
                 }
                 continue;
             }
             if ((*it)->env == nullptr || (*it)->isDeleted) {
                 HILOGE("env is release");
                 if (callbackSize == 0) {
-                    HILOGW("EventData maybe release at nullptr");
+                    HILOGW("EventData maybe release at nullptr %{public}zu", callbackInfos.size());
                 }
                 continue;
             }
@@ -501,6 +504,13 @@ namespace {
         if (subscribe == emitterInstances.end()) {
             EH_LOGW_LIMIT("JS_Emit has no callback");
             return false;
+        }
+        for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
+            if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+                it = subscribe->second.erase(it);
+                continue;
+            }
+            ++it;
         }
         if (subscribe->second.size() != 0) {
             return true;
