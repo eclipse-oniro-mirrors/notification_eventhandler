@@ -144,7 +144,6 @@ namespace {
                 HILOGW("EventData delete release failed.");
             }
         });
-        deleteEnv = nullptr;
         for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
             callbackSize--;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
@@ -720,7 +719,12 @@ namespace {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe != emitterInstances.end()) {
-            for (auto callbackInfo : subscribe->second) {
+            for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
+                if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+                    it = subscribe->second.erase(it);
+                    continue;
+                }
+                ++it;
                 ++cnt;
             }
         }
