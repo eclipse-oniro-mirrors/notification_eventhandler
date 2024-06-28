@@ -439,7 +439,7 @@ public:
 
         if (threadName.empty()) {
             // Generate a default name
-            threadName_ = "OS_EventRunner#";
+            threadName_ = "EventRunner#";
             threadName_ += std::to_string(idGenerator++);
         } else {
             threadName_ = threadName;
