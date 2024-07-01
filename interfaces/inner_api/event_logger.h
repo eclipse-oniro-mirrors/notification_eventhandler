@@ -26,7 +26,7 @@
 
 namespace OHOS {
 namespace AppExecFwk {
-inline constexpr uint32_t EH_LOG_DOMAIN = 0xD001200;
+inline constexpr uint32_t EH_LOG_DOMAIN = 0xD001201;
 #define EH_LOG_LIMIT_INTERVALS 10000 //ms
 } // namespace AppExecFwk
 } // namespace OHOS
