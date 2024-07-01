@@ -500,6 +500,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
 
 void EventHandler::Dump(Dumper &dumper)
 {
+    HILOGI("EventHandler start dumper!");
     auto now = std::chrono::system_clock::now();
     dumper.Dump(dumper.GetTag() + " EventHandler dump begin curTime: " +
         InnerEvent::DumpTimeToString(now) + LINE_SEPARATOR);
