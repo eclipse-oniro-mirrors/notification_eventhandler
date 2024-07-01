@@ -25,7 +25,7 @@
 #undef LOG_TAG
 #endif
 
-#define LOG_DOMAIN 0xD001200
+#define LOG_DOMAIN 0xD001201
 #define LOG_TAG "Emitter"
 
 #define LOGI(...)                                           \
