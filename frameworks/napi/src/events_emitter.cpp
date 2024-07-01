@@ -130,7 +130,17 @@ namespace {
                 HILOGW("ProcessEvent has no callback");
                 return;
             }
-
+            for (auto it = iter->second.begin(); it != iter->second.end();) {
+                if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+                    it = iter->second.erase(it);
+                    continue;
+                }
+                ++it;
+            }
+            if (iter->second.size() <= 0) {
+                HILOGW("ProcessEvent has no valid callback");
+                return;
+            }
             callbackInfos = iter->second;
         }
 
@@ -503,13 +513,6 @@ namespace {
         if (subscribe == emitterInstances.end()) {
             EH_LOGW_LIMIT("JS_Emit has no callback");
             return false;
-        }
-        for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
-            if ((*it)->isDeleted == true || (*it)->env == nullptr) {
-                it = subscribe->second.erase(it);
-                continue;
-            }
-            ++it;
         }
         if (subscribe->second.size() != 0) {
             return true;
