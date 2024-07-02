@@ -23,6 +23,7 @@
 #include "event_handler.h"
 #include "event_handler_utils.h"
 #include "event_logger.h"
+#include "inner_event.h"
 #include "none_io_waiter.h"
 
 namespace OHOS {
@@ -437,6 +438,7 @@ std::string EventQueueBase::DumpCurrentRunning()
             if (currentRunningEvent_.param_ != 0) {
                 content.append(", param = " + std::to_string(currentRunningEvent_.param_));
             }
+            content.append(", caller = " + currentRunningEvent_.callerInfo_);
         } else {
             content.append("No handler");
         }
@@ -631,6 +633,7 @@ CurrentRunningEvent::CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent:
     sendTime_ = event->GetSendTime();
     handleTime_ = event->GetHandleTime();
     param_ = event->GetParam();
+    callerInfo_ = (event->GetCaller()).ToString();
     if (event->HasTask()) {
         hasTask_ = true;
         taskName_ = event->GetTaskName();

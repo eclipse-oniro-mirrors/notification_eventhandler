@@ -38,6 +38,7 @@ struct CurrentRunningEvent {
     int64_t param_{0};
     bool hasTask_{false};
     std::string taskName_;
+    std::string callerInfo_;
     InnerEvent::EventId innerEventId_ = 0u;
     CurrentRunningEvent();
     CurrentRunningEvent(InnerEvent::TimePoint time, InnerEvent::Pointer &event);
