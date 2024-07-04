@@ -27,7 +27,7 @@ class EventHandlerImpl : public EventHandler {
 public:
     explicit EventHandlerImpl(const std::shared_ptr<EventRunner>& runner);
     static std::shared_ptr<EventHandlerImpl> GetEventHandler();
-    ~EventHandlerImpl();
+    ~EventHandlerImpl() override;
     void ProcessEvent(const InnerEvent::Pointer& event) override;
 };
 }
