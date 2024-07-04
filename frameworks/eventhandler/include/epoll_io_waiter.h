@@ -58,7 +58,7 @@ public:
     void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
         EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener);
     void EraseFileDescriptorMap(int32_t fileDescriptor);
-    std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
+    std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor) override;
 private:
     void DrainAwakenPipe() const;
 

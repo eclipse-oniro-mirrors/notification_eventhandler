@@ -27,7 +27,7 @@ namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
-class EpollIoWaiter;
+class DeamonIoWaiter;
 
 struct CurrentRunningEvent {
     InnerEvent::TimePoint beginTime_;
@@ -183,6 +183,7 @@ public:
 
     std::string DumpCurrentQueueSize() override;
 
+    PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;

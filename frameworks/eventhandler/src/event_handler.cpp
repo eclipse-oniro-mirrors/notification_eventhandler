@@ -568,6 +568,15 @@ bool EventHandler::HasPreferEvent(int basePrio)
     return eventRunner_->GetEventQueue()->HasPreferEvent(basePrio);
 }
 
+PendingTaskInfo EventHandler::QueryPendingTaskInfo(int32_t fileDescriptor)
+{
+    if (!eventRunner_) {
+        HILOGE("QueryPendingTaskInfo event runner uninitialized!");
+        return PendingTaskInfo();
+    }
+    return eventRunner_->GetEventQueue()->QueryPendingTaskInfo(fileDescriptor);
+}
+
 extern "C" void* GetMainEventHandlerForFFRT()
 {
     HILOGD("GetMainEventHandlerForFFRT enter");

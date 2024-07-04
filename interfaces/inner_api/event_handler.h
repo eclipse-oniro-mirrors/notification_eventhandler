@@ -44,6 +44,10 @@ struct TaskOptions {
         : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}
 };
 
+struct PendingTaskInfo {
+    int32_t MaxPendingTime = 0;
+    int32_t taskCount = 0;
+};
 class EventHandler : public std::enable_shared_from_this<EventHandler> {
 public:
     using CallbackTimeout = std::function<void()>;
@@ -1048,6 +1052,11 @@ public:
     {
         return handlerId_;
     }
+
+    /**
+     * Get pending task info
+     */
+    PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor);
 
 protected:
     /**

@@ -379,6 +379,12 @@ bool EventQueueFFRT::HasPreferEvent(int basePrio)
     return false;
 }
 
+PendingTaskInfo EventQueueFFRT::QueryPendingTaskInfo(int32_t fileDescriptor)
+{
+    HILOGW("FFRT queue is not support.");
+    return PendingTaskInfo();
+}
+
 void* EventQueueFFRT::GetFfrtQueue()
 {
     if (ffrtQueue_) {

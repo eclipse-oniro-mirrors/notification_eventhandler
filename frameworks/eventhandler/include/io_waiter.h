@@ -99,6 +99,8 @@ public:
      * @param callback Callback function to handle events from file descriptors.
      */
     virtual void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) = 0;
+
+    virtual std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor) { return nullptr; }
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
