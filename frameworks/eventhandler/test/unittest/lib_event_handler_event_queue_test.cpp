@@ -770,6 +770,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_002, TestSize.Level1)
 {
     EventQueueBase queue;
     auto event = queue.GetEvent();
+    EXPECT_EQ(nullptr, event);
     queue.PushHistoryQueueBeforeDistribute(event);
 }
 
@@ -792,7 +793,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_003, TestSize.Level1)
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
 {
     EventQueueBase queue;
-    queue.GetFfrtQueue();
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_NE(nullptr, ffrt);
 }
 
 /*
@@ -804,6 +806,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_005, TestSize.Level1)
 {
     EventQueueBase queue;
     auto event = queue.GetEvent();
+    EXPECT_EQ(nullptr, event);
     queue.InsertSyncEvent(event);
 }
 
