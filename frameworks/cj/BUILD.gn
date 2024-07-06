@@ -30,14 +30,14 @@ ohos_shared_library("cj_emitter_ffi") {
     "${inner_api_path}",
   ]
 
-  if (!ohos_indep_compiler_enable && !build_ohos_sdk) {
-    deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
+  external_deps = [ "napi:cj_bind_ffi" ]
 
-    external_deps = [
+  if (!ohos_indep_compiler_enable && !build_ohos_sdk) {
+    external_deps += [
       "hilog:libhilog",
-      "napi:cj_bind_ffi",
       "napi:cj_bind_native",
     ]
+    deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
     sources = [
       "src/emitter.cpp",

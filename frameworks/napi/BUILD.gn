@@ -53,6 +53,7 @@ if (is_arkui_x) {
     deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
     external_deps = [
+      "c_utils:utils",
       "hilog:libhilog",
       "napi:ace_napi",
     ]
