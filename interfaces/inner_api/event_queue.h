@@ -31,6 +31,7 @@ namespace AppExecFwk {
 class IoWaiter;
 class EventHandler;
 class DeamonIoWaiter;
+struct PendingTaskInfo;
 
 enum class EventInsertType: uint32_t {
     // Insert event at end
@@ -262,6 +263,11 @@ public:
         (void)priority;
         (void)insertType;
     }
+
+    /**
+     * Get pending task info
+     */
+    virtual PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) = 0;
 private:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,

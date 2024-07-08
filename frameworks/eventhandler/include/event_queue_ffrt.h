@@ -146,6 +146,7 @@ public:
     void InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END) override;
 
+    PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
 private:
     void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);

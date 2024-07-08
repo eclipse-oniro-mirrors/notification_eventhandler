@@ -20,6 +20,7 @@
 #include <iterator>
 #include <mutex>
 
+#include "deamon_io_waiter.h"
 #include "event_handler.h"
 #include "event_handler_utils.h"
 #include "event_logger.h"
@@ -618,6 +619,44 @@ bool EventQueueBase::HasPreferEvent(int basePrio)
         }
     }
     return false;
+}
+
+PendingTaskInfo EventQueueBase::QueryPendingTaskInfo(int32_t fileDescriptor)
+{
+    PendingTaskInfo pendingTaskInfo;
+    std::shared_ptr<FileDescriptorInfo> fileDescriptorInfo = nullptr;
+    if (useDeamonIoWaiter_) {
+        fileDescriptorInfo = DeamonIoWaiter::GetInstance().GetFileDescriptorMap(fileDescriptor);
+    } else if (ioWaiter_) {
+        fileDescriptorInfo = ioWaiter_->GetFileDescriptorMap(fileDescriptor);
+    }
+    if (fileDescriptorInfo == nullptr) {
+        HILOGW("QueryPendingTaskInfo fileDescriptorInfo is unavailable.");
+        return pendingTaskInfo;
+    }
+
+    std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        HILOGW("QueryPendingTaskInfo event queue is unavailable.");
+        return pendingTaskInfo;
+    }
+
+    auto now = InnerEvent::Clock::now();
+    for (auto it = subEventQueues_[0].queue.begin(); it != subEventQueues_[0].queue.end(); it++) {
+        if ((*it)->GetTaskName() == fileDescriptorInfo->taskName_) {
+            pendingTaskInfo.taskCount++;
+            InnerEvent::TimePoint handlerTime = (*it)->GetHandleTime();
+            if (handlerTime >= now) {
+                continue;
+            }
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - handlerTime).count();
+            if (duration > pendingTaskInfo.MaxPendingTime) {
+                pendingTaskInfo.MaxPendingTime = duration;
+            }
+        }
+    }
+    EH_LOGI_LIMIT("Pend task %{public}d %{public}d", pendingTaskInfo.taskCount, pendingTaskInfo.MaxPendingTime);
+    return PendingTaskInfo();
 }
 
 CurrentRunningEvent::CurrentRunningEvent()
