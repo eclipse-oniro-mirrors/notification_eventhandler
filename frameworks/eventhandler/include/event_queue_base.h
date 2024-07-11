@@ -35,6 +35,7 @@ struct CurrentRunningEvent {
     uint64_t senderKernelThreadId_{0};
     InnerEvent::TimePoint sendTime_;
     InnerEvent::TimePoint handleTime_;
+    InnerEvent::TimePoint triggerTime_;
     int64_t param_{0};
     bool hasTask_{false};
     std::string taskName_;

@@ -431,6 +431,7 @@ std::string EventQueueBase::DumpCurrentRunning()
             content.append("send thread = " + std::to_string(currentRunningEvent_.senderKernelThreadId_));
             content.append(", send time = " + InnerEvent::DumpTimeToString(currentRunningEvent_.sendTime_));
             content.append(", handle time = " + InnerEvent::DumpTimeToString(currentRunningEvent_.handleTime_));
+            content.append(", trigger time = " + InnerEvent::DumpTimeToString(currentRunningEvent_.triggerTime_));
             if (currentRunningEvent_.hasTask_) {
                 content.append(", task name = " + currentRunningEvent_.taskName_);
             } else {
@@ -564,6 +565,8 @@ void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer 
     historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
     historyEvents_[historyEventIndex_].triggerTime = InnerEvent::Clock::now();
     historyEvents_[historyEventIndex_].priority = event->GetEventPriority();
+    historyEvents_[historyEventIndex_].completeTime = InnerEvent::TimePoint::max();
+    currentRunningEvent_.triggerTime_ = InnerEvent::Clock::now();
 
     if (event->HasTask()) {
         historyEvents_[historyEventIndex_].hasTask = true;
@@ -583,14 +586,22 @@ void EventQueueBase::PushHistoryQueueAfterDistribute()
 std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
 {
     std::string content;
-
+    std::vector<std::string> prioritys = {"VIP", "Immediate", "High", "Low"};
     content.append("Event { ");
     content.append("send thread = " + std::to_string(historyEvent.senderKernelThreadId));
     content.append(", send time = " + InnerEvent::DumpTimeToString(historyEvent.sendTime));
     content.append(", handle time = " + InnerEvent::DumpTimeToString(historyEvent.handleTime));
     content.append(", trigger time = " + InnerEvent::DumpTimeToString(historyEvent.triggerTime));
-    content.append(", completeTime time = " + InnerEvent::DumpTimeToString(historyEvent.completeTime));
-    content.append(", prio = " + std::to_string(historyEvent.priority));
+    if (historyEvent.completeTime == InnerEvent::TimePoint::max()) {
+        content.append(", completeTime time = ");
+    } else {
+        content.append(", completeTime time = " + InnerEvent::DumpTimeToString(historyEvent.completeTime));
+    }
+    if (historyEvent.priority >= 0 && historyEvent.priority < prioritys.size()) {
+        content.append(", priority = " + prioritys[historyEvent.priority]);
+    } else {
+        content.append(", priority = ");
+    }
 
     if (historyEvent.hasTask) {
         content.append(", task name = " + historyEvent.taskName);

@@ -169,6 +169,7 @@ namespace {
                 if (callbackSize == 0) {
                     HILOGW("EventData maybe release at nullptr %{public}zu", callbackInfos.size());
                 }
+                delete eventDataWorker;
                 continue;
             }
             deleteEnv = (*it)->env;
