@@ -260,8 +260,6 @@ namespace {
         napi_env env, napi_value argv, napi_valuetype eventValueType, InnerEvent::EventId &eventId)
     {
         if (eventValueType == napi_string) {
-            size_t valueStrBufLength = 0;
-            napi_get_value_string_utf8(env, argv, nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
             auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
             size_t valueStrLength = 0;
             napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
@@ -396,8 +394,6 @@ namespace {
         napi_env env, napi_value argv, napi_valuetype eventValueType, InnerEvent::EventId &eventId)
     {
         if (eventValueType == napi_string) {
-            size_t valueStrBufLength = 0;
-            napi_get_value_string_utf8(env, argv, nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
             auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
             size_t valueStrLength = 0;
             napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
@@ -566,8 +562,6 @@ namespace {
     napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
     {
         InnerEvent::EventId eventId = 0u;
-        size_t valueStrBufLength = 0;
-        napi_get_value_string_utf8(env, argv[0], nullptr, NAPI_VALUE_STRING_LEN, &valueStrBufLength);
         auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
         size_t valueStrLength = 0;
         napi_get_value_string_utf8(env, argv[0], valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
