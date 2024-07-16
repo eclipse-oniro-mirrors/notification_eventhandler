@@ -64,15 +64,29 @@ inline ffrt_queue_t* TransferQueuePtr(std::shared_ptr<ffrt::queue> queue)
 
 EventQueueFFRT::EventQueueFFRT() : EventQueue()
 {
-    ffrtQueue_ = std::make_shared<ffrt::queue>(static_cast<ffrt::queue_type>(
-        ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "EventHandler_QUEUE");
+    // Destructed queue in the ffrt task needs to be switched to asynchronous to avoid parsing deadlocks
+    ffrtQueue_ = std::shared_ptr<ffrt::queue>(new ffrt::queue(static_cast<ffrt::queue_type>(
+        ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "EventHandler_QUEUE"), [](ffrt::queue* ptr) {
+        if (ffrt_this_task_get_id()) {
+            ffrt::submit([ptr]() { delete ptr; });
+        } else {
+            delete ptr;
+        }
+    });
     HILOGD("Event queue ffrt");
 }
 
 EventQueueFFRT::EventQueueFFRT(const std::shared_ptr<IoWaiter> &ioWaiter): EventQueue(ioWaiter)
 {
-    ffrtQueue_ = std::make_shared<ffrt::queue>(static_cast<ffrt::queue_type>(
-        ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "EventHandler_QUEUE");
+    // Destructed queue in the ffrt task needs to be switched to asynchronous to avoid parsing deadlocks
+    ffrtQueue_ = std::shared_ptr<ffrt::queue>(new ffrt::queue(static_cast<ffrt::queue_type>(
+        ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "EventHandler_QUEUE"), [](ffrt::queue* ptr) {
+        if (ffrt_this_task_get_id()) {
+            ffrt::submit([ptr]() { delete ptr; });
+        } else {
+            delete ptr;
+        }
+    });
     HILOGD("Event queue ffrt");
 }
 
