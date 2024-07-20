@@ -188,6 +188,12 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     auto spanId = event->GetOrCreateTraceId();
 
     if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+        event->SetSendTime(InnerEvent::Clock::now());
+        event->SetEventUniqueId();
+        event->SetHandleTime(InnerEvent::Clock::now());
+        event->SetOwnerId(handlerId_);
+        event->SetDelayTime(0);
+        event->SetOwner(shared_from_this());
         eventRunner_->GetEventQueue()->InsertSyncEvent(event, priority);
     } else {
         // Create waiter, used to block.
