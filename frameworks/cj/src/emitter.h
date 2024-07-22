@@ -21,9 +21,9 @@
 
 namespace OHOS::EventsEmitter {
 class CallbackImpl {
-    public:
+public:
     CallbackImpl(std::string name, std::function<void(CEventData)> callback);
-    
+
     std::string name;
     std::function<void(CEventData)> callback = nullptr;
 };
@@ -37,7 +37,7 @@ struct CallbackInfo {
 };
 
 class Emitter {
-    public:
+public:
     static int32_t On(uint32_t eventId, CallbackImpl *callback);
 
     static int32_t On(char* eventId, CallbackImpl *callback);

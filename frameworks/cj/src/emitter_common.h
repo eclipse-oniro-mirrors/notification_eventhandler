@@ -19,6 +19,12 @@
 namespace OHOS::EventsEmitter {
 const int32_t MEMORY_ERROR = -1;
 
+struct CParameter {
+    int8_t valueType;
+    char *key;
+    void *value;
+};
+
 struct CEventData {
     void *parameters;
     int64_t size;
