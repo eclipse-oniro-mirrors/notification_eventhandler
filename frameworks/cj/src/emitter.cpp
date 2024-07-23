@@ -18,11 +18,11 @@
 #include <map>
 #include <memory>
 
-#include "emitter.h"
 #include "emitter_log.h"
 #include "inner_event.h"
 #include "event_handler_impl.h"
 #include "cj_fn_invoker.h"
+#include "emitter.h"
 
 using InnerEvent = OHOS::AppExecFwk::InnerEvent;
 using Priority = OHOS::AppExecFwk::EventQueue::Priority;
@@ -254,6 +254,19 @@ namespace OHOS::EventsEmitter {
         return GetListenerCountByEventId(id);
     }
 
+    void FreeCEventData(CEventData &eventData)
+    {
+        auto params = reinterpret_cast<CParameter *>(eventData.parameters);
+        for (int i = 0; i < eventData.size; i++) {
+            free(params[i].key);
+            free(params[i].value);
+            params[i].key = nullptr;
+            params[i].value = nullptr;
+        }
+        free(params);
+        params = nullptr;
+    }
+
     void ProcessCallback(const InnerEvent::Pointer& event, std::unordered_set<CallbackInfo *>& callbackInfos)
     {
         auto value = event->GetUniqueObject<CEventData>();
@@ -282,6 +295,7 @@ namespace OHOS::EventsEmitter {
             }
             callbackInfo->processed = true;
         }
+        FreeCEventData(eventData);
     }
 
     void EventHandlerImpl::ProcessEvent(const InnerEvent::Pointer& event)
