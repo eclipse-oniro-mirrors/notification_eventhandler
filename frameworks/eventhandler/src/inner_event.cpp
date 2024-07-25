@@ -169,7 +169,6 @@ void InnerEvent::ClearEvent()
 
     if (HasTask()) {
         // Clear members for task
-        taskCallback_ = nullptr;
         taskName_.clear();
         caller_.ClearCaller();
     } else {
