@@ -109,6 +109,10 @@ namespace {
             if (callbackInfoInner && !(callbackInfoInner->isDeleted)) {
                 HILOGD("eventDataInner address: %{public}p", &eventDataInner);
                 napi_open_handle_scope(callbackInfoInner->env, &scope);
+                if (scope == nullptr) {
+                    HILOGD("Scope is null");
+                    return;
+                }
                 ProcessCallback(eventDataInner);
                 napi_close_handle_scope(callbackInfoInner->env, scope);
             }
