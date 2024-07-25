@@ -862,7 +862,7 @@ bool EventRunner::IsAppMainThread()
 void EventRunner::SetMainLooperWatcher(const DistributeBeginTime begin,
     const DistributeEndTime end)
 {
-    if (begin != nullptr && end != nullptr) {
+    if ((begin != nullptr && end != nullptr) || (begin == nullptr && end == nullptr)) {
         distributeBegin_ = begin;
         distributeEnd_ = end;
     } else {
