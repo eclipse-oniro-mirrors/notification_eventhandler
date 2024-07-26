@@ -22,6 +22,7 @@
 #include "nocopyable.h"
 #include "thread_local_data.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 class EventInnerRunner {
@@ -32,30 +33,30 @@ public:
 
     static std::shared_ptr<EventRunner> GetCurrentEventRunner();
 
-    virtual void Run() = 0;
-    virtual void Stop() = 0;
+    LOCAL_API virtual void Run() = 0;
+    LOCAL_API virtual void Stop() = 0;
 
-    const std::shared_ptr<EventQueue> &GetEventQueue() const
+    LOCAL_API const std::shared_ptr<EventQueue> &GetEventQueue() const
     {
         return queue_;
     }
 
-    void SetLogger(const std::shared_ptr<Logger> &logger)
+    LOCAL_API void SetLogger(const std::shared_ptr<Logger> &logger)
     {
         logger_ = logger;
     }
 
-    const std::string &GetThreadName()
+    LOCAL_API const std::string &GetThreadName()
     {
         return threadName_;
     }
 
-    const std::thread::id &GetThreadId()
+    LOCAL_API const std::thread::id &GetThreadId()
     {
         return threadId_;
     }
 
-    uint64_t GetKernelThreadId()
+    LOCAL_API uint64_t GetKernelThreadId()
     {
         return kernelThreadId_;
     }

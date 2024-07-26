@@ -22,6 +22,7 @@
 #include "io_waiter.h"
 #include "nocopyable.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 // Io waiter which does not support listening file descriptor.
@@ -31,12 +32,12 @@ public:
     ~NoneIoWaiter() final;
     DISALLOW_COPY_AND_MOVE(NoneIoWaiter);
 
-    bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
+    LOCAL_API bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
 
-    void NotifyOne() final;
-    void NotifyAll() final;
+    LOCAL_API void NotifyOne() final;
+    LOCAL_API void NotifyAll() final;
 
-    bool SupportListeningFileDescriptor() const final;
+    LOCAL_API bool SupportListeningFileDescriptor() const final;
 
     bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) final;

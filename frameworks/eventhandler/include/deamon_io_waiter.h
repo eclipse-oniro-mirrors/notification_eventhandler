@@ -26,6 +26,7 @@
 #include "event_queue.h"
 #include "file_descriptor_listener.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 class EventHandler;
@@ -51,19 +52,19 @@ public:
     void StartEpollIoWaiter();
     bool SupportListeningFileDescriptor() const;
 
-    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+    LOCAL_API bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
-    void RemoveFileDescriptor(int32_t fileDescriptor);
+    LOCAL_API void RemoveFileDescriptor(int32_t fileDescriptor);
 
-    void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
+    LOCAL_API void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
         EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener);
-    void EraseFileDescriptorMap(int32_t fileDescriptor);
-    std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
-    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
+    LOCAL_API void EraseFileDescriptorMap(int32_t fileDescriptor);
+    LOCAL_API std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
+    LOCAL_API void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
 private:
-    void EpollWaitFor();
-    void DrainAwakenPipe() const;
-    void HandleEpollEvents(struct epoll_event *epollEvents, int32_t eventsCount);
+    LOCAL_API void EpollWaitFor();
+    LOCAL_API void DrainAwakenPipe() const;
+    LOCAL_API void HandleEpollEvents(struct epoll_event *epollEvents, int32_t eventsCount);
 
     // File descriptor for epoll.
     int32_t epollFd_{-1};

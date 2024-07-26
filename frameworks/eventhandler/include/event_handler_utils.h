@@ -24,6 +24,7 @@
 #include "hitrace/trace.h"
 #include "inner_event.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 inline const int64_t NANOSECONDS_PER_ONE_MILLISECOND = 1000000;
@@ -32,7 +33,7 @@ inline const int32_t INFINITE_TIMEOUT = -1;
 inline const uint8_t MAX_ERRORMSG_LEN = 128;
 
 // Help to convert time point into delay time from now.
-static inline int64_t TimePointToTimeOut(const InnerEvent::TimePoint &when)
+LOCAL_API static inline int64_t TimePointToTimeOut(const InnerEvent::TimePoint &when)
 {
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     if (when <= now) {
@@ -43,7 +44,7 @@ static inline int64_t TimePointToTimeOut(const InnerEvent::TimePoint &when)
     return std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
 }
 
-static inline int32_t NanosecondsToTimeout(int64_t nanoseconds)
+LOCAL_API static inline int32_t NanosecondsToTimeout(int64_t nanoseconds)
 {
     if (nanoseconds < 0) {
         return INFINITE_TIMEOUT;
@@ -59,7 +60,7 @@ static inline int32_t NanosecondsToTimeout(int64_t nanoseconds)
 
 using HiTraceChain = OHOS::HiviewDFX::HiTraceChain;
 
-static inline bool AllowHiTraceOutPut(const std::shared_ptr<HiTraceId>& traceId, bool isSyncEvent)
+LOCAL_API static inline bool AllowHiTraceOutPut(const std::shared_ptr<HiTraceId>& traceId, bool isSyncEvent)
 {
     if ((!traceId) || (!traceId->IsValid())) {
         return false;
@@ -70,7 +71,7 @@ static inline bool AllowHiTraceOutPut(const std::shared_ptr<HiTraceId>& traceId,
     return true;
 }
 
-static inline void HiTracePointerOutPutEventId(const std::shared_ptr<HiTraceId> &spanId, const char *action,
+LOCAL_API static inline void HiTracePointerOutPutEventId(const std::shared_ptr<HiTraceId> &spanId, const char *action,
     HiTraceTracepointType type, const InnerEvent::EventId &innerEventId)
 {
     if (spanId == nullptr || action == nullptr) {
@@ -84,7 +85,7 @@ static inline void HiTracePointerOutPutEventId(const std::shared_ptr<HiTraceId> 
     }
 }
 
-static inline void HiTracePointerOutPut(const std::shared_ptr<HiTraceId>& spanId,
+LOCAL_API static inline void HiTracePointerOutPut(const std::shared_ptr<HiTraceId>& spanId,
     const InnerEvent::Pointer& event, const char* action, HiTraceTracepointType type)
 {
     if (!event->HasTask()) {
@@ -97,13 +98,13 @@ static inline void HiTracePointerOutPut(const std::shared_ptr<HiTraceId>& spanId
     }
 }
 
-static inline void GetLastErr(char *errmsg, size_t size = MAX_ERRORMSG_LEN)
+LOCAL_API static inline void GetLastErr(char *errmsg, size_t size = MAX_ERRORMSG_LEN)
 {
     size = size > MAX_ERRORMSG_LEN ? MAX_ERRORMSG_LEN : size;
     strerror_r(errno, errmsg, size);
 }
 
-static inline int64_t GetTimeStamp()
+LOCAL_API static inline int64_t GetTimeStamp()
 {
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     auto epoch = now.time_since_epoch();

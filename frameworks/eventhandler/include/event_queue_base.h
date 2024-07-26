@@ -23,6 +23,7 @@
 
 #include "event_queue.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 class IoWaiter;
@@ -74,7 +75,7 @@ public:
     /**
      * Remove all events.
      */
-    void RemoveAll() override;
+    LOCAL_API void RemoveAll() override;
 
     /**
      * Remove events with specified requirements.
@@ -176,15 +177,15 @@ public:
      */
     bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param) override;
 
-    void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) override;
+    LOCAL_API void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) override;
 
-    void PushHistoryQueueAfterDistribute() override;
+    LOCAL_API void PushHistoryQueueAfterDistribute() override;
 
-    bool HasPreferEvent(int basePrio) override;
+    LOCAL_API bool HasPreferEvent(int basePrio) override;
 
-    std::string DumpCurrentQueueSize() override;
+    LOCAL_API std::string DumpCurrentQueueSize() override;
 
-    PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
+    LOCAL_API PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
@@ -216,15 +217,16 @@ private:
         uint32_t maxHandledEventsCount{DEFAULT_MAX_HANDLED_EVENT_COUNT};
     };
 
-    void Remove(const RemoveFilter &filter);
-    void RemoveOrphan(const RemoveFilter &filter);
-    bool HasInnerEvent(const HasFilter &filter);
-    InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now, InnerEvent::TimePoint &nextWakeUpTime);
-    InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
-    std::string HistoryQueueDump(const HistoryEvent &historyEvent);
-    std::string DumpCurrentRunning();
-    void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
-    void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
+    LOCAL_API void Remove(const RemoveFilter &filter);
+    LOCAL_API void RemoveOrphan(const RemoveFilter &filter);
+    LOCAL_API bool HasInnerEvent(const HasFilter &filter);
+    LOCAL_API InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now,
+        InnerEvent::TimePoint &nextWakeUpTime);
+    LOCAL_API InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
+    LOCAL_API std::string HistoryQueueDump(const HistoryEvent &historyEvent);
+    LOCAL_API std::string DumpCurrentRunning();
+    LOCAL_API void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
+    LOCAL_API void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
 
     // Sub event queues for different priority.
     std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> subEventQueues_;
