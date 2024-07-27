@@ -25,6 +25,7 @@
 
 #include "nocopyable.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 
@@ -57,24 +58,24 @@ public:
      * @param nanoseconds Nanoseconds for time out, negative value indicate waiting forever.
      * @return True if succeeded.
      */
-    virtual bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) = 0;
+    LOCAL_API virtual bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) = 0;
 
     /**
      * Unblocks one of the waiting threads.
      */
-    virtual void NotifyOne() = 0;
+    LOCAL_API virtual void NotifyOne() = 0;
 
     /**
      * Unblocks all of the waiting threads.
      */
-    virtual void NotifyAll() = 0;
+    LOCAL_API virtual void NotifyAll() = 0;
 
     /**
      * Check whether this waiter support listening file descriptor.
      *
      * @return True if supported.
      */
-    virtual bool SupportListeningFileDescriptor() const = 0;
+    LOCAL_API virtual bool SupportListeningFileDescriptor() const = 0;
 
     /**
      * Add file descriptor.
@@ -83,7 +84,7 @@ public:
      * @param events Events from file descriptor, such as input, output.
      * @return True if succeeded.
      */
-    virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+    LOCAL_API virtual bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) = 0;
 
     /**
@@ -91,16 +92,17 @@ public:
      *
      * @param fileDescriptor File descriptor which need to remove.
      */
-    virtual void RemoveFileDescriptor(int32_t fileDescriptor) = 0;
+    LOCAL_API virtual void RemoveFileDescriptor(int32_t fileDescriptor) = 0;
 
     /**
      * Set callback to handle events from file descriptors, such as readable, writable and so on.
      *
      * @param callback Callback function to handle events from file descriptors.
      */
-    virtual void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) = 0;
+    LOCAL_API virtual void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) = 0;
 
-    virtual std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor) { return nullptr; }
+    LOCAL_API virtual std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor)
+        { return nullptr; }
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

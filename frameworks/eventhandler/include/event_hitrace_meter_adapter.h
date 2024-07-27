@@ -19,6 +19,7 @@
 #include <dlfcn.h>
 #include "inner_event.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 constexpr uint64_t HITRACE_TAG_NOTIFICATION = (1ULL << 40); // Notification module tag.
@@ -56,13 +57,13 @@ public:
     StartTraceType StartTrace = nullptr;
     FinishTraceType FinishTrace = nullptr;
 private:
-    void Load()
+    LOCAL_API void Load()
     {
         if (handle != nullptr) {
             HILOGD("%{public}s is already dlopened.", TRACE_LIB_PATH.c_str());
             return;
         }
- 
+
         handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
             HILOGE("dlopen %{public}s failed.", TRACE_LIB_PATH.c_str());
@@ -92,7 +93,7 @@ private:
     void* handle = nullptr;
 };
 
-static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
+LOCAL_API static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
 {
     if (TraceAdapter::Instance()->IsTagEnabled && TraceAdapter::Instance()->StartTrace) {
         if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
@@ -100,7 +101,7 @@ static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
         }
     }
 }
-static inline void FinishTraceAdapter()
+LOCAL_API static inline void FinishTraceAdapter()
 {
     if (TraceAdapter::Instance()->FinishTrace) {
         TraceAdapter::Instance()->FinishTrace(HITRACE_TAG_NOTIFICATION);

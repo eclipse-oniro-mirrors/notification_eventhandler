@@ -26,6 +26,7 @@
 #include "event_queue.h"
 #include "file_descriptor_listener.h"
 
+#define LOCAL_API __attribute__((visibility ("hidden")))
 namespace OHOS {
 namespace AppExecFwk {
 class EventHandler;
@@ -42,25 +43,25 @@ public:
      *
      * @return True if succeeded.
      */
-    bool Init();
+    LOCAL_API bool Init();
 
-    bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
+    LOCAL_API bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
 
-    void NotifyOne() final;
-    void NotifyAll() final;
+    LOCAL_API void NotifyOne() final;
+    LOCAL_API void NotifyAll() final;
     bool SupportListeningFileDescriptor() const final;
 
-    bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+    LOCAL_API bool AddFileDescriptor(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority) final;
     void RemoveFileDescriptor(int32_t fileDescriptor) final;
 
-    void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
-    void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
+    LOCAL_API void SetFileDescriptorEventCallback(const FileDescriptorEventCallback &callback) final;
+    LOCAL_API void InsertFileDescriptorMap(int32_t fileDescriptor, const std::string& taskName,
         EventQueue::Priority priority, const std::shared_ptr<FileDescriptorListener>& listener);
-    void EraseFileDescriptorMap(int32_t fileDescriptor);
-    std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor) override;
+    LOCAL_API void EraseFileDescriptorMap(int32_t fileDescriptor);
+    LOCAL_API std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor) override;
 private:
-    void DrainAwakenPipe() const;
+    LOCAL_API void DrainAwakenPipe() const;
 
     // File descriptor for epoll.
     int32_t epollFd_{-1};
