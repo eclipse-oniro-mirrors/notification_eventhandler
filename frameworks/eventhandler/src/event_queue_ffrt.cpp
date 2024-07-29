@@ -438,15 +438,21 @@ void EventQueueFFRT::InsertEvent(InnerEvent::Pointer &event, Priority priority, 
     }
 }
 
+// helper for move unique_ptr from lambda object to std::function object
+template<class F>
+auto MakeCopyableFunction(F&& f)
+{
+    using FType = std::decay_t<F>;
+    auto wrapper = std::make_shared<FType>(std::forward<F>(f));
+    return [wrapper]() { (*wrapper)(); };
+}
+
 void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
     const std::string &taskName)
 {
     uint64_t time = event->GetDelayTime();
     ffrt_queue_priority_t queuePriority = static_cast<ffrt_queue_priority_t>(TransferInnerPriority(priority));
-    auto pEvent = event.release();
-    auto pDeleter = event.get_deleter();
-    std::function<void()> task = [pEvent, pDeleter]() {
-        InnerEvent::Pointer ffrtEvent(pEvent, pDeleter);
+    std::function<void()> task = MakeCopyableFunction([ffrtEvent = std::move(event)]() {
         auto handler = new (std::nothrow) std::shared_ptr<EventHandler>(ffrtEvent->GetOwner());
         if (handler && (*handler)) {
             ffrt_queue_t* queue = reinterpret_cast<ffrt_queue_t*>(
@@ -460,8 +466,7 @@ void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority prior
             }
         }
         delete handler;
-        ffrtEvent.reset();
-    };
+    });
 
     if (syncWait) {
         ffrt::task_handle handle = ffrtQueue_->submit_h(task, ffrt::task_attr().name(taskName.c_str())
@@ -484,10 +489,7 @@ void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority pri
     ffrt_task_attr_set_delay(&attribute, time * MILLI_TO_MICRO);
     ffrt_task_attr_set_queue_priority(&attribute, queuePriority);
 
-    auto pEvent = event.release();
-    auto pDeleter = event.get_deleter();
-    std::function<void()> task = [pEvent, pDeleter]() {
-        InnerEvent::Pointer ffrtEvent(pEvent, pDeleter);
+    std::function<void()> task = MakeCopyableFunction([ffrtEvent = std::move(event)]() {
         auto handler = new (std::nothrow) std::shared_ptr<EventHandler>(ffrtEvent->GetOwner());
         if (handler && (*handler)) {
             ffrt_queue_t* queue = reinterpret_cast<ffrt_queue_t*>(
@@ -501,8 +503,7 @@ void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority pri
             }
         }
         delete handler;
-        ffrtEvent.reset();
-    };
+    });
 
     ffrt_queue_t* queue = TransferQueuePtr(ffrtQueue_);
     if (queue == nullptr) {
