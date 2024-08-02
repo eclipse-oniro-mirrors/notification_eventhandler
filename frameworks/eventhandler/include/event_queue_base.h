@@ -186,6 +186,27 @@ public:
     LOCAL_API std::string DumpCurrentQueueSize() override;
 
     LOCAL_API PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
+    /**
+     * execute callback
+     *
+     * @param nextExpiredTime next task execute.
+     */
+    void ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime);
+
+    /**
+     * clear current observer.
+     */
+    void ClearObserver();
+
+    /**
+     * get observer trace information
+     *
+     * @param stageName current stage name.
+     * @param observerName observer name.
+     *
+     * @return trace info
+     */
+    std::string getObserverTraceInfo(const std::string &stageName, const std::string &observerName);
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
