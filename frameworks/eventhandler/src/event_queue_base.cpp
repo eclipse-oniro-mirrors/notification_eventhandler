@@ -17,6 +17,7 @@
 #include "event_queue_base.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iterator>
 #include <mutex>
 
@@ -26,6 +27,7 @@
 #include "event_logger.h"
 #include "inner_event.h"
 #include "none_io_waiter.h"
+#include "event_hitrace_meter_adapter.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -33,6 +35,9 @@ namespace {
 
 DEFINE_EH_HILOG_LABEL("EventQueueBase");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
+constexpr int64_t GC_TIME_OUT = 500;
+constexpr std::string_view ARK_TS_GC = "ARKTS_GC";
+constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 // Help to insert events into the event queue sorted by handle time.
 void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
     EventInsertType insertType)
@@ -98,6 +103,7 @@ EventQueueBase::~EventQueueBase()
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
+    ClearObserver();
     EH_LOGI_LIMIT("EventQueueBase is unavailable hence");
 }
 
@@ -397,11 +403,68 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
         if (event) {
             return event;
         }
+        ExecuteObserverCallback(nextWakeUpTime);
         WaitUntilLocked(nextWakeUpTime, lock);
     }
 
     HILOGD("Break out");
     return InnerEvent::Pointer(nullptr, nullptr);
+}
+
+void EventQueueBase::ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime)
+{
+    if (observer_.notifyCb == nullptr) {
+        HILOGD("notifyCb is nullptr");
+        return;
+    }
+    auto start = std::chrono::high_resolution_clock::now();
+    StageInfo info;
+    if (observer_.stages == static_cast<int32_t>(EventRunnerStage::STAGE_BEFORE_WAITING)) {
+        //get timeout
+        auto cur = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        info.timeout = cur.time_since_epoch().count();
+        // get sleep time
+        int64_t nextTime = TimePointToTimeOut(nextExpiredTime);
+        info.sleepTime = NanosecondsToTimeout(nextTime);
+        HILOGD("ExecuteObserverCallback start, %{public}lld, %{public}d",
+            static_cast<long long>(info.timeout), info.sleepTime);
+        std::string traceInfo = getObserverTraceInfo(STAGE_BEFORE_WAITING.data(), ARK_TS_GC.data());
+        StartTraceAdapter(traceInfo);
+        (observer_.notifyCb)(EventRunnerStage::STAGE_BEFORE_WAITING, &info);
+        FinishTraceAdapter();
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+    int64_t consumer = duration.count();
+    if (consumer > GC_TIME_OUT) {
+        HILOGI("current gc task: %{public}lld", static_cast<long long>(consumer));
+    }
+    if (nextExpiredTime < InnerEvent::TimePoint::max()) {
+        HILOGD("time consumer: %{public}lld", static_cast<long long>(consumer));
+        nextExpiredTime = nextExpiredTime + std::chrono::milliseconds(consumer);
+    }
+}
+
+void EventQueueBase::ClearObserver()
+{
+    observer_.stages = static_cast<int32_t>(EventRunnerStage::STAGE_INVAILD);
+    observer_.notifyCb = nullptr;
+}
+
+std::string EventQueueBase::getObserverTraceInfo(const std::string &stageName, const std::string &observerName)
+{
+    std::string traceInfo;
+    traceInfo.append("Et-obs:");
+    if (stageName.empty()) {
+        traceInfo.append(" ");
+    } else {
+        traceInfo.append(stageName);
+    }
+    traceInfo.append(",");
+    if (!observerName.empty()) {
+        traceInfo.append(observerName);
+    }
+    return traceInfo;
 }
 
 InnerEvent::Pointer EventQueueBase::GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime)
