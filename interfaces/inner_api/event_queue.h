@@ -267,7 +267,7 @@ public:
      */
     virtual bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param) = 0;
 
-    virtual void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) {}
+    virtual void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) { (void)event; }
 
     virtual void PushHistoryQueueAfterDistribute() {}
 
