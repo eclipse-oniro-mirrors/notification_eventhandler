@@ -25,6 +25,7 @@
 #include "event_runner.h"
 #include "event_queue.h"
 #include "inner_event.h"
+#include <unordered_set>
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
 
@@ -33,12 +34,14 @@ namespace AppExecFwk {
 using Priority = EventQueue::Priority;
 static const int32_t ARGC_NUM = 2;
 static const int32_t NAPI_VALUE_STRING_LEN = 10240;
+struct AsyncCallbackInfo;
 class EventHandlerInstance : public EventHandler {
 public:
     EventHandlerInstance(const std::shared_ptr<EventRunner>& runner);
     static std::shared_ptr<EventHandlerInstance> GetInstance();
     ~EventHandlerInstance();
     void ProcessEvent(const InnerEvent::Pointer& event) override;
+    std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> GetAsyncCallbackInfo(const InnerEvent::EventId &eventId);
     napi_env deleteEnv = nullptr;
 };
 
