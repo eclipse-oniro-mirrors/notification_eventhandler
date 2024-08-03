@@ -1963,36 +1963,29 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Leve
     insertType = EventInsertType::AT_END;
     queue.Insert(event, priority, insertType);
     queue.InsertSyncEvent(event, priority, insertType);
-
     queue.RemoveAll();
-
     std::shared_ptr<EventHandler> owner = nullptr;
     queue.Remove(owner);
     queue.Remove(owner, 0);
     queue.Remove(owner, 0, 0);
     queue.Remove(owner, "test");
-
     uint32_t eventId = 0;
     int64_t param = 0;
     bool re = queue.HasInnerEvent(owner, eventId);
     EXPECT_EQ(re, false);
     bool re2 = queue.HasInnerEvent(owner, param);
     EXPECT_EQ(re2, false);
-
     DumpTest dumper;
     queue.Dump(dumper);
-    
     std::string queueInfo;
     queue.DumpQueueInfo(queueInfo);
-
     bool re3 = queue.IsIdle();
-
+    EXPECT_EQ(re3, false);
     bool re4 = queue.IsQueueEmpty();
-
+    EXPECT_EQ(re4, false);
     std::string re5 = queue.DumpCurrentQueueSize();
-
+    EXPECT_NE(re5, "test");
     int re6 = queue.HasPreferEvent(1);
     EXPECT_EQ(re6, false);
-
     queue.GetFfrtQueue();
 }
