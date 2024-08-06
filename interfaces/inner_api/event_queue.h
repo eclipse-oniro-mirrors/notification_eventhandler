@@ -55,7 +55,7 @@ enum class EventRunnerStage {
     // recover form sleeping
     STAGE_AFTER_WAITING = 1<<3,
     // invaild key
-    STAGE_INVAILD = -1,
+    STAGE_INVAILD = 0,
 };
 
 struct StageInfo {
@@ -75,7 +75,7 @@ struct EventRunnerObserver {
     EventRunnerObserverCallBack notifyCb;
     void ClearObserver()
     {
-        stages = static_cast<int32_t>(EventRunnerStage::STAGE_INVAILD);
+        stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD);
         notifyCb = nullptr;
     }
 };
@@ -350,7 +350,7 @@ protected:
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
 
-    EventRunnerObserver observer_ = {.stages = static_cast<int32_t>(EventRunnerStage::STAGE_INVAILD),
+    EventRunnerObserver observer_ = {.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD),
         .notifyCb = nullptr};
 };
 }  // namespace AppExecFwk
