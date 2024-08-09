@@ -88,6 +88,7 @@ extern "C" {
             return MEMORY_ERROR;
         }
         Emitter::Off(eventId, callback);
+        delete callback;
         return SUCCESS_CODE;
     }
 
@@ -98,6 +99,7 @@ extern "C" {
             return MEMORY_ERROR;
         }
         Emitter::Off(eventId, callback);
+        delete callback;
         return SUCCESS_CODE;
     }
 
