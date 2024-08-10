@@ -35,7 +35,7 @@ namespace {
 
 DEFINE_EH_HILOG_LABEL("EventQueueBase");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
-constexpr int64_t GC_TIME_OUT = 500;
+constexpr int64_t GC_TIME_OUT = 300;
 constexpr std::string_view ARK_TS_GC = "ARKTS_GC";
 constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 // Help to insert events into the event queue sorted by handle time.
@@ -419,7 +419,7 @@ void EventQueueBase::ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredT
     }
     auto start = std::chrono::high_resolution_clock::now();
     StageInfo info;
-    if (observer_.stages == static_cast<int32_t>(EventRunnerStage::STAGE_BEFORE_WAITING)) {
+    if (observer_.stages == static_cast<uint32_t>(EventRunnerStage::STAGE_BEFORE_WAITING)) {
         //get timeout
         auto cur = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
         info.timeout = cur.time_since_epoch().count();
@@ -447,7 +447,7 @@ void EventQueueBase::ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredT
 
 void EventQueueBase::ClearObserver()
 {
-    observer_.stages = static_cast<int32_t>(EventRunnerStage::STAGE_INVAILD);
+    observer_.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD);
     observer_.notifyCb = nullptr;
 }
 
