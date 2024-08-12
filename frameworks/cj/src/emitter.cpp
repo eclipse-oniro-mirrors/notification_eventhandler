@@ -80,7 +80,7 @@ namespace OHOS::EventsEmitter {
         eventHandler->SendEvent(event, 0, static_cast<Priority>(priority));
     }
 
-    CallbackInfo *SearchCallbackInfo(const InnerEvent::EventId &eventIdValue, CallbackImpl *callback)
+    CallbackInfo *SearchCallbackInfo(const InnerEvent::EventId &eventIdValue, const std::string &callbackName)
     {
         auto subscribe = g_emitterImpls.find(eventIdValue);
         if (subscribe == g_emitterImpls.end()) {
@@ -90,7 +90,7 @@ namespace OHOS::EventsEmitter {
             if (callbackInfo->isDeleted) {
                 continue;
             }
-            if (callbackInfo->callbackImpl->name == callback->name) {
+            if (callbackInfo->callbackImpl->name == callbackName) {
                 LOGD("Callback found.")
                 return callbackInfo;
             }
@@ -127,18 +127,23 @@ namespace OHOS::EventsEmitter {
         }
     }
 
-    int32_t OnOrOnce(InnerEvent::EventId eventId, CallbackImpl *callback, bool once)
+    int32_t OnOrOnce(InnerEvent::EventId eventId, CallbackImpl **callbackImpl, bool once)
     {
         OutPutEventIdLog(eventId);
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto callbackInfo = SearchCallbackInfo(eventId, callback);
+        auto callback = *callbackImpl;
+        auto callbackInfo = SearchCallbackInfo(eventId, callback->name);
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
+            delete callback;
+            *callbackImpl = nullptr;
             return SUCCESS;
         }
         callbackInfo = new (std::nothrow) CallbackInfo();
         if (!callbackInfo) {
             LOGE("new callbackInfo failed");
+            delete callback;
+            *callbackImpl = nullptr;
             return MEMORY_ERROR;
         }
         callbackInfo->callbackImpl = callback;
@@ -150,25 +155,25 @@ namespace OHOS::EventsEmitter {
     int32_t Emitter::On(uint32_t eventId, CallbackImpl *callback)
     {
         InnerEvent::EventId id = eventId;
-        return OnOrOnce(id, callback, false);
+        return OnOrOnce(id, &callback, false);
     }
 
     int32_t Emitter::On(char* eventId, CallbackImpl *callback)
     {
         InnerEvent::EventId id = std::string(eventId);
-        return OnOrOnce(id, callback, false);
+        return OnOrOnce(id, &callback, false);
     }
 
     int32_t Emitter::Once(uint32_t eventId, CallbackImpl *callback)
     {
         InnerEvent::EventId id = eventId;
-        return OnOrOnce(id, callback, true);
+        return OnOrOnce(id, &callback, true);
     }
 
     int32_t Emitter::Once(char* eventId, CallbackImpl *callback)
     {
         InnerEvent::EventId id = std::string(eventId);
-        return OnOrOnce(id, callback, true);
+        return OnOrOnce(id, &callback, true);
     }
 
     void Unsubscribe(InnerEvent::EventId eventId)
@@ -185,7 +190,7 @@ namespace OHOS::EventsEmitter {
     void Unsubscribe(InnerEvent::EventId eventId, CallbackImpl *callback)
     {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto callbackInfo = SearchCallbackInfo(eventId, callback);
+        auto callbackInfo = SearchCallbackInfo(eventId, callback->name);
         if (callbackInfo != nullptr) {
             callbackInfo->isDeleted = true;
         }
