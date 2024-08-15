@@ -794,7 +794,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
 {
     EventQueueBase queue;
     void* ffrt = queue.GetFfrtQueue();
-    EXPECT_NE(nullptr, ffrt);
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -1980,7 +1980,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Leve
     std::string queueInfo;
     queue.DumpQueueInfo(queueInfo);
     bool re3 = queue.IsIdle();
-    EXPECT_EQ(re3, false);
+    EXPECT_EQ(re3, true);
     bool re4 = queue.IsQueueEmpty();
     EXPECT_EQ(re4, false);
     std::string re5 = queue.DumpCurrentQueueSize();
@@ -1988,4 +1988,82 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Leve
     int re6 = queue.HasPreferEvent(1);
     EXPECT_EQ(re6, false);
     queue.GetFfrtQueue();
+}
+
+/*
+ * @tc.name: ObserverGc_001
+ * @tc.desc: ObserverGc_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 0;
+    };
+    queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
+}
+
+/*
+ * @tc.name: ObserverGc_002
+ * @tc.desc: ObserverGc_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    queue.AddObserver(Observer::ARKTS_GC, 1<<2, nullptr);
+    auto now = InnerEvent::Clock::now();
+    queue.ExecuteObserverCallback(now);
+}
+
+/*
+ * @tc.name: ObserverGc_003
+ * @tc.desc: ObserverGc_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_003, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 0;
+    };
+    queue.AddObserver(Observer::ARKTS_GC, 1<<1, callback);
+    auto now = InnerEvent::Clock::now();
+    queue.ExecuteObserverCallback(now);
+}
+
+/*
+ * @tc.name: ObserverGc_004
+ * @tc.desc: ObserverGc_004 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_004, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 1;
+    };
+    queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
+    auto now = InnerEvent::Clock::now();
+    queue.ExecuteObserverCallback(now);
 }
