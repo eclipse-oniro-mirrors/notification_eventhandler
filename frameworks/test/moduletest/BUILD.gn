@@ -35,8 +35,6 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
 
   configs = [ ":libeventhandler_module_test_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "c_utils:utils",
     "ffrt:libffrt",
@@ -60,8 +58,6 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
   ]
 
   configs = [ ":libeventhandler_module_test_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "c_utils:utils",
@@ -87,8 +83,6 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
 
   configs = [ ":libeventhandler_module_test_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "c_utils:utils",
     "ffrt:libffrt",
@@ -112,8 +106,6 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
   ]
 
   configs = [ ":libeventhandler_module_test_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "c_utils:utils",
@@ -139,8 +131,6 @@ ohos_moduletest("EventHandlerPressModuleTest") {
 
   configs = [ ":libeventhandler_module_test_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "c_utils:utils",
     "ffrt:libffrt",
@@ -165,8 +155,6 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
 
   configs = [ ":libeventhandler_module_test_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "c_utils:utils",
     "ffrt:libffrt",
@@ -190,8 +178,6 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
   ]
 
   configs = [ ":libeventhandler_module_test_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "c_utils:utils",

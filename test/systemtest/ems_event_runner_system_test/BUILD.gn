@@ -20,10 +20,10 @@ ohos_systemtest("EmsEventRunnerSystemTest") {
 
   sources = [ "ems_event_runner_system_test.cpp" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "googletest:gtest_main",
   ]
 }
 
