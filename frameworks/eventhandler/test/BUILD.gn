@@ -38,6 +38,7 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -63,6 +64,7 @@ ohos_unittest("LibEventHandlerCheckTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc += [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     cflags_cc += [ "-DHAS_HICHECKER_NATIVE_PART" ]
     external_deps += [ "hichecker:libhichecker" ]
@@ -88,6 +90,7 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -111,6 +114,8 @@ ohos_unittest("LibEventHandlerEventTest") {
     "hilog:libhilog",
     "hitrace:libhitracechain",
   ]
+
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -135,6 +140,7 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -159,6 +165,7 @@ ohos_unittest("LibEventHandlerTraceTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -183,6 +190,7 @@ ohos_unittest("LibEventHandlerInnerEventTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -207,6 +215,7 @@ ohos_unittest("LibEventHandlerTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }

@@ -44,6 +44,7 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -70,6 +71,7 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -96,6 +98,7 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -122,6 +125,7 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -148,6 +152,7 @@ ohos_moduletest("EventHandlerPressModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -174,6 +179,7 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
@@ -200,6 +206,7 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
     "hitrace:libhitracechain",
   ]
 
+  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
