@@ -733,6 +733,11 @@ PendingTaskInfo EventQueueBase::QueryPendingTaskInfo(int32_t fileDescriptor)
     return PendingTaskInfo();
 }
 
+void EventQueueBase::CancelAndWait()
+{
+    HILOGD("EventQueueBase CancelAndWait enter.");
+}
+
 CurrentRunningEvent::CurrentRunningEvent()
 {
     beginTime_ = InnerEvent::TimePoint::max();

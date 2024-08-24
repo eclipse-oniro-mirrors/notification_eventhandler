@@ -585,6 +585,19 @@ PendingTaskInfo EventHandler::QueryPendingTaskInfo(int32_t fileDescriptor)
     return eventRunner_->GetEventQueue()->QueryPendingTaskInfo(fileDescriptor);
 }
 
+void EventHandler::TaskCancelAndWait()
+{
+#ifdef FFRT_USAGE_ENABLE
+    if (!eventRunner_) {
+        HILOGE("CancelAndWait error,event runner is nullptr");
+        return;
+    }
+    if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
+        eventRunner_->GetEventQueue()->CancelAndWait();
+    }
+#endif
+}
+
 extern "C" void* GetMainEventHandlerForFFRT()
 {
     HILOGD("GetMainEventHandlerForFFRT enter");

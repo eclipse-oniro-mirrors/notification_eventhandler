@@ -321,6 +321,12 @@ public:
         observer_.notifyCb = callback;
         observer_.stages = stages;
     }
+
+    /**
+     * Cancel And Wait
+     */
+    virtual void CancelAndWait() = 0;
+    
 private:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,

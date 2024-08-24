@@ -207,6 +207,12 @@ public:
      * @return trace info
      */
     std::string getObserverTraceInfo(const std::string &stageName, const std::string &observerName);
+
+    /**
+     * Cancel And Wait.
+     */
+    LOCAL_API void CancelAndWait() override;
+
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;

@@ -399,6 +399,13 @@ PendingTaskInfo EventQueueFFRT::QueryPendingTaskInfo(int32_t fileDescriptor)
     return PendingTaskInfo();
 }
 
+void EventQueueFFRT::CancelAndWait()
+{
+    HILOGD("FFRT CancelAndWait enter.");
+    ffrt_queue_t* queue = TransferQueuePtr(ffrtQueue_);
+    ffrt_queue_cancel_and_wait(*queue);
+}
+
 void* EventQueueFFRT::GetFfrtQueue()
 {
     if (ffrtQueue_) {
