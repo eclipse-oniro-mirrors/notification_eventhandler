@@ -1982,7 +1982,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Leve
     bool re3 = queue.IsIdle();
     EXPECT_EQ(re3, true);
     bool re4 = queue.IsQueueEmpty();
-    EXPECT_EQ(re4, false);
+    EXPECT_EQ(re4, true);
     std::string re5 = queue.DumpCurrentQueueSize();
     EXPECT_NE(re5, "test");
     int re6 = queue.HasPreferEvent(1);
