@@ -27,12 +27,14 @@
 #endif // FFRT_USAGE_ENABLE
 #include "thread_local_data.h"
 #include "event_hitrace_meter_adapter.h"
+#include "ffrt_descriptor_listener.h"
 
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
-static constexpr int FFRT_TASK_REMOVE_SUCCESS = 0;
+static constexpr int FFRT_SUCCESS = 0;
+static constexpr int FFRT_ERROR = -1;
 static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
@@ -286,7 +288,7 @@ int EventHandler::RemoveTaskWithRet(const std::string &name)
     }
 
     bool ret = eventRunner_->GetEventQueue()->Remove(shared_from_this(), name);
-    return ret ? FFRT_TASK_REMOVE_SUCCESS : FFRT_TASK_REMOVE_FAIL;
+    return ret ? FFRT_SUCCESS : FFRT_TASK_REMOVE_FAIL;
 }
 
 ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
@@ -652,6 +654,41 @@ extern "C" void RemoveAllTaskForFFRT(void* handler)
     }
     std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
     (*ptr)->RemoveAllEvents();
+}
+
+extern "C" int AddFdListenerByFFRT(void* handler, uint32_t fd, uint32_t event, void* data, ffrt_poller_cb cb)
+{
+    if (handler == nullptr) {
+        HILOGW("AddFdListenerByFFRT execute fail, handler is nullptr");
+        return FFRT_ERROR;
+    }
+
+    auto listener = std::make_shared<FfrtDescriptorListener>(event, data, cb);
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    if ((*ptr) == nullptr) {
+        HILOGW("AddFdListenerByFFRT execute failed");
+        return FFRT_ERROR;
+    }
+    uint32_t innerEvent = FfrtDescriptorListener::ConvertEvents(event);
+    std::string taskName = "FFRT_FD_" + std::to_string(fd);
+    ErrCode result = (*ptr)->AddFileDescriptorListener(fd, innerEvent, listener, taskName);
+    return (result == ERR_OK) ? FFRT_SUCCESS : FFRT_ERROR;
+}
+
+extern "C" int RemoveFdListenerByFFRT(void* handler, uint32_t fd)
+{
+    if (handler == nullptr) {
+        HILOGW("RemoveFdListenerByFFRT execute fail, handler is nullptr");
+        return FFRT_ERROR;
+    }
+
+    std::shared_ptr<EventHandler>* ptr = reinterpret_cast<std::shared_ptr<EventHandler>*>(handler);
+    if ((*ptr) == nullptr) {
+        HILOGW("RemoveFdListenerByFFRT execute failed");
+        return FFRT_ERROR;
+    }
+    (*ptr)->RemoveFileDescriptorListener(fd);
+    return FFRT_SUCCESS;
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

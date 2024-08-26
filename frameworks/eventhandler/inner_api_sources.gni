@@ -19,6 +19,7 @@ inner_api_sources = [
   "${frameworks_path}/eventhandler/src/event_queue.cpp",
   "${frameworks_path}/eventhandler/src/event_queue_base.cpp",
   "${frameworks_path}/eventhandler/src/event_runner.cpp",
+  "${frameworks_path}/eventhandler/src/ffrt_descriptor_listener.cpp",
   "${frameworks_path}/eventhandler/src/file_descriptor_listener.cpp",
   "${frameworks_path}/eventhandler/src/inner_event.cpp",
   "${frameworks_path}/eventhandler/src/native_implement_eventhandler.cpp",
