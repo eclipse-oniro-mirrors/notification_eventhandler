@@ -148,6 +148,12 @@ public:
         EventInsertType insertType = EventInsertType::AT_END) override;
 
     LOCAL_API PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
+
+    /**
+     * Cancel And Wait.
+     */
+    LOCAL_API void CancelAndWait() override;
+    
 private:
     LOCAL_API void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);

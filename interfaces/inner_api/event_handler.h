@@ -1058,6 +1058,11 @@ public:
      */
     PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor);
 
+    /**
+     * queue_cancel_and_wait
+     */
+    void TaskCancelAndWait();
+    
 protected:
     /**
      * Process the event. Developers should override this method.
