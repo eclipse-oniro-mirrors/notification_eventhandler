@@ -428,8 +428,8 @@ void EventQueueBase::ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredT
         info.sleepTime = NanosecondsToTimeout(nextTime);
         HILOGD("ExecuteObserverCallback start, %{public}lld, %{public}d",
             static_cast<long long>(info.timeout), info.sleepTime);
-        std::string traceInfo = getObserverTraceInfo(STAGE_BEFORE_WAITING.data(), ARK_TS_GC.data());
-        StartTraceAdapter(traceInfo);
+        ObserverTrace obs(ARK_TS_GC.data(), STAGE_BEFORE_WAITING.data());
+        StartTraceObserver(obs);
         (observer_.notifyCb)(EventRunnerStage::STAGE_BEFORE_WAITING, &info);
         FinishTraceAdapter();
     }
@@ -449,22 +449,6 @@ void EventQueueBase::ClearObserver()
 {
     observer_.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD);
     observer_.notifyCb = nullptr;
-}
-
-std::string EventQueueBase::getObserverTraceInfo(const std::string &stageName, const std::string &observerName)
-{
-    std::string traceInfo;
-    traceInfo.append("Et-obs:");
-    if (stageName.empty()) {
-        traceInfo.append(" ");
-    } else {
-        traceInfo.append(stageName);
-    }
-    traceInfo.append(",");
-    if (!observerName.empty()) {
-        traceInfo.append(observerName);
-    }
-    return traceInfo;
 }
 
 InnerEvent::Pointer EventQueueBase::GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime)

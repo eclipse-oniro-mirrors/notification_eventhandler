@@ -454,7 +454,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         HILOGD("%{public}s", currentRunningInfo.c_str());
     }
 
-    StartTraceAdapter(event->TraceInfo());
+    StartTraceAdapter(event);
 
     auto spanId = event->GetTraceId();
     auto traceId = HiTraceChain::GetId();
