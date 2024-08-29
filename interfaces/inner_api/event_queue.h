@@ -80,6 +80,28 @@ struct EventRunnerObserver {
     }
 };
 
+struct ObserverTrace {
+    std::string source;
+    std::string stage;
+    ObserverTrace(std::string currentSource, std::string currentStage)
+        : source(currentSource), stage(currentStage) {}
+    std::string getTraceInfo()
+    {
+        std::string traceInfo;
+        traceInfo.append("Et-obs:");
+        if (stage.empty()) {
+            traceInfo.append(" ");
+        } else {
+            traceInfo.append(stage);
+        }
+        traceInfo.append(",");
+        if (!source.empty()) {
+            traceInfo.append(source);
+        }
+        return traceInfo;
+    }
+};
+
 class EventQueue {
 public:
     // Priority for the events

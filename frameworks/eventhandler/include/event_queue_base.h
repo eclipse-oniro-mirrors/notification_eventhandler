@@ -199,16 +199,6 @@ public:
     void ClearObserver();
 
     /**
-     * get observer trace information
-     *
-     * @param stageName current stage name.
-     * @param observerName observer name.
-     *
-     * @return trace info
-     */
-    std::string getObserverTraceInfo(const std::string &stageName, const std::string &observerName);
-
-    /**
      * Cancel And Wait.
      */
     LOCAL_API void CancelAndWait() override;

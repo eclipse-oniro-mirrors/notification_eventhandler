@@ -93,11 +93,19 @@ private:
     void* handle = nullptr;
 };
 
-LOCAL_API static inline void StartTraceAdapter(const std::string &traceInfo)
+LOCAL_API static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
 {
     if (TraceAdapter::Instance()->IsTagEnabled && TraceAdapter::Instance()->StartTrace) {
         if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
-            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, traceInfo, -1);
+            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, event->TraceInfo(), -1);
+        }
+    }
+}
+LOCAL_API static inline void StartTraceObserver(ObserverTrace &observer)
+{
+    if (TraceAdapter::Instance()->IsTagEnabled && TraceAdapter::Instance()->StartTrace) {
+        if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
+            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, observer.getTraceInfo(), -1);
         }
     }
 }
@@ -111,7 +119,10 @@ LOCAL_API static inline void FinishTraceAdapter()
 #else
 namespace OHOS {
 namespace AppExecFwk {
-static inline void StartTraceAdapter(const std::string &traceInfo)
+static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
+{
+}
+static inline void StartTraceObserver(ObserverTrace &observer)
 {
 }
 static inline void FinishTraceAdapter()
