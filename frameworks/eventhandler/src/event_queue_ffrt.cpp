@@ -402,7 +402,15 @@ PendingTaskInfo EventQueueFFRT::QueryPendingTaskInfo(int32_t fileDescriptor)
 void EventQueueFFRT::CancelAndWait()
 {
     HILOGD("FFRT CancelAndWait enter.");
+    if (!usable_.load()) {
+        HILOGW("CancelAndWait - EventQueue is unavailable.");
+        return;
+    }
     ffrt_queue_t* queue = TransferQueuePtr(ffrtQueue_);
+    if (queue == nullptr) {
+        HILOGW("CancelAndWait - queue is unavailable.");
+        return;
+    }
     ffrt_queue_cancel_and_wait(*queue);
 }
 
