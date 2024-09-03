@@ -794,7 +794,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
 {
     EventQueueBase queue;
     void* ffrt = queue.GetFfrtQueue();
-    EXPECT_NE(NULL, ffrt);
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
