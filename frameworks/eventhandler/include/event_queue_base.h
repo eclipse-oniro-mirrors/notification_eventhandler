@@ -191,7 +191,8 @@ public:
      *
      * @param nextExpiredTime next task execute.
      */
-    void ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime);
+    void TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime, EventRunnerStage stage);
+    int64_t ExecuteObserverCallback(ObserverTrace obsTrace, EventRunnerStage stage, StageInfo &Info);
 
     /**
      * clear current observer.

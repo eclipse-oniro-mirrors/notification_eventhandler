@@ -60,7 +60,7 @@ enum class EventRunnerStage {
 
 struct StageInfo {
     // STAGE_BEFORE_WAITING, timesteap
-    int64_t timeout;
+    int64_t timestamp;
     // STAGE_BEFORE_WAITING, milliseconds
     int32_t sleepTime;
     // STAGE_AFTER_WAITING
@@ -83,6 +83,7 @@ struct EventRunnerObserver {
 struct ObserverTrace {
     std::string source;
     std::string stage;
+    ObserverTrace() {};
     ObserverTrace(std::string currentSource, std::string currentStage)
         : source(currentSource), stage(currentStage) {}
     std::string getTraceInfo()

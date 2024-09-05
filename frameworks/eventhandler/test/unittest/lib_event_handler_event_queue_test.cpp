@@ -2023,7 +2023,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_002, TestSize.Level1)
     queue.Prepare();
     queue.AddObserver(Observer::ARKTS_GC, 1<<2, nullptr);
     auto now = InnerEvent::Clock::now();
-    queue.ExecuteObserverCallback(now);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
 }
 
 /*
@@ -2044,7 +2045,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_003, TestSize.Level1)
     };
     queue.AddObserver(Observer::ARKTS_GC, 1<<1, callback);
     auto now = InnerEvent::Clock::now();
-    queue.ExecuteObserverCallback(now);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
 }
 
 /*
@@ -2065,5 +2067,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_004, TestSize.Level1)
     };
     queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
     auto now = InnerEvent::Clock::now();
-    queue.ExecuteObserverCallback(now);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
 }
