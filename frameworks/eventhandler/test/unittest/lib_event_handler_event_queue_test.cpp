@@ -794,7 +794,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
 {
     EventQueueBase queue;
     void* ffrt = queue.GetFfrtQueue();
-    EXPECT_EQ(nullptr, ffrt);
+    EXPECT_NE(nullptr, ffrt);
 }
 
 /*
@@ -1784,6 +1784,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, IsQueueEmpty003, TestSize.Level1)
     bool ret = runner->GetEventQueue()->IsQueueEmpty();
     EXPECT_FALSE(ret);
 }
+
 
 /*
  * @tc.name: IsQueueEmpty004

@@ -227,7 +227,7 @@ public:
      */
     virtual bool HasInnerEvent(const std::shared_ptr<EventHandler> &owner, int64_t param) = 0;
 
-    virtual void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) {}
+    virtual void PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event) { (void)event; }
 
     virtual void PushHistoryQueueAfterDistribute() {}
 
@@ -276,9 +276,9 @@ private:
     bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
 protected:
-
     void RemoveInvalidFileDescriptor();
     void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
+    
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};

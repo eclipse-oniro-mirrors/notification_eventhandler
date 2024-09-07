@@ -122,30 +122,34 @@ namespace {
         data = nullptr;
     }
 
+    std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> EventHandlerInstance::GetAsyncCallbackInfo(
+        const InnerEvent::EventId &eventId)
+    {
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        auto iter = emitterInstances.find(eventId);
+        if (iter == emitterInstances.end()) {
+            std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
+            HILOGW("ProcessEvent has no callback");
+            return result;
+        }
+        for (auto it = iter->second.begin(); it != iter->second.end();) {
+            if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+                it = iter->second.erase(it);
+                continue;
+            }
+            ++it;
+        }
+        return iter->second;
+    }
+
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
         InnerEvent::EventId eventId = event->GetInnerEventIdEx();
         OutPutEventIdLog(eventId);
-        std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> callbackInfos;
-        {
-            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-            auto iter = emitterInstances.find(eventId);
-            if (iter == emitterInstances.end()) {
-                HILOGW("ProcessEvent has no callback");
-                return;
-            }
-            for (auto it = iter->second.begin(); it != iter->second.end();) {
-                if ((*it)->isDeleted == true || (*it)->env == nullptr) {
-                    it = iter->second.erase(it);
-                    continue;
-                }
-                ++it;
-            }
-            if (iter->second.size() <= 0) {
-                HILOGW("ProcessEvent has no valid callback");
-                return;
-            }
-            callbackInfos = iter->second;
+        auto callbackInfos = GetAsyncCallbackInfo(eventId);
+        if (callbackInfos.size() <= 0) {
+            HILOGW("ProcessEvent has no valid callback");
+            return;
         }
 
         size_t callbackSize = callbackInfos.size();
