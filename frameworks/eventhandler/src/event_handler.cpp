@@ -95,6 +95,11 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         return false;
     }
 
+    if (!eventRunner_) {
+        HILOGE("MUST Set event runner before sending events");
+        return false;
+    }
+
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetSenderKernelThreadId(getproctid());
@@ -114,10 +119,6 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
     }
     HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
-    if (!eventRunner_) {
-        HILOGE("MUST Set event runner before sending events");
-        return false;
-    }
     eventRunner_->GetEventQueue()->Insert(event, priority);
     return true;
 }
@@ -511,9 +512,9 @@ void EventHandler::Dump(Dumper &dumper)
     HILOGI("EventHandler start dumper!");
     auto now = std::chrono::system_clock::now();
     dumper.Dump(dumper.GetTag() + " EventHandler dump begin curTime: " +
-        InnerEvent::DumpTimeToString(now) + LINE_SEPARATOR);
+        InnerEvent::DumpTimeToString(now) + std::string(LINE_SEPARATOR));
     if (eventRunner_ == nullptr) {
-        dumper.Dump(dumper.GetTag() + " event runner uninitialized!" + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " event runner uninitialized!" + std::string(LINE_SEPARATOR));
     } else {
         eventRunner_->Dump(dumper);
     }

@@ -461,10 +461,10 @@ HWTEST_F(EventHandlerFdListenerModuleTest, fileDescriptordthread, TestSize.Level
     HILOGI("fileDescriptordthread start");
     CommonUtils::ThreadIdsReset();
     CommonUtils::EventRunCountReset();
-    std::thread thread_(AddFileDescriptorHelper);
+    std::thread thread(AddFileDescriptorHelper);
     AddFileDescriptorHelper();
-    if (thread_.joinable()) {
-        thread_.join();
+    if (thread.joinable()) {
+        thread.join();
     }
     EXPECT_EQ(CommonUtils::EventRunCount(), 2);
     std::vector<std::string> data = CommonUtils::GetThreads();
