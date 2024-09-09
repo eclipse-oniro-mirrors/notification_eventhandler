@@ -36,7 +36,6 @@ namespace {
 DEFINE_EH_HILOG_LABEL("EventQueueBase");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
 constexpr int64_t GC_TIME_OUT = 300;
-constexpr std::string_view ARK_TS_GC = "ARKTS_GC";
 constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
 // Help to insert events into the event queue sorted by handle time.
@@ -427,7 +426,7 @@ void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpir
     int64_t consumer = 0;
     StageInfo info;
     ObserverTrace obs;
-    obs.source = ARK_TS_GC.data();
+    obs.source = GetObserverTypeName(observer_.observer);
     switch (stage) {
         case EventRunnerStage::STAGE_BEFORE_WAITING:
             info.sleepTime = NanosecondsToTimeout(TimePointToTimeOut(nextExpiredTime));
@@ -463,6 +462,16 @@ int64_t EventQueueBase::ExecuteObserverCallback(ObserverTrace obsTrace, EventRun
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
     return duration.count();
+}
+
+std::string EventQueueBase::GetObserverTypeName(Observer observerType)
+{
+    switch (observerType) {
+        case Observer::ARKTS_GC:
+            return "ARKTS_GC";
+        default :
+            return "UNKNOWN_TYPE";
+    }
 }
 
 
