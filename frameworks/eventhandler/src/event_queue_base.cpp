@@ -38,6 +38,7 @@ constexpr uint32_t MAX_DUMP_SIZE = 500;
 constexpr int64_t GC_TIME_OUT = 300;
 constexpr std::string_view ARK_TS_GC = "ARKTS_GC";
 constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
+constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
 // Help to insert events into the event queue sorted by handle time.
 void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
     EventInsertType insertType)
@@ -403,47 +404,67 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
         if (event) {
             return event;
         }
-        ExecuteObserverCallback(nextWakeUpTime);
+        TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_BEFORE_WAITING);
         WaitUntilLocked(nextWakeUpTime, lock);
+        TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_AFTER_WAITING);
     }
 
     HILOGD("Break out");
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
-void EventQueueBase::ExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime)
+void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime, EventRunnerStage stage)
 {
+    uint32_t stageUint = static_cast<uint32_t>(stage);
+    if ((stageUint & observer_.stages) != stageUint) {
+        HILOGD("The observer does not subscribe to this type of notification");
+        return;
+    }
     if (observer_.notifyCb == nullptr) {
         HILOGD("notifyCb is nullptr");
         return;
     }
-    auto start = std::chrono::high_resolution_clock::now();
+    int64_t consumer = 0;
     StageInfo info;
-    if (observer_.stages == static_cast<uint32_t>(EventRunnerStage::STAGE_BEFORE_WAITING)) {
-        //get timeout
-        auto cur = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
-        info.timeout = cur.time_since_epoch().count();
-        // get sleep time
-        int64_t nextTime = TimePointToTimeOut(nextExpiredTime);
-        info.sleepTime = NanosecondsToTimeout(nextTime);
-        HILOGD("ExecuteObserverCallback start, %{public}lld, %{public}d",
-            static_cast<long long>(info.timeout), info.sleepTime);
-        ObserverTrace obs(ARK_TS_GC.data(), STAGE_BEFORE_WAITING.data());
-        StartTraceObserver(obs);
-        (observer_.notifyCb)(EventRunnerStage::STAGE_BEFORE_WAITING, &info);
-        FinishTraceAdapter();
+    ObserverTrace obs;
+    obs.source = ARK_TS_GC.data();
+    switch (stage) {
+        case EventRunnerStage::STAGE_BEFORE_WAITING:
+            info.sleepTime = NanosecondsToTimeout(TimePointToTimeOut(nextExpiredTime));
+            obs.stage = STAGE_BEFORE_WAITING.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            if (nextExpiredTime < InnerEvent::TimePoint::max()) {
+                HILOGD("time consumer: %{public}lld", static_cast<long long>(consumer));
+                nextExpiredTime = nextExpiredTime + std::chrono::milliseconds(consumer);
+            }
+            break;
+        case EventRunnerStage::STAGE_AFTER_WAITING:
+            obs.stage = STAGE_AFTER_WAITING.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            break;
+        default:
+            HILOGE("this branch is unreachable");
+            break;
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-    int64_t consumer = duration.count();
     if (consumer > GC_TIME_OUT) {
-        HILOGI("current gc task: %{public}lld", static_cast<long long>(consumer));
-    }
-    if (nextExpiredTime < InnerEvent::TimePoint::max()) {
-        HILOGD("time consumer: %{public}lld", static_cast<long long>(consumer));
-        nextExpiredTime = nextExpiredTime + std::chrono::milliseconds(consumer);
+        HILOGI("execute observer callback task consumer: %{public}lld, stage: %{public}u",
+            static_cast<long long>(consumer), stageUint);
     }
 }
+
+int64_t EventQueueBase::ExecuteObserverCallback(ObserverTrace obsTrace, EventRunnerStage stage, StageInfo &info)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    info.timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(start).time_since_epoch().count();
+
+    StartTraceObserver(obsTrace);
+    (observer_.notifyCb)(stage, &info);
+    FinishTraceAdapter();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+    return duration.count();
+}
+
 
 void EventQueueBase::ClearObserver()
 {
