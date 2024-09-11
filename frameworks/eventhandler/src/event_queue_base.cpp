@@ -243,7 +243,7 @@ bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const st
     return removed;
 }
 
-void EventQueueBase::Remove(const RemoveFilter &filter)
+void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_sanitize("cfi")))
 {
     HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
