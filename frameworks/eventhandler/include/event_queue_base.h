@@ -193,6 +193,7 @@ public:
      */
     void TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime, EventRunnerStage stage);
     int64_t ExecuteObserverCallback(ObserverTrace obsTrace, EventRunnerStage stage, StageInfo &Info);
+    std::string GetObserverTypeName(Observer observerType);
 
     /**
      * clear current observer.
