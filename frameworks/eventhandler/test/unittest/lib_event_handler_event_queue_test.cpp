@@ -759,6 +759,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_001, TestSize.Level1)
     EventQueueBase queue;
     const std::string handlerId = "handlerId";
     queue.RemoveOrphanByHandlerId(handlerId);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -783,6 +785,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_003, TestSize.Level1)
 {
     EventQueueBase queue;
     queue.PushHistoryQueueAfterDistribute();
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -2007,6 +2011,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_001, TestSize.Level1)
         return 0;
     };
     queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -2025,6 +2031,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_002, TestSize.Level1)
     auto now = InnerEvent::Clock::now();
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -2047,6 +2055,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_003, TestSize.Level1)
     auto now = InnerEvent::Clock::now();
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
@@ -2069,4 +2079,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_004, TestSize.Level1)
     auto now = InnerEvent::Clock::now();
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
     queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }

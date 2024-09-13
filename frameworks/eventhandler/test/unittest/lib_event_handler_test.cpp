@@ -69,6 +69,7 @@ void ExecFfrtNoParam(char* func)
     void* temp = GetTemp(func, handle);
     if (temp) {
         Ffrt ffrt = reinterpret_cast<Ffrt>(temp);
+        EXPECT_NE(nullptr, ffrt);
         (*ffrt)();
     }
     dlclose(handle);
@@ -148,6 +149,7 @@ HWTEST_F(LibEventHandlerTest, Ffrt005, TestSize.Level1)
     void* temp = GetTemp(str.data(), handle);
     if (temp) {
         RemoveTaskForFFRT ffrt = reinterpret_cast<RemoveTaskForFFRT>(temp);
+        EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr, "x");
     }
 }
@@ -164,6 +166,7 @@ HWTEST_F(LibEventHandlerTest, Ffrt006, TestSize.Level1)
     void* temp = GetTemp(str.data(), handle);
     if (temp) {
         RemoveAllTaskForFFRT ffrt = reinterpret_cast<RemoveAllTaskForFFRT>(temp);
+        EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr);
     }
 }
