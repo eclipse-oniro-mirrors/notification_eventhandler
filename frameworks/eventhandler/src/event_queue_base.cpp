@@ -17,6 +17,7 @@
 #include "event_queue_base.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iterator>
 #include <mutex>
 
@@ -26,6 +27,7 @@
 #include "event_logger.h"
 #include "inner_event.h"
 #include "none_io_waiter.h"
+#include "event_hitrace_meter_adapter.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -33,6 +35,9 @@ namespace {
 
 DEFINE_EH_HILOG_LABEL("EventQueueBase");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
+constexpr int64_t GC_TIME_OUT = 300;
+constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
+constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
 // Help to insert events into the event queue sorted by handle time.
 void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
     EventInsertType insertType)
@@ -98,6 +103,7 @@ EventQueueBase::~EventQueueBase()
     std::lock_guard<std::mutex> lock(queueLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
+    ClearObserver();
     EH_LOGI_LIMIT("EventQueueBase is unavailable hence");
 }
 
@@ -397,11 +403,82 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
         if (event) {
             return event;
         }
+        TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_BEFORE_WAITING);
         WaitUntilLocked(nextWakeUpTime, lock);
+        TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_AFTER_WAITING);
     }
 
     HILOGD("Break out");
     return InnerEvent::Pointer(nullptr, nullptr);
+}
+
+void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpiredTime, EventRunnerStage stage)
+{
+    uint32_t stageUint = static_cast<uint32_t>(stage);
+    if ((stageUint & observer_.stages) != stageUint) {
+        HILOGD("The observer does not subscribe to this type of notification");
+        return;
+    }
+    if (observer_.notifyCb == nullptr) {
+        HILOGD("notifyCb is nullptr");
+        return;
+    }
+    int64_t consumer = 0;
+    StageInfo info;
+    ObserverTrace obs;
+    obs.source = GetObserverTypeName(observer_.observer);
+    switch (stage) {
+        case EventRunnerStage::STAGE_BEFORE_WAITING:
+            info.sleepTime = NanosecondsToTimeout(TimePointToTimeOut(nextExpiredTime));
+            obs.stage = STAGE_BEFORE_WAITING.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            if (nextExpiredTime < InnerEvent::TimePoint::max()) {
+                HILOGD("time consumer: %{public}lld", static_cast<long long>(consumer));
+                nextExpiredTime = nextExpiredTime + std::chrono::milliseconds(consumer);
+            }
+            break;
+        case EventRunnerStage::STAGE_AFTER_WAITING:
+            obs.stage = STAGE_AFTER_WAITING.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            break;
+        default:
+            HILOGE("this branch is unreachable");
+            break;
+    }
+    if (consumer > GC_TIME_OUT) {
+        HILOGI("execute observer callback task consumer: %{public}lld, stage: %{public}u",
+            static_cast<long long>(consumer), stageUint);
+    }
+}
+
+int64_t EventQueueBase::ExecuteObserverCallback(ObserverTrace obsTrace, EventRunnerStage stage, StageInfo &info)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    info.timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(start).time_since_epoch().count();
+
+    StartTraceObserver(obsTrace);
+    (observer_.notifyCb)(stage, &info);
+    FinishTraceAdapter();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+    return duration.count();
+}
+
+std::string EventQueueBase::GetObserverTypeName(Observer observerType)
+{
+    switch (observerType) {
+        case Observer::ARKTS_GC:
+            return "ARKTS_GC";
+        default :
+            return "UNKNOWN_TYPE";
+    }
+}
+
+
+void EventQueueBase::ClearObserver()
+{
+    observer_.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD);
+    observer_.notifyCb = nullptr;
 }
 
 InnerEvent::Pointer EventQueueBase::GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime)

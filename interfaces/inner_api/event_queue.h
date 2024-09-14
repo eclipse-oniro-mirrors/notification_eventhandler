@@ -17,6 +17,7 @@
 #define BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_QUEUE_H
 
 #include <array>
+#include <functional>
 #include <list>
 #include <map>
 #include <mutex>
@@ -38,6 +39,68 @@ enum class EventInsertType: uint32_t {
     AT_END = 0,
     // Insert event at front
     AT_FRONT
+};
+
+enum class Observer {
+    ARKTS_GC,
+};
+
+enum class EventRunnerStage {
+    // enter loop
+    STAGE_ENTRY_RUNNER = 1<<0,
+    // exit loop
+    STAGE_EXIT_RUNNER = 1<<1,
+    // waiting
+    STAGE_BEFORE_WAITING = 1<<2,
+    // recover form sleeping
+    STAGE_AFTER_WAITING = 1<<3,
+    // invaild key
+    STAGE_INVAILD = -1,
+};
+
+struct StageInfo {
+    // STAGE_BEFORE_WAITING, timesteap
+    int64_t timestamp;
+    // STAGE_BEFORE_WAITING, milliseconds
+    int32_t sleepTime;
+    // STAGE_AFTER_WAITING
+    int reason;
+};
+
+using EventRunnerObserverCallBack = std::function<int(EventRunnerStage stage, const StageInfo* info)>;
+
+struct EventRunnerObserver {
+    Observer observer;
+    uint32_t stages;
+    EventRunnerObserverCallBack notifyCb;
+    void ClearObserver()
+    {
+        stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD);
+        notifyCb = nullptr;
+    }
+};
+
+struct ObserverTrace {
+    std::string source;
+    std::string stage;
+    ObserverTrace() {};
+    ObserverTrace(std::string currentSource, std::string currentStage)
+        : source(currentSource), stage(currentStage) {}
+    std::string getTraceInfo()
+    {
+        std::string traceInfo;
+        traceInfo.append("Et-obs:");
+        if (stage.empty()) {
+            traceInfo.append(" ");
+        } else {
+            traceInfo.append(stage);
+        }
+        traceInfo.append(",");
+        if (!source.empty()) {
+            traceInfo.append(source);
+        }
+        return traceInfo;
+    }
 };
 
 class EventQueue {
@@ -268,6 +331,19 @@ public:
      * Get pending task info
      */
     virtual PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) = 0;
+    /**
+     * add observer
+     *
+     * @param observer runner observer.
+     * @param stages The stages of observer
+     * @param callback observer callback.
+     */
+    void AddObserver(Observer observer, uint32_t stages, EventRunnerObserverCallBack callback)
+    {
+        observer_.observer = observer;
+        observer_.notifyCb = callback;
+        observer_.stages = stages;
+    }
 private:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
@@ -296,6 +372,9 @@ protected:
 
     // File descriptor listeners to handle IO events.
     std::map<int32_t, std::shared_ptr<FileDescriptorListener>> listeners_;
+
+    EventRunnerObserver observer_ = {.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD),
+        .notifyCb = nullptr};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
