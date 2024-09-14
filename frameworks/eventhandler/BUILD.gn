@@ -53,6 +53,13 @@ ohos_shared_library("libeventhandler") {
     "hitrace:libhitracechain",
   ]
 
+  defines = []
+  if (resource_schedule_usage) {
+    external_deps += [ "ipc:ipc_single" ]
+    external_deps += [ "resource_schedule_service:ressched_client" ]
+    defines += [ "RES_SCHED_ENABLE" ]
+  }
+
   if (has_hichecker_native_part) {
     cflags_cc += [ "-DHAS_HICHECKER_NATIVE_PART" ]
     external_deps += [ "hichecker:libhichecker" ]
