@@ -125,10 +125,10 @@ namespace {
     std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> EventHandlerInstance::GetAsyncCallbackInfo(
         const InnerEvent::EventId &eventId)
     {
+        std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto iter = emitterInstances.find(eventId);
         if (iter == emitterInstances.end()) {
-            std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
             HILOGW("ProcessEvent has no callback");
             return result;
         }
