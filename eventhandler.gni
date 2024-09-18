@@ -25,10 +25,18 @@ if (!defined(global_parts_info) ||
 }
 
 eventhandler_ffrt_usage = true
+eventhandler_feature_summary = false
 
 if (!defined(global_parts_info) ||
     defined(global_parts_info.hiviewdfx_hitrace)) {
   eh_hitrace_usage = true
 } else {
   eh_hitrace_usage = false
+}
+
+if (defined(global_parts_info) &&
+    defined(global_parts_info.resourceschedule_soc_perf)) {
+  resource_schedule_usage = true
+} else {
+  resource_schedule_usage = false
 }
