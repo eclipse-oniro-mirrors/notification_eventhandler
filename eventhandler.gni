@@ -25,7 +25,6 @@ if (!defined(global_parts_info) ||
 }
 
 eventhandler_ffrt_usage = true
-eventhandler_feature_summary = false
 
 if (!defined(global_parts_info) ||
     defined(global_parts_info.hiviewdfx_hitrace)) {
@@ -35,7 +34,7 @@ if (!defined(global_parts_info) ||
 }
 
 if (defined(global_parts_info) &&
-    defined(global_parts_info.resourceschedule_soc_perf)) {
+    defined(global_parts_info.resourceschedule_schedule_ext)) {
   resource_schedule_usage = true
 } else {
   resource_schedule_usage = false

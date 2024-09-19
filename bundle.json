@@ -13,7 +13,7 @@
         "syscap": [
             "SystemCapability.Notification.Emitter"
         ],
-        "features": ["eventhandler_feature_summary"],
+        "features": [],
         "adapted_system_type": [
             "standard"
         ],
