@@ -447,7 +447,7 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
      * @tc.steps: step5. compare the two event addresses.
      * @tc.expected: step3. the two event addresses are the same.
      */
-    EXPECT_NE(firstAddr, secondAddr);
+    EXPECT_EQ(firstAddr, secondAddr);
 }
 
 /*

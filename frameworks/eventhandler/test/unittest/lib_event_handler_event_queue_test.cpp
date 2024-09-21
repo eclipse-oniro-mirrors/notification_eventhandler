@@ -2082,3 +2082,168 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_004, TestSize.Level1)
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
+
+/**
+ * Add Observer.
+ *
+ * @param queue current queue.
+ */
+static void ObserverTest(EventQueue &queue)
+{
+    auto callback = []([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 3;
+    };
+    uint32_t status = 8;
+    queue.AddObserver(Observer::ARKTS_GC, status, callback);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+/*
+ * @tc.name: ObserverGc_005
+ * @tc.desc: ObserverGc_005 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_005, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    ObserverTest(queue);
+}
+
+/*
+ * @tc.name: ObserverGc_006
+ * @tc.desc: ObserverGc_006 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_006, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 2;
+    };
+    queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+    EventRunnerObserver obs;
+    obs.ClearObserver();
+}
+
+/*
+ * @tc.name: ObserverGc_007
+ * @tc.desc: ObserverGc_007 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_007, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 2;
+    };
+    queue.AddObserver(Observer::ARKTS_GC, 1<<2, callback);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+    ObserverTrace trace;
+    trace.source = "TS";
+    trace.stage = "GFH";
+    std::string str = trace.getTraceInfo();
+    EXPECT_NE("GFH", str);
+}
+
+/**
+ * remove task.
+ *
+ * @param queue current queue.
+ */
+static void RemoveTaskTest(EventQueue &queue)
+{
+    const std::string id = "id";
+    queue.RemoveOrphanByHandlerId(id);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+/*
+ * @tc.name: EventQueueRemove_001
+ * @tc.desc: EventQueueRemove_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueueRemove_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    RemoveTaskTest(queue);
+}
+
+/**
+ * check file.
+ *
+ * @param queue current queue.
+ */
+static void CheckFileTest(EventQueue &queue)
+{
+    queue.CheckFileDescriptorEvent();
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+/*
+ * @tc.name: EventQueueCheck_001
+ * @tc.desc: EventQueueCheck_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventQueueCheck_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    CheckFileTest(queue);
+}
+
+/**
+ * Insert Sync Event.
+ *
+ * @param queue current queue.
+ */
+static void InsertSyncEventTest(EventQueue &queue)
+{
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+    uint32_t eventId = 0;
+    auto event = InnerEvent::Get(eventId);
+    queue.InsertSyncEvent(event);
+}
+
+/*
+ * @tc.name: SyncEventQueue_001
+ * @tc.desc: SyncEventQueue_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SyncEventQueue_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    InsertSyncEventTest(queue);
+}
