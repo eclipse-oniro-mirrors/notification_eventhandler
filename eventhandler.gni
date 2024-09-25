@@ -32,3 +32,10 @@ if (!defined(global_parts_info) ||
 } else {
   eh_hitrace_usage = false
 }
+
+if (defined(global_parts_info) &&
+    defined(global_parts_info.resourceschedule_schedule_ext)) {
+  resource_schedule_usage = true
+} else {
+  resource_schedule_usage = false
+}
