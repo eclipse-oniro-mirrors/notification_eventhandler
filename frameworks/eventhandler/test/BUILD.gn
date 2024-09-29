@@ -29,8 +29,6 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
 
   configs = [ ":libeventhandler_test_private_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "ffrt:libffrt",
@@ -55,8 +53,6 @@ ohos_unittest("LibEventHandlerCheckTest") {
 
   configs = [ ":libeventhandler_test_private_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "ffrt:libffrt",
@@ -79,8 +75,6 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   sources += [ "unittest/lib_event_handler_event_queue_test.cpp" ]
 
   configs = [ ":libeventhandler_test_private_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "bounds_checking_function:libsec_shared",
@@ -105,8 +99,6 @@ ohos_unittest("LibEventHandlerEventTest") {
 
   configs = [ ":libeventhandler_test_private_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
@@ -129,8 +121,6 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   sources += [ "unittest/lib_event_handler_event_runner_test.cpp" ]
 
   configs = [ ":libeventhandler_test_private_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "bounds_checking_function:libsec_shared",
@@ -155,8 +145,6 @@ ohos_unittest("LibEventHandlerTraceTest") {
 
   configs = [ ":libeventhandler_test_private_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
@@ -180,8 +168,6 @@ ohos_unittest("LibEventHandlerInnerEventTest") {
 
   configs = [ ":libeventhandler_test_private_config" ]
 
-  deps = [ "//third_party/googletest:gtest_main" ]
-
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
@@ -204,8 +190,6 @@ ohos_unittest("LibEventHandlerTest") {
   sources += [ "unittest/lib_event_handler_test.cpp" ]
 
   configs = [ ":libeventhandler_test_private_config" ]
-
-  deps = [ "//third_party/googletest:gtest_main" ]
 
   external_deps = [
     "bounds_checking_function:libsec_shared",
