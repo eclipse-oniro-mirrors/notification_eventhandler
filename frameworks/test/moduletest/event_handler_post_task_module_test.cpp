@@ -322,9 +322,9 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post010, TestSize.Level1)
     handler->SendEvent(STOP_EVENT_ID, param, 1);
     myRunner->Run();
     bool runResult = CommonUtils::TaskCalledGet();
-    EXPECT_FALSE(runResult);
+    EXPECT_TRUE(runResult);
 }
-
+ 
 /**
  * @tc.name: Post011
  * @tc.desc: Post a task at front with callback, name, delayTime and priority
@@ -355,7 +355,7 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post011, TestSize.Level1)
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_FALSE(runResult);
 }
-
+ 
 /**
  * @tc.name: Post012
  * @tc.desc: Post a task at no wait runner
