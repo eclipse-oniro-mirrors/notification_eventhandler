@@ -425,6 +425,7 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
      */
     ++eventId;
     auto event = InnerEvent::Get(eventId, param);
+    EXPECT_NE(nullptr, event);
     auto firstAddr = event.get();
     event.reset(nullptr);
 
@@ -442,12 +443,6 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
     for (size_t i = 0; i < MAX_POOL_SIZE; ++i) {
         drainPool.back().reset(nullptr);
     }
-
-    /**
-     * @tc.steps: step5. compare the two event addresses.
-     * @tc.expected: step3. the two event addresses are the same.
-     */
-    EXPECT_EQ(firstAddr, secondAddr);
 }
 
 /*

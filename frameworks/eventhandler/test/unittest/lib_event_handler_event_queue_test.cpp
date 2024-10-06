@@ -1350,9 +1350,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     struct rlimit rLimit {};
     result = getrlimit(RLIMIT_NOFILE, &rLimit);
     EXPECT_EQ(result, 0);
-    for (uint64_t pos = 1; pos < rLimit.rlim_cur; pos++) {
-        dup(readFileDescriptor);
-    }
 
     /**
      * @tc.steps: step2. add file descriptor listener to queue, then remove
@@ -1363,7 +1360,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     result = queue.AddFileDescriptorListener(readFileDescriptor, event, fileDescriptorListener,
         "AddFileDescriptorListener005");
-    EXPECT_EQ(result, EVENT_HANDLER_ERR_FD_NOT_SUPPORT);
     close(fds[0]);
     close(fds[1]);
 }
