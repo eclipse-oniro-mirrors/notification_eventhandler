@@ -306,7 +306,7 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post010, TestSize.Level1)
      * @tc.steps: step1. Post a task with callback, name, delayTime and priority in a no wait runner.
      * @tc.expected: step1. Post successfully and the task handled.
      */
-    auto myRunner = EventRunner::Create("NowaitRunner001", Mode::NO_WAIT);
+    auto myRunner = EventRunner::CreateNoWait("NowaitRunner001");
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     // insert at front
     string taskName = std::to_string(Random());

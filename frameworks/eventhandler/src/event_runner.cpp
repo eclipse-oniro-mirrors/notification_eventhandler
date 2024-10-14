@@ -538,22 +538,22 @@ EventRunner::DistributeBeginTime EventRunner::distributeBegin_ = nullptr;
 EventRunner::DistributeEndTime EventRunner::distributeEnd_ = nullptr;
 EventRunner::CallbackTime EventRunner::distributeCallback_ = nullptr;
 
-std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
 {
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
         EH_LOGI_LIMIT("EventRunner created");
-        return Create(std::string(), mode, ThreadMode::NEW_THREAD);
+        return Create(std::string(), Mode::DEFAULT, ThreadMode::NEW_THREAD);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
-    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, mode));
+    std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, Mode::DEFAULT));
     if (sp == nullptr) {
         HILOGI("Failed to create EventRunner Instance");
         return nullptr;
     }
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
-    innerRunner->SetRunningMode(mode);
+    innerRunner->SetRunningMode(Mode::DEFAULT);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     sp->threadMode_ = ThreadMode::NEW_THREAD;

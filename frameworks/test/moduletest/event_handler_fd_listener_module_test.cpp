@@ -416,7 +416,7 @@ HWTEST_F(EventHandlerFdListenerModuleTest, NowaitForFd001, TestSize.Level1)
     EXPECT_GE(pipe, 0);
 
     auto listener = std::make_shared<MyFileDescriptorListener>();
-    auto myRunner = EventRunner::Create("NowaitRunner001", Mode::NO_WAIT);
+    auto myRunner = EventRunner::CreateNoWait("NowaitRunner001");
     auto handler = std::make_shared<MyEventHandler>(myRunner);
     auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener, "NowaitForFd001");
     EXPECT_EQ(inResult, ERR_OK);
