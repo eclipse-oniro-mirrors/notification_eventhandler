@@ -54,11 +54,11 @@ public:
     /**
      * Create new 'EventRunner'.
      *
+     * @deprecated This function is deprecated, use 'Create(const std::string &threadName, ThreadMode threadMode)'.
      * @param inNewThread True if create new thread to start the 'EventRunner' automatically.
-     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(bool inNewThread = true, Mode mode = Mode::DEFAULT);
+    static std::shared_ptr<EventRunner> Create(bool inNewThread = true);
 
     /**
      * Create new 'EventRunner'.
@@ -72,13 +72,13 @@ public:
     /**
      * Create new 'EventRunner' and start to run in a new thread.
      *
+     * @deprecated This function is deprecated, use 'Create(const std::string &threadName, ThreadMode threadMode)'.
      * @param threadName Thread name of the new created thread.
-     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT)
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName)
     {
-        return Create(threadName, mode, ThreadMode::NEW_THREAD);
+        return Create(threadName, Mode::DEFAULT, ThreadMode::NEW_THREAD);
     }
 
     /**
@@ -97,13 +97,14 @@ public:
      * Create new 'EventRunner' and start to run in a new thread.
      * Eliminate ambiguity, while calling like 'EventRunner::Create("threadName")'.
      *
+     * @deprecated This function is deprecated, use 'Create(const char *threadName, ThreadMode threadMode)'.
      * @param threadName Thread name of the new created thread.
-     * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static inline std::shared_ptr<EventRunner> Create(const char *threadName, Mode mode = Mode::DEFAULT)
+    static inline std::shared_ptr<EventRunner> Create(const char *threadName)
     {
-        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode, ThreadMode::NEW_THREAD);
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), Mode::DEFAULT,
+            ThreadMode::NEW_THREAD);
     }
 
     /**
@@ -117,6 +118,17 @@ public:
     static inline std::shared_ptr<EventRunner> Create(const char *threadName, ThreadMode threadMode)
     {
         return Create((threadName != nullptr) ? std::string(threadName) : std::string(), Mode::DEFAULT, threadMode);
+    }
+
+    /**
+     * Create new 'EventRunner' for nowait mode.
+     *
+     * @param threadName Thread name of the new created thread.
+     * @return Returns shared pointer of the new 'EventRunner'.
+     */
+    static std::shared_ptr<EventRunner> CreateNoWait(const std::string &threadName)
+    {
+        return Create(threadName, Mode::NO_WAIT, ThreadMode::NEW_THREAD);
     }
 
     /**
