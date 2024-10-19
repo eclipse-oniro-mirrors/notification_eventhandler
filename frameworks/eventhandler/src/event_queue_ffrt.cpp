@@ -92,7 +92,7 @@ EventQueueFFRT::EventQueueFFRT(const std::shared_ptr<IoWaiter> &ioWaiter): Event
 
 EventQueueFFRT::~EventQueueFFRT()
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
     EH_LOGI_LIMIT("EventQueueFFRT is unavailable hence");
@@ -113,7 +113,7 @@ void EventQueueFFRT::RemoveOrphanByHandlerId(const std::string& handlerId)
         return;
     }
     ffrt_queue_cancel_by_name(*queue, regular.c_str());
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -125,7 +125,7 @@ void EventQueueFFRT::RemoveOrphanByHandlerId(const std::string& handlerId)
 void EventQueueFFRT::RemoveAll()
 {
     HILOGD("RemoveAll");
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -146,7 +146,7 @@ void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner)
         return;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -170,7 +170,7 @@ void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
         return;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -194,7 +194,7 @@ void EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
         return;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -219,7 +219,7 @@ bool EventQueueFFRT::Remove(const std::shared_ptr<EventHandler> &owner, const st
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return false;
@@ -242,7 +242,7 @@ bool EventQueueFFRT::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, u
         HILOGE("Invalid owner");
         return false;
     }
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return false;
@@ -264,7 +264,7 @@ bool EventQueueFFRT::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, i
         HILOGE("Invalid owner");
         return false;
     }
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return false;
@@ -282,7 +282,7 @@ bool EventQueueFFRT::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, i
 
 void EventQueueFFRT::Dump(Dumper &dumper)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return;
@@ -305,7 +305,7 @@ void EventQueueFFRT::Dump(Dumper &dumper)
 
 void EventQueueFFRT::DumpQueueInfo(std::string& queueInfo)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return;
@@ -328,7 +328,7 @@ void EventQueueFFRT::DumpQueueInfo(std::string& queueInfo)
 
 bool EventQueueFFRT::IsIdle()
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return false;
@@ -344,7 +344,7 @@ bool EventQueueFFRT::IsIdle()
 
 bool EventQueueFFRT::IsQueueEmpty()
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return false;
@@ -434,7 +434,7 @@ void EventQueueFFRT::InsertEvent(InnerEvent::Pointer &event, Priority priority, 
         HILOGE("Could not insert an invalid event");
         return;
     }
-    std::unique_lock<std::mutex> lock(queueLock_);
+    std::unique_lock<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
         return;
@@ -463,7 +463,7 @@ auto MakeCopyableFunction(F&& f)
 }
 
 void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
-    const std::string &taskName, std::unique_lock<std::mutex> &lock)
+    const std::string &taskName, std::unique_lock<ffrt::mutex> &lock)
 {
     uint64_t time = event->GetDelayTime();
     ffrt_queue_priority_t queuePriority = static_cast<ffrt_queue_priority_t>(TransferInnerPriority(priority));
@@ -495,7 +495,7 @@ void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority prior
 }
 
 void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
-    const std::string &taskName, std::unique_lock<std::mutex> &lock)
+    const std::string &taskName, std::unique_lock<ffrt::mutex> &lock)
 {
     uint64_t time = event->GetDelayTime();
     ffrt_queue_priority_t queuePriority = static_cast<ffrt_queue_priority_t>(TransferInnerPriority(priority));
