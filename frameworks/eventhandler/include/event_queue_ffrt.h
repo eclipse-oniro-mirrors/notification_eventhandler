@@ -158,11 +158,13 @@ private:
     LOCAL_API void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);
     LOCAL_API void SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
-        const std::string &taskName, std::unique_lock<std::mutex> &lock);
+        const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
     LOCAL_API void SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
-        const std::string &taskName, std::unique_lock<std::mutex> &lock);
+        const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
 
     std::shared_ptr<ffrt::queue> ffrtQueue_ = nullptr;
+
+    ffrt::mutex ffrtLock_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
