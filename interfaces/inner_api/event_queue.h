@@ -192,35 +192,35 @@ public:
      * @param listener Listener callback.
      * @return Return 'ERR_OK' on success.
      */
-    ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+    virtual ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
         const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
-        Priority priority = Priority::HIGH);
+        Priority priority = Priority::HIGH) = 0;
 
     /**
      * Remove all file descriptor listeners for a specified owner.
      *
      * @param owner Owner of the event which is point to an instance of 'FileDescriptorListener'.
      */
-    void RemoveFileDescriptorListener(const std::shared_ptr<EventHandler> &owner);
+    virtual void RemoveFileDescriptorListener(const std::shared_ptr<EventHandler> &owner) = 0;
 
     /**
      * Remove file descriptor listener for a file descriptor.
      *
      * @param fileDescriptor File descriptor.
      */
-    void RemoveFileDescriptorListener(int32_t fileDescriptor);
+    virtual void RemoveFileDescriptorListener(int32_t fileDescriptor) = 0;
 
     /**
      * Prepare event queue, before calling {@link #GetEvent}.
      * If {@link #Finish} is called, prepare event queue again, before calling {@link #GetEvent}.
      */
-    void Prepare();
+    virtual void Prepare() = 0;
 
     /**
      * Exit from blocking in {@link #GetEvent}, and mark the event queue finished.
      * After calling {@link #Finish}, {@link #GetEvent} never returns any event, until {@link #Prepare} is called.
      */
-    void Finish();
+    virtual void Finish() = 0;
 
     /**
      * Get event from event queue one by one.
@@ -349,17 +349,7 @@ public:
      * Cancel And Wait
      */
     virtual void CancelAndWait() = 0;
-    
-private:
-
-    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
-        Priority priority);
-    bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
-    bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
-        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
 protected:
-
-    void RemoveInvalidFileDescriptor();
     void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     std::mutex queueLock_;
 

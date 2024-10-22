@@ -205,6 +205,63 @@ public:
      */
     LOCAL_API void CancelAndWait() override;
 
+    /**
+     * Add file descriptor listener for a file descriptor.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param listener Listener callback.
+     * @return Return 'ERR_OK' on success.
+     */
+    ErrCode AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,
+        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
+        Priority priority = Priority::HIGH) override;
+
+    /**
+     * Add file descriptor by fd.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param taskName task name.
+     * @param listener Listener callback.
+     * @param Priority Priority of the event.
+     * @return Return result boolean.
+     */
+    bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
+
+    /**
+     * Remove all file descriptor listeners for a specified owner.
+     *
+     * @param owner Owner of the event which is point to an instance of 'FileDescriptorListener'.
+     */
+    void RemoveFileDescriptorListener(const std::shared_ptr<EventHandler> &owner) override;
+
+    /**
+     * Remove file descriptor listener for a file descriptor.
+     *
+     * @param fileDescriptor File descriptor.
+     */
+    void RemoveFileDescriptorListener(int32_t fileDescriptor) override;
+
+    /**
+     * Prepare event queue, before calling {@link #GetEvent}.
+     * If {@link #Finish} is called, prepare event queue again, before calling {@link #GetEvent}.
+     */
+    void Prepare() override;
+
+    /**
+     * Exit from blocking in {@link #GetEvent}, and mark the event queue finished.
+     * After calling {@link #Finish}, {@link #GetEvent} never returns any event, until {@link #Prepare} is called.
+     */
+    void Finish() override;
+
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
+        Priority priority);
+
+    bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
+
+    void RemoveInvalidFileDescriptor();
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
