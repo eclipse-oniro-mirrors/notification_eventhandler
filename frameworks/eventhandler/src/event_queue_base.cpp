@@ -588,6 +588,7 @@ void EventQueueBase::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
 void EventQueueBase::Dump(Dumper &dumper)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
+    HILOGI("EventQueue start dump.");
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return;
