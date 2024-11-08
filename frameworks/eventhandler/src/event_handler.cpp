@@ -517,6 +517,7 @@ void EventHandler::Dump(Dumper &dumper)
     } else {
         eventRunner_->Dump(dumper);
     }
+    HILOGI("EventHandler end dumper!");
 }
 
 bool EventHandler::HasInnerEvent(uint32_t innerEventId)
