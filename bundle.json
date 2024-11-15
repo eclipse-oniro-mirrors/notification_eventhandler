@@ -13,7 +13,10 @@
         "syscap": [
             "SystemCapability.Notification.Emitter"
         ],
-        "features": [],
+        "features": [
+            "eventhandler_feature_enable_pgo",
+            "eventhandler_feature_pgo_path"
+        ],
         "adapted_system_type": [
             "standard"
         ],

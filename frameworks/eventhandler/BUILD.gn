@@ -86,4 +86,24 @@ ohos_shared_library("libeventhandler") {
     "sasdk",
   ]
   part_name = "eventhandler"
+
+  if (is_ohos && is_clang && enhanced_opt &&
+      (target_cpu == "arm" || target_cpu == "arm64")) {
+    if (eventhandler_feature_enable_pgo) {
+      cflags = [
+        "-fprofile-use=" + rebase_path(
+                "${eventhandler_feature_pgo_path}/libeventhandler.profdata",
+                root_build_dir),
+        "-Wno-error=backend-plugin",
+        "-Wno-profile-instr-out-of-date",
+        "-Wno-profile-instr-unprofiled",
+      ]
+    }
+
+    ldflags = [ "-Wl,-Bsymbolic" ]
+    if (eventhandler_feature_enable_pgo && target_cpu == "arm64" &&
+        enable_enhanced_opt) {
+      ldflags += [ "-Wl,--aarch64-inline-plt" ]
+    }
+  }
 }

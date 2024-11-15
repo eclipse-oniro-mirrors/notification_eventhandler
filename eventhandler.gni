@@ -39,3 +39,8 @@ if (defined(global_parts_info) &&
 } else {
   resource_schedule_usage = false
 }
+
+declare_args() {
+  eventhandler_feature_enable_pgo = false
+  eventhandler_feature_pgo_path = ""
+}
