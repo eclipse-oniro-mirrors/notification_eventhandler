@@ -350,6 +350,66 @@ public:
      */
     virtual void CancelAndWait() = 0;
 protected:
+    void RemoveInvalidFileDescriptor();
+
+    /**
+     * Add file descriptor base.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param listener Listener callback.
+     * @param taskName task name.
+     * @param Priority Priority of the event.
+     * @return Return result ErrCode.
+     */
+    ErrCode AddFileDescriptorListenerBase(int32_t fileDescriptor, uint32_t events,
+        const std::shared_ptr<FileDescriptorListener> &listener, const std::string &taskName,
+        Priority priority);
+
+    /**
+     * Add file descriptor by fd.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param taskName task name.
+     * @param listener Listener callback.
+     * @param Priority Priority of the event.
+     * @return Return result boolean.
+     */
+    bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
+        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
+
+    bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
+
+    /**
+     * handle file descriptor event.
+     *
+     * @param fileDescriptor File descriptor.
+     * @param events Events from file descriptor, such as input, output, error
+     * @param name task name.
+     * @param Priority Priority of the event.
+     */
+    void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
+        Priority priority);
+
+    /**
+     * remove listener by owner.
+     *
+     * @param owner current eventhandler.
+     */
+    void RemoveListenerByOwner(const std::shared_ptr<EventHandler> &owner);
+
+    /**
+     * remove listener by fd.
+     *
+     * @param fileDescriptor fd.
+     */
+    void RemoveListenerByFd(int32_t fileDescriptor);
+
+    void PrepareBase();
+
+    void FinishBase();
+
     void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
     std::mutex queueLock_;
 

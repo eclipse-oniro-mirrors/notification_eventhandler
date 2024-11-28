@@ -26,10 +26,13 @@
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 
+#include "accesstoken_kit.h"
 #include "event_handler.h"
 #include "event_queue_base.h"
 #include "event_inner_runner.h"
 #include "event_logger.h"
+#include "ipc_skeleton.h"
+#include "parameters.h"
 #include "securec.h"
 #include "singleton.h"
 #ifdef FFRT_USAGE_ENABLE
@@ -46,6 +49,8 @@ const int CRASH_BUF_MIN_LEN = 2;
 constexpr int64_t MIN_APP_UID = 20000;
 thread_local static Caller g_currentEventCaller = {};
 thread_local static std::string g_currentEventName = {};
+static const bool PARAM_FILE_DESCRIPTION_MONITOR =
+    system::GetBoolParameter("const.sys.param_file_description_monitor", false);
 
 DEFINE_EH_HILOG_LABEL("EventRunner");
 
@@ -626,6 +631,28 @@ std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, 
     }
 
     return sp;
+}
+
+void EventRunner::setCurrentIoWaiter()
+{
+    if (threadMode_ == ThreadMode::FFRT || isSetWaiter) {
+        return;
+    }
+
+    if (queue_ == nullptr) {
+        HILOGW("current queue is nnullptr.");
+    }
+    //get IPC tokenId
+    auto selfToken = IPCSkeleton::GetSelfTokenID();
+    auto tokenType = Security::AccessToken::AccessTokenKit::GetTokenTypeFlag(static_cast<uint32_t>(selfToken));
+    bool isApp = (tokenType == Security::AccessToken::ATokenTypeEnum::TOKEN_HAP);
+    HILOGI("set Current IoWaiter isApp: %{public}d, fd_monitor: %{public}d", isApp, PARAM_FILE_DESCRIPTION_MONITOR);
+    if (isApp && PARAM_FILE_DESCRIPTION_MONITOR) {
+        queue_->SetIoWaiter(true);
+    } else {
+        queue_->SetIoWaiter(false);
+    }
+    isSetWaiter = true;
 }
 
 std::shared_ptr<EventRunner> EventRunner::Current()

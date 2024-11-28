@@ -65,21 +65,6 @@ inline ffrt_queue_t* TransferQueuePtr(std::shared_ptr<ffrt::queue> queue)
 }
 
 
-// Help to remove file descriptor listeners.
-template<typename T>
-void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDescriptorListener>> &listeners,
-    const std::shared_ptr<IoWaiter>& ioWaiter, const T &filter, bool useDeamonIoWaiter_)
-{
-    for (auto it = listeners.begin(); it != listeners.end();) {
-        if (filter(it->second)) {
-            DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-            it = listeners.erase(it);
-        } else {
-            ++it;
-        }
-    }
-}
-
 }  // unnamed namespace
 
 EventQueueFFRT::EventQueueFFRT() : EventQueue()
@@ -567,35 +552,7 @@ ErrCode EventQueueFFRT::AddFileDescriptorListener(int32_t fileDescriptor, uint32
     }
 
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-    if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
-        return EVENT_HANDLER_ERR_NO_EVENT_RUNNER;
-    }
-    auto it = listeners_.find(fileDescriptor);
-    if (it != listeners_.end()) {
-        HILOGE("File descriptor %{public}d is already in listening", fileDescriptor);
-        return EVENT_HANDLER_ERR_FD_ALREADY;
-    }
-
-    HILOGD("Add file descriptor %{public}d to io waiter %{public}d", fileDescriptor, useDeamonIoWaiter_);
-    if (!EnsureIoWaiterSupportListerningFileDescriptorLocked()) {
-        return EVENT_HANDLER_ERR_FD_NOT_SUPPORT;
-    }
-
-    if (!AddFileDescriptorByFd(fileDescriptor, events, taskName, listener, priority)) {
-        HILOGE("Failed to add file descriptor into IO waiter");
-        return EVENT_HANDLER_ERR_FD_FAILED;
-    }
-
-    listeners_.emplace(fileDescriptor, listener);
-    return ERR_OK;
-}
-
-bool EventQueueFFRT::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
-    const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
-{
-    return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
-        listener, priority);
+    return AddFileDescriptorListenerBase(fileDescriptor, events, listener, taskName, priority);
 }
 
 void EventQueueFFRT::RemoveFileDescriptorListener(const std::shared_ptr<EventHandler> &owner)
@@ -606,19 +563,8 @@ void EventQueueFFRT::RemoveFileDescriptorListener(const std::shared_ptr<EventHan
         return;
     }
 
-    auto listenerFilter = [&owner](const std::shared_ptr<FileDescriptorListener> &listener) {
-        if (!listener) {
-            return false;
-        }
-        return listener->GetOwner() == owner;
-    };
-
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-    if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
-        return;
-    }
-    RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter, useDeamonIoWaiter_);
+    RemoveListenerByOwner(owner);
 }
 
 void EventQueueFFRT::RemoveFileDescriptorListener(int32_t fileDescriptor)
@@ -630,120 +576,21 @@ void EventQueueFFRT::RemoveFileDescriptorListener(int32_t fileDescriptor)
     }
 
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-    if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
-        return;
-    }
-    if (listeners_.erase(fileDescriptor) > 0) {
-        DeamonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
-    }
+    RemoveListenerByFd(fileDescriptor);
 }
 
 void EventQueueFFRT::Prepare()
 {
     HILOGD("enter");
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-    if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
-        return;
-    }
-    finished_ = false;
+    PrepareBase();
 }
 
 void EventQueueFFRT::Finish()
 {
     HILOGD("enter");
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-    if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
-        return;
-    }
-    finished_ = true;
-    ioWaiter_->NotifyAll();
-}
-
-void EventQueueFFRT::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events,
-    const std::string &taskName, Priority priority) __attribute__((no_sanitize("cfi")))
-{
-    std::shared_ptr<FileDescriptorListener> listener;
-    {
-        std::lock_guard<ffrt::mutex> lock(ffrtLock_);
-        if (!usable_.load()) {
-            HILOGW("EventQueue is unavailable.");
-            return;
-        }
-        auto it = listeners_.find(fileDescriptor);
-        if (it == listeners_.end()) {
-            HILOGW("Can not found listener, maybe it is removed");
-            return;
-        }
-        // Hold instance of listener.
-        listener = it->second;
-        if (!listener) {
-            return;
-        }
-    }
-
-    auto handler = listener->GetOwner();
-    if (!handler) {
-        HILOGW("Owner of listener is released");
-        return;
-    }
-
-    std::weak_ptr<FileDescriptorListener> wp = listener;
-    auto f = [fileDescriptor, events, wp]() {
-        auto listener = wp.lock();
-        if (!listener) {
-            HILOGW("Listener is released");
-            return;
-        }
-
-        if ((events & FILE_DESCRIPTOR_INPUT_EVENT) != 0) {
-            listener->OnReadable(fileDescriptor);
-        }
-
-        if ((events & FILE_DESCRIPTOR_OUTPUT_EVENT) != 0) {
-            listener->OnWritable(fileDescriptor);
-        }
-
-        if ((events & FILE_DESCRIPTOR_SHUTDOWN_EVENT) != 0) {
-            listener->OnShutdown(fileDescriptor);
-        }
-
-        if ((events & FILE_DESCRIPTOR_EXCEPTION_EVENT) != 0) {
-            listener->OnException(fileDescriptor);
-        }
-    };
-
-    HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor,
-        taskName.c_str(), priority);
-    // Post a high priority task to handle file descriptor events.
-    handler->PostTask(f, taskName, 0, priority);
-}
-
-bool EventQueueFFRT::EnsureIoWaiterSupportListerningFileDescriptorLocked()
-{
-    HILOGD("enter");
-    if (!DeamonIoWaiter::GetInstance().Init()) {
-        HILOGE("Failed to initialize deamon waiter");
-        return false;
-    }
-    DeamonIoWaiter::GetInstance().StartEpollIoWaiter();
-    return true;
-}
-
-void EventQueueFFRT::RemoveInvalidFileDescriptor()
-{
-    // Remove all listeners which lost its owner.
-    auto listenerFilter = [](const std::shared_ptr<FileDescriptorListener> &listener) {
-        if (!listener) {
-            return true;
-        }
-        HILOGD("Start get to GetOwner");
-        return !listener->GetOwner();
-    };
-
-    RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter, useDeamonIoWaiter_);
+    FinishBase();
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

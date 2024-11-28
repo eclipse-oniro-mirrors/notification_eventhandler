@@ -314,6 +314,7 @@ ErrCode EventHandler::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t
     }
 
     listener->SetOwner(shared_from_this());
+    eventRunner_->setCurrentIoWaiter();
     return eventRunner_->GetEventQueue()->AddFileDescriptorListener(fileDescriptor, events, listener, taskName,
         priority);
 }
