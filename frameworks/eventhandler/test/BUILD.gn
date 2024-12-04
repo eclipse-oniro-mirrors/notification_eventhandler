@@ -30,10 +30,13 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -54,10 +57,13 @@ ohos_unittest("LibEventHandlerCheckTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc += [ "-DFFRT_USAGE_ENABLE" ]
@@ -77,11 +83,14 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -100,11 +109,14 @@ ohos_unittest("LibEventHandlerEventTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -123,11 +135,14 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -146,11 +161,14 @@ ohos_unittest("LibEventHandlerTraceTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -169,11 +187,14 @@ ohos_unittest("LibEventHandlerInnerEventTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -192,11 +213,14 @@ ohos_unittest("LibEventHandlerTest") {
   configs = [ ":libeventhandler_test_private_config" ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]

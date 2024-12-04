@@ -167,19 +167,6 @@ public:
         Priority priority = Priority::HIGH) override;
 
     /**
-     * Add file descriptor by fd.
-     *
-     * @param fileDescriptor File descriptor.
-     * @param events Events from file descriptor, such as input, output, error
-     * @param taskName task name.
-     * @param listener Listener callback.
-     * @param Priority Priority of the event.
-     * @return Return result boolean.
-     */
-    bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
-        const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
-
-    /**
      * Remove all file descriptor listeners for a specified owner.
      *
      * @param owner Owner of the event which is point to an instance of 'FileDescriptorListener'.
@@ -207,10 +194,6 @@ public:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
         Priority priority);
-
-    bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
-
-    void RemoveInvalidFileDescriptor();
 private:
     LOCAL_API void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);

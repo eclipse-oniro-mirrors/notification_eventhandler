@@ -48,9 +48,12 @@ ohos_shared_library("libeventhandler") {
   ]
 
   external_deps = [
+    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "hilog:libhilog",
     "hitrace:libhitracechain",
+    "init:libbegetutil",
+    "ipc:ipc_core",
   ]
 
   defines = []
