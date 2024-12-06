@@ -21,7 +21,6 @@
         "ram": "1000KB",
         "deps": {
             "components": [
-                "access_token",
                 "hitrace",
                 "hilog",
                 "hichecker",

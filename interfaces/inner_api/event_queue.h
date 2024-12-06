@@ -379,7 +379,7 @@ protected:
     bool AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
         const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority);
 
-    bool EnsureIoWaiterSupportListerningFileDescriptorLocked();
+    bool EnsureIoWaiterLocked(const std::shared_ptr<FileDescriptorListener>& listener);
 
     /**
      * handle file descriptor event.

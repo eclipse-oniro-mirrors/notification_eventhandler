@@ -321,11 +321,6 @@ private:
     static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode, ThreadMode threadMode);
 
     /**
-     * set current iowaiter
-     */
-    void setCurrentIoWaiter();
-
-    /**
      * Check whether this event runner is running.
      *
      * @return if this event runner is running return true otherwise return false
@@ -353,7 +348,6 @@ private:
     Mode runningMode_ = Mode::DEFAULT;
     ThreadMode threadMode_ = ThreadMode::NEW_THREAD;
     std::string runnerId_;
-    bool isSetWaiter{false};
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

@@ -36,13 +36,11 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -64,13 +62,11 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -92,13 +88,11 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -120,13 +114,11 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -148,13 +140,11 @@ ohos_moduletest("EventHandlerPressModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -176,13 +166,11 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
@@ -204,13 +192,11 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
   configs = [ ":libeventhandler_module_test_config" ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
-    "ipc:ipc_core",
   ]
 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]

@@ -85,12 +85,31 @@ public:
         owner_ = owner;
     }
 
+    /**
+     * Get isDeamonWaiter of the event.
+     *
+     * @return Returns deamon waiter flag.
+     */
+    inline bool GetIsDeamonWaiter()
+    {
+        return isDeamonWaiter_;
+    }
+
+    /**
+     * Set Deamon Waiter of the event.
+     */
+    inline void SetDeamonWaiter()
+    {
+        isDeamonWaiter_ = true;
+    }
+
 protected:
     FileDescriptorListener() = default;
     virtual ~FileDescriptorListener() = default;
 
 private:
     std::weak_ptr<EventHandler> owner_;
+    bool isDeamonWaiter_{false};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
