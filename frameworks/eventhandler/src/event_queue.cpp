@@ -25,12 +25,13 @@
 #include "event_handler_utils.h"
 #include "event_logger.h"
 #include "none_io_waiter.h"
-
+#include "parameters.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
-
+static const bool MONITOR_FLAG =
+    system::GetBoolParameter("const.sys.param_file_description_monitor", false);
 DEFINE_EH_HILOG_LABEL("EventQueue");
 
 // Help to remove file descriptor listeners.
@@ -38,15 +39,11 @@ template<typename T>
 void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDescriptorListener>> &listeners,
     const std::shared_ptr<IoWaiter>& ioWaiter, const T &filter, bool useDeamonIoWaiter_)
 {
-    if (!useDeamonIoWaiter_ && !ioWaiter) {
-        return;
-    }
-
     for (auto it = listeners.begin(); it != listeners.end();) {
         if (filter(it->second)) {
-            if (useDeamonIoWaiter_) {
+            if (useDeamonIoWaiter_ || (it->second->GetIsDeamonWaiter() && MONITOR_FLAG)) {
                 DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-            } else {
+            } else if (ioWaiter) {
                 ioWaiter->RemoveFileDescriptor(it->first);
             }
             it = listeners.erase(it);
@@ -110,7 +107,7 @@ void EventQueue::CheckFileDescriptorEvent()
 bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
     const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
 {
-    if (useDeamonIoWaiter_) {
+    if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
         return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
             listener, priority);
     }
@@ -120,10 +117,10 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
     return false;
 }
 
-bool EventQueue::EnsureIoWaiterSupportListerningFileDescriptorLocked()
+bool EventQueue::EnsureIoWaiterLocked(const std::shared_ptr<FileDescriptorListener>& listener)
 {
     HILOGD("enter");
-    if (useDeamonIoWaiter_) {
+    if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
         if (!DeamonIoWaiter::GetInstance().Init()) {
             HILOGE("Failed to initialize deamon waiter");
             return false;
@@ -166,7 +163,7 @@ ErrCode EventQueue::AddFileDescriptorListenerBase(int32_t fileDescriptor, uint32
     }
 
     HILOGD("Add file descriptor %{public}d to io waiter %{public}d", fileDescriptor, useDeamonIoWaiter_);
-    if (!EnsureIoWaiterSupportListerningFileDescriptorLocked()) {
+    if (!EnsureIoWaiterLocked(listener)) {
         return EVENT_HANDLER_ERR_FD_NOT_SUPPORT;
     }
 
@@ -259,8 +256,13 @@ void EventQueue::RemoveListenerByFd(int32_t fileDescriptor)
         HILOGW("EventQueue is unavailable.");
         return;
     }
+    auto it = listeners_.find(fileDescriptor);
+    std::shared_ptr<FileDescriptorListener> listener;
+    if (it != listeners_.end()) {
+        listener = it->second;
+    }
     if (listeners_.erase(fileDescriptor) > 0) {
-        if (useDeamonIoWaiter_) {
+        if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
             DeamonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
             return;
         }
