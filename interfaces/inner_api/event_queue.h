@@ -54,6 +54,10 @@ enum class EventRunnerStage {
     STAGE_BEFORE_WAITING = 1<<2,
     // recover form sleeping
     STAGE_AFTER_WAITING = 1<<3,
+    // insert vip task
+    STAGE_VIP_EXISTED = 1<<4,
+    // current queue not exists vip task
+    STAGE_VIP_NONE = 1<<5,
     // invaild key
     STAGE_INVAILD = 0,
 };
@@ -349,6 +353,11 @@ public:
      * Cancel And Wait
      */
     virtual void CancelAndWait() = 0;
+
+    /**
+     * notify GC Observer vip events finished
+     */
+    virtual void NotifyObserverVipDone(const InnerEvent::Pointer &event);
 protected:
     void RemoveInvalidFileDescriptor();
 

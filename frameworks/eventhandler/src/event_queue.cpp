@@ -304,5 +304,10 @@ void EventQueue::FinishBase()
     finished_ = true;
     ioWaiter_->NotifyAll();
 }
+
+void EventQueue::NotifyObserverVipDone(const InnerEvent::Pointer &event)
+{
+    HILOGD("eventQueue NotifyObserverVipDone enter.");
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
