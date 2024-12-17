@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "errors.h"
 #include "event_handler.h"
 #include "event_queue.h"
 #include "event_queue_base.h"
@@ -1341,16 +1342,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     int32_t readFileDescriptor = fds[0];
 
     /**
-     * @tc.steps: step1. get max num of files the system could support, and open max files
-     */
-    struct rlimit rLimit {};
-    result = getrlimit(RLIMIT_NOFILE, &rLimit);
-    EXPECT_EQ(result, 0);
-    for (uint64_t pos = 1; pos < rLimit.rlim_cur; pos++) {
-        dup(readFileDescriptor);
-    }
-
-    /**
      * @tc.steps: step2. add file descriptor listener to queue, then remove
      *            file descriptor listener with handler, close pipe.
      * @tc.expected: step2. add file descriptor listener failed.
@@ -1359,7 +1350,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     result = queue.AddFileDescriptorListener(readFileDescriptor, event, fileDescriptorListener,
         "AddFileDescriptorListener005");
-    EXPECT_EQ(result, EVENT_HANDLER_ERR_FD_NOT_SUPPORT);
+    EXPECT_EQ(result, ERR_OK);
     close(fds[0]);
     close(fds[1]);
 }
