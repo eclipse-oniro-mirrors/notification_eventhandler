@@ -245,6 +245,23 @@ public:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
         Priority priority);
+
+    /**
+     * notify observer current vip events is done.
+     *
+     * @param event current event.
+     */
+    void NotifyObserverVipDone(const InnerEvent::Pointer &event) override;
+
+    /**
+     * base function of notify observer current vip events is done.
+     */
+    void NotifyObserverVipDoneBase();
+
+    /**
+     * current queue has vip task
+     */
+    bool hasVipTask();
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
@@ -307,6 +324,8 @@ private:
     static const uint8_t HISTORY_EVENT_NUM_POWER = 32; // 必须是2的幂次，使用位运算取余
     std::vector<HistoryEvent> historyEvents_;
     uint8_t historyEventIndex_ = 0;
+
+    bool isNotifyVipTask_ {false};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

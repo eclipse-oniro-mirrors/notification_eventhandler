@@ -39,6 +39,8 @@ constexpr uint32_t MAX_DUMP_SIZE = 500;
 constexpr int64_t GC_TIME_OUT = 300;
 constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
+constexpr std::string_view STAGE_VIP_EXISTED = "STAGE_VIP_EXISTED";
+constexpr std::string_view STAGE_VIP_NONE = "STAGE_VIP_NONE";
 // Help to insert events into the event queue sorted by handle time.
 void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
     EventInsertType insertType)
@@ -143,6 +145,11 @@ void EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
 
     if (needNotify) {
         ioWaiter_->NotifyOne();
+    }
+
+    if (isNotifyVipTask_ && priority == Priority::VIP) {
+        InnerEvent::TimePoint time = InnerEvent::Clock::now();
+        TryExecuteObserverCallback(time, EventRunnerStage::STAGE_VIP_EXISTED);
     }
 }
 
@@ -252,10 +259,14 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
         HILOGW("EventQueueBase is unavailable.");
         return;
     }
+    bool result = hasVipTask();
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
     }
     idleEvents_.remove_if(filter);
+    if (result) {
+        NotifyObserverVipDoneBase();
+    }
 }
 
 void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
@@ -268,6 +279,7 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             HILOGW("EventQueueBase is unavailable.");
             return;
         }
+        bool result = hasVipTask();
         for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
             auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
             std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
@@ -276,6 +288,9 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
         idleEvents_.erase(idleEvents_.begin(), idleEventIt);
+        if (result) {
+            NotifyObserverVipDoneBase();
+        }
     }
 }
 
@@ -441,6 +456,14 @@ void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpir
             break;
         case EventRunnerStage::STAGE_AFTER_WAITING:
             obs.stage = STAGE_AFTER_WAITING.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            break;
+        case EventRunnerStage::STAGE_VIP_EXISTED:
+            obs.stage = STAGE_VIP_EXISTED.data();
+            consumer = ExecuteObserverCallback(obs, stage, info);
+            break;
+        case EventRunnerStage::STAGE_VIP_NONE:
+            obs.stage = STAGE_VIP_NONE.data();
             consumer = ExecuteObserverCallback(obs, stage, info);
             break;
         default:
@@ -827,6 +850,33 @@ void EventQueueBase::Finish()
     HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     FinishBase();
+}
+
+void EventQueueBase::NotifyObserverVipDone(const InnerEvent::Pointer &event)
+{
+    if (!isNotifyVipTask_ || event->GetEventPriority() != static_cast<int32_t>(Priority::VIP)) {
+        return;
+    }
+    NotifyObserverVipDoneBase();
+}
+
+void EventQueueBase::NotifyObserverVipDoneBase()
+{
+    if (subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue.empty()) {
+        InnerEvent::TimePoint time = InnerEvent::Clock::now();
+        TryExecuteObserverCallback(time, EventRunnerStage::STAGE_VIP_NONE);
+    }
+}
+
+bool EventQueueBase::hasVipTask()
+{
+    if (!isNotifyVipTask_) {
+        return false;
+    }
+    if (!subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue.empty()) {
+        return true;
+    }
+    return false;
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

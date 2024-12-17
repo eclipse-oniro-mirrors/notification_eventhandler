@@ -419,6 +419,7 @@ public:
             handler->DistributeEvent(event);
             queue_->PushHistoryQueueAfterDistribute();
             ClearCurrentEventInfo();
+            queue_->NotifyObserverVipDone(event);
         } else {
             HILOGW("Invalid event handler.");
         }
