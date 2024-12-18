@@ -148,7 +148,7 @@ void EventQueueBase::RemoveOrphan()
 {
     HILOGD("enter");
     // Remove all events which lost its owner.
-    auto filter = [](const InnerEvent::Pointer &p) { return !p->GetOwner(); };
+    auto filter = [](const InnerEvent::Pointer &p) { return p->GetWeakOwner().expired(); };
 
     RemoveOrphan(filter);
 
