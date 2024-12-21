@@ -325,7 +325,7 @@ private:
     std::vector<HistoryEvent> historyEvents_;
     uint8_t historyEventIndex_ = 0;
 
-    bool isNotifyVipTask_ {false};
+    bool isExistVipTask_ {false};
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
