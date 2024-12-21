@@ -146,11 +146,13 @@ void EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
     if (needNotify) {
         ioWaiter_->NotifyOne();
     }
-
-    if (isNotifyVipTask_ && priority == Priority::VIP) {
+#ifdef NOTIFICATIONG_SMART_GC
+    if (priority == Priority::VIP && !isExistVipTask_) {
+        isExistVipTask_ = true;
         InnerEvent::TimePoint time = InnerEvent::Clock::now();
         TryExecuteObserverCallback(time, EventRunnerStage::STAGE_VIP_EXISTED);
     }
+#endif
 }
 
 void EventQueueBase::RemoveOrphan()
@@ -259,14 +261,18 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
         HILOGW("EventQueueBase is unavailable.");
         return;
     }
+#ifdef NOTIFICATIONG_SMART_GC
     bool result = hasVipTask();
+#endif
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
     }
     idleEvents_.remove_if(filter);
+#ifdef NOTIFICATIONG_SMART_GC
     if (result) {
         NotifyObserverVipDoneBase();
     }
+#endif
 }
 
 void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
@@ -279,7 +285,9 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             HILOGW("EventQueueBase is unavailable.");
             return;
         }
+#ifdef NOTIFICATIONG_SMART_GC
         bool result = hasVipTask();
+#endif
         for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
             auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
             std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
@@ -288,9 +296,11 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
         idleEvents_.erase(idleEvents_.begin(), idleEventIt);
+#ifdef NOTIFICATIONG_SMART_GC
         if (result) {
             NotifyObserverVipDoneBase();
         }
+#endif
     }
 }
 
@@ -854,7 +864,7 @@ void EventQueueBase::Finish()
 
 void EventQueueBase::NotifyObserverVipDone(const InnerEvent::Pointer &event)
 {
-    if (!isNotifyVipTask_ || event->GetEventPriority() != static_cast<int32_t>(Priority::VIP)) {
+    if (event->GetEventPriority() != static_cast<int32_t>(Priority::VIP)) {
         return;
     }
     NotifyObserverVipDoneBase();
@@ -865,14 +875,12 @@ void EventQueueBase::NotifyObserverVipDoneBase()
     if (subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue.empty()) {
         InnerEvent::TimePoint time = InnerEvent::Clock::now();
         TryExecuteObserverCallback(time, EventRunnerStage::STAGE_VIP_NONE);
+        isExistVipTask_ = false;
     }
 }
 
 bool EventQueueBase::hasVipTask()
 {
-    if (!isNotifyVipTask_) {
-        return false;
-    }
     if (!subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue.empty()) {
         return true;
     }

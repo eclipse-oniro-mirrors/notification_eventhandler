@@ -419,7 +419,9 @@ public:
             handler->DistributeEvent(event);
             queue_->PushHistoryQueueAfterDistribute();
             ClearCurrentEventInfo();
+#ifdef NOTIFICATIONG_SMART_GC
             queue_->NotifyObserverVipDone(event);
+#endif
         } else {
             HILOGW("Invalid event handler.");
         }
