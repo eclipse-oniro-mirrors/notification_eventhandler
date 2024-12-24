@@ -579,6 +579,11 @@ void EventQueueFFRT::RemoveFileDescriptorListener(int32_t fileDescriptor)
     RemoveListenerByFd(fileDescriptor);
 }
 
+inline uint64_t EventQueueFFRT::GetQueueFirstEventHandleTime(int32_t priority)
+{
+    return UINT64_MAX;
+}
+
 void EventQueueFFRT::Prepare()
 {
     HILOGD("enter");

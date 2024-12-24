@@ -358,6 +358,13 @@ public:
      * notify GC Observer vip events finished
      */
     virtual void NotifyObserverVipDone(const InnerEvent::Pointer &event);
+
+    /**
+     * Get the first event handle time in the prioritized task queue.
+     *
+     * @param priority The specified priority.
+     */
+    virtual inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) = 0;
 protected:
     void RemoveInvalidFileDescriptor();
 

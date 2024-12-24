@@ -25,6 +25,7 @@
 #ifdef FFRT_USAGE_ENABLE
 #include "ffrt_inner.h"
 #endif // FFRT_USAGE_ENABLE
+#include "parameters.h"
 #include "thread_local_data.h"
 #include "event_hitrace_meter_adapter.h"
 #include "ffrt_descriptor_listener.h"
@@ -36,6 +37,12 @@ namespace {
 static constexpr int FFRT_SUCCESS = 0;
 static constexpr int FFRT_ERROR = -1;
 static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
+static constexpr int64_t MILLISECONDS_TO_NANOSECONDS_RATIO = 1000000;
+static const uint64_t PENDING_JOB_TIMEOUT[3] = {
+    system::GetIntParameter("const.sys.notification.pending_higher_event_vip", 4),
+    system::GetIntParameter("const.sys.notification.pending_higher_event_immediate", 40),
+    system::GetIntParameter("const.sys.notification.pending_higher_event_high", 400)
+};
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
@@ -469,6 +476,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     HILOGD("EventName is %{public}s, eventId is %{public}s priority %{public}d.", GetEventName(event).c_str(),
         (event->GetEventUniqueId()).c_str(), event->GetEventPriority());
 
+    eventRunner_->SetCurrentEventPriority(event->GetEventPriority());
     std::string eventName = GetEventName(event);
     InnerEvent::TimePoint beginTime;
     bool isAppMainThread = EventRunner::IsAppMainThread();
@@ -504,6 +512,35 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         HILOGD("end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
     }
     FinishTraceAdapter();
+}
+
+bool EventHandler::HasPendingHigherEvent(int32_t priority)
+{
+    if (!eventRunner_ || !eventRunner_->GetEventQueue()) {
+        return false;
+    }
+    if (priority < static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP) ||
+        priority > static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
+        priority = eventRunner_->GetCurrentEventPriority();
+    }
+    if (priority <= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP)) {
+        return false;
+    }
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    for (int i = priority - 1; i >= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP); --i) {
+        auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(i);
+        if (eventHandleTime == UINT64_MAX) {
+            continue;
+        }
+        if (priority == static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
+            return true;
+        }
+        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO <=
+            now.time_since_epoch().count()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void EventHandler::Dump(Dumper &dumper)
