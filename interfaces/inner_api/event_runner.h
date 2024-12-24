@@ -294,6 +294,20 @@ public:
     }
 
     /**
+     * Set priority of event at current.
+     *
+     * @param priority Priority of event at current.
+     */
+    void SetCurrentEventPriority(int32_t priority = -1);
+
+    /**
+     * Get priority of event at current.
+     *
+     * @return Return priority of event at current.
+     */
+    const int32_t &GetCurrentEventPriority();
+
+    /**
      * Check if the current application is the main thread.
      */
     static bool IsAppMainThread();
@@ -336,6 +350,7 @@ private:
      */
     void StartRunningForNoWait();
 
+    int32_t currentEventPriority = -1;
     int64_t deliveryTimeout_ = 0;
     int64_t distributeTimeout_ = 0;
     int64_t timeout_ = 0;

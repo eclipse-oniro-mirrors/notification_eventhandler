@@ -995,6 +995,14 @@ public:
     void DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart);
 
     /**
+     * Check whether there are events which priority higher than current event.
+     *
+     * @param priority Current priority.
+     * @return Return true if there are higher priority events, otherwise return false.
+     */
+    bool HasPendingHigherEvent(int32_t priority = -1);
+
+    /**
      * Print out the internal information about an object in the specified format,
      * helping you diagnose internal errors of the object.
      *

@@ -262,6 +262,15 @@ public:
      * current queue has vip task
      */
     bool hasVipTask();
+
+    /**
+     * Obtain the first event of the specified priority queue.
+     *
+     * @param priority Specify priority.
+     * @return Return event handle time of the first event of the specified priority queue if the queue is not null,
+     * or return UINT64_MAX as invalid value.
+     */
+    inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;

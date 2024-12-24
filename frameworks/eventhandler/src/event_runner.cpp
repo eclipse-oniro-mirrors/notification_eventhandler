@@ -833,6 +833,16 @@ bool EventRunner::IsCurrentRunnerThread()
 #endif
 }
 
+void EventRunner::SetCurrentEventPriority(int32_t priority)
+{
+    currentEventPriority = priority;
+}
+
+const int32_t &EventRunner::GetCurrentEventPriority()
+{
+    return currentEventPriority;
+}
+
 std::shared_ptr<EventRunner> EventRunner::GetMainEventRunner()
 {
     if (!mainRunner_) {

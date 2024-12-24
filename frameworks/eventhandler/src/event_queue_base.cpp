@@ -886,5 +886,14 @@ bool EventQueueBase::hasVipTask()
     }
     return false;
 }
+
+inline uint64_t EventQueueBase::GetQueueFirstEventHandleTime(int32_t priority)
+{
+    if (priority < static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP) ||
+        !(int32_t)subEventQueues_[static_cast<uint32_t>(priority)].queue.size()) {
+        return UINT64_MAX;
+    }
+    return (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())->GetHandleTime().time_since_epoch().count();
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
