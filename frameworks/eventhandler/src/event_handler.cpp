@@ -41,7 +41,7 @@ static const uint64_t PENDING_JOB_TIMEOUT[3] = {
     system::GetIntParameter("const.sys.notification.pending_higher_event_vip", 4),
     system::GetIntParameter("const.sys.notification.pending_higher_event_immediate", 40),
     system::GetIntParameter("const.sys.notification.pending_higher_event_high", 400)
-}
+};
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
