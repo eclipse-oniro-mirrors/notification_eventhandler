@@ -516,7 +516,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
 
 bool EventHandler::HasPendingHigherEvent(int32_t priority)
 {
-    if (!eventRunner_) {
+    if (!eventRunner_ || !eventRunner_->GetEventQueue()) {
         return false;
     }
     if (priority < static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP) ||
@@ -528,10 +528,10 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
     }
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     for (int i = priority - 1; i >= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP); --i) {
-        if (!eventRunner_->GetEventQueue()) {
-            break;
-        }
         auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(i);
+        if (eventHandleTime == UINT64_MAX) {
+            continue;
+        }
         if (priority == static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
             return true;
         }
