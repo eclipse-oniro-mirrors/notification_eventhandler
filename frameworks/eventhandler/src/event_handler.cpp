@@ -37,6 +37,7 @@ namespace {
 static constexpr int FFRT_SUCCESS = 0;
 static constexpr int FFRT_ERROR = -1;
 static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
+static constexpr int MILLISECONDS_TO_NANOSECONDS_RATIO = 1000000;
 static const uint64_t PENDING_JOB_TIMEOUT[3] = {
     system::GetIntParameter("const.sys.notification.pending_higher_event_vip", 4),
     system::GetIntParameter("const.sys.notification.pending_higher_event_immediate", 40),
@@ -534,7 +535,8 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
         if (priority == static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
             return true;
         }
-        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * 1000000 <= now.time_since_epoch().count()) {
+        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO <=
+            now.time_since_epoch().count()) {
             return true;
         }
     }
