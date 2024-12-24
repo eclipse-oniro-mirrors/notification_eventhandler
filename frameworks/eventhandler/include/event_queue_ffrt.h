@@ -194,14 +194,6 @@ public:
 
     void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events, const std::string &name,
         Priority priority);
-
-    /**
-     * Obtain the first event of the specified priority queue. This interface was disabled in ffrt queue.
-     *
-     * @param priority Specify priority.
-     * @return Return UINT64_MAX as invalid value.
-     */
-    inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
 private:
     LOCAL_API void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);
@@ -209,6 +201,14 @@ private:
         const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
     LOCAL_API void SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
         const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
+    
+    /**
+     * Obtain the first event of the specified priority queue. This interface was disabled in ffrt queue.
+     *
+     * @param priority Specify priority.
+     * @return Return UINT64_MAX as invalid value.
+     */
+    inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
 
     std::shared_ptr<ffrt::queue> ffrtQueue_ = nullptr;
 
