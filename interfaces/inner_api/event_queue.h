@@ -358,7 +358,7 @@ public:
      * notify GC Observer vip events finished
      */
     virtual void NotifyObserverVipDone(const InnerEvent::Pointer &event);
-
+private:
     /**
      * Get the first event handle time in the prioritized task queue.
      *
