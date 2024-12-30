@@ -476,7 +476,9 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     HILOGD("EventName is %{public}s, eventId is %{public}s priority %{public}d.", GetEventName(event).c_str(),
         (event->GetEventUniqueId()).c_str(), event->GetEventPriority());
 
-    eventRunner_->SetCurrentEventPriority(event->GetEventPriority());
+    if (eventRunner_) {
+        eventRunner_->SetCurrentEventPriority(event->GetEventPriority());
+    }
     std::string eventName = GetEventName(event);
     InnerEvent::TimePoint beginTime;
     bool isAppMainThread = EventRunner::IsAppMainThread();
