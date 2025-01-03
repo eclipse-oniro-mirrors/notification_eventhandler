@@ -130,7 +130,7 @@ void EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
-            needNotify = (event->GetHandleTime() < wakeUpTime_);
+            needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             break;
         }
@@ -462,6 +462,7 @@ void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpir
             if (nextExpiredTime < InnerEvent::TimePoint::max()) {
                 HILOGD("time consumer: %{public}lld", static_cast<long long>(consumer));
                 nextExpiredTime = nextExpiredTime + std::chrono::milliseconds(consumer);
+                wakeUpTime_ = nextExpiredTime;
             }
             break;
         case EventRunnerStage::STAGE_AFTER_WAITING:
@@ -481,8 +482,8 @@ void EventQueueBase::TryExecuteObserverCallback(InnerEvent::TimePoint &nextExpir
             break;
     }
     if (consumer > GC_TIME_OUT) {
-        HILOGI("execute observer callback task consumer: %{public}lld, stage: %{public}u",
-            static_cast<long long>(consumer), stageUint);
+        HILOGI("execute observer callback task consumer: %{public}lld, stage: %{public}u, wakeTime: %{public}s",
+            static_cast<long long>(consumer), stageUint, InnerEvent::DumpTimeToString(wakeUpTime_).c_str());
     }
 }
 
