@@ -995,7 +995,8 @@ public:
     void DeliveryTimeAction(const InnerEvent::Pointer &event, InnerEvent::TimePoint nowStart);
 
     /**
-     * Check whether there are events which priority higher than current event.
+     * Check whether there are events which priority higher than current event. Currently ONLY applicable to
+     * the main thread, otherwise it will result in problematic returns.
      *
      * @param priority Current priority.
      * @return Return true if there are higher priority events, otherwise return false.
@@ -1070,7 +1071,21 @@ public:
      * queue_cancel_and_wait
      */
     void TaskCancelAndWait();
-    
+
+    /**
+     * Set priority of event at current.
+     *
+     * @param priority Priority of event at current.
+     */
+    void SetCurrentEventPriority(int32_t priority = -1);
+
+    /**
+     * Get priority of event at current.
+     *
+     * @return Return priority of event at current.
+     */
+    const int32_t &GetCurrentEventPriority();
+
 protected:
     /**
      * Process the event. Developers should override this method.
@@ -1086,6 +1101,7 @@ private:
     CallbackTimeout deliveryTimeoutCallback_;
     CallbackTimeout distributeTimeoutCallback_;
     static thread_local std::weak_ptr<EventHandler> currentEventHandler;
+    static thread_local int32_t currentEventPriority;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

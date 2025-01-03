@@ -46,6 +46,7 @@ static const uint64_t PENDING_JOB_TIMEOUT[3] = {
 DEFINE_EH_HILOG_LABEL("EventHandler");
 }
 thread_local std::weak_ptr<EventHandler> EventHandler::currentEventHandler;
+thread_local int32_t EventHandler::currentEventPriority = -1;
 
 std::shared_ptr<EventHandler> EventHandler::Current()
 {
@@ -476,9 +477,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     HILOGD("EventName is %{public}s, eventId is %{public}s priority %{public}d.", GetEventName(event).c_str(),
         (event->GetEventUniqueId()).c_str(), event->GetEventPriority());
 
-    if (eventRunner_) {
-        eventRunner_->SetCurrentEventPriority(event->GetEventPriority());
-    }
+    SetCurrentEventPriority(event->GetEventPriority());
     std::string eventName = GetEventName(event);
     InnerEvent::TimePoint beginTime;
     bool isAppMainThread = EventRunner::IsAppMainThread();
@@ -523,7 +522,7 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
     }
     if (priority < static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP) ||
         priority > static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
-        priority = eventRunner_->GetCurrentEventPriority();
+        priority = GetCurrentEventPriority();
     }
     if (priority <= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP)) {
         return false;
@@ -543,6 +542,16 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
         }
     }
     return false;
+}
+
+void EventHandler::SetCurrentEventPriority(int32_t priority)
+{
+    currentEventPriority = priority;
+}
+
+const int32_t &EventHandler::GetCurrentEventPriority()
+{
+    return currentEventPriority;
 }
 
 void EventHandler::Dump(Dumper &dumper)
