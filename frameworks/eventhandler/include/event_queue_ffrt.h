@@ -43,7 +43,7 @@ public:
      *
      * @see #Priority
      */
-    LOCAL_API void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+    LOCAL_API bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END) override;
 
     /**
@@ -144,7 +144,7 @@ public:
     /**
      * Insert task to ffrt queue, and wait to handled, only for ffrt thread mode.
      */
-    LOCAL_API void InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+    LOCAL_API bool InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END) override;
 
     LOCAL_API PendingTaskInfo QueryPendingTaskInfo(int32_t fileDescriptor) override;
@@ -203,11 +203,11 @@ public:
      */
     inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
 private:
-    LOCAL_API void InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
+    LOCAL_API bool InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);
-    LOCAL_API void SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
+    LOCAL_API bool SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
         const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
-    LOCAL_API void SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
+    LOCAL_API bool SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
         const std::string &taskName, std::unique_lock<ffrt::mutex> &lock);
 
     std::shared_ptr<ffrt::queue> ffrtQueue_ = nullptr;

@@ -138,7 +138,7 @@ public:
      *
      * @see #Priority
      */
-    virtual void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+    virtual bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END) = 0;
 
     /**
@@ -323,12 +323,13 @@ public:
     /**
      * Insert task to ffrt queue, and wait to handled, only for ffrt thread mode.
      */
-    virtual void InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+    virtual bool InsertSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END)
     {
         (void)event;
         (void)priority;
         (void)insertType;
+        return true;
     }
 
     /**

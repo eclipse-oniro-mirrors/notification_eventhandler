@@ -126,8 +126,7 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         HILOGE("MUST Set event runner before sending events");
         return false;
     }
-    eventRunner_->GetEventQueue()->Insert(event, priority);
-    return true;
+    return eventRunner_->GetEventQueue()->Insert(event, priority);
 }
 
 bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
@@ -187,6 +186,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return false;
     }
 
+    bool result = true;
 #ifdef FFRT_USAGE_ENABLE
     if ((ffrt_this_task_get_id() && eventRunner_->threadMode_ == ThreadMode::FFRT) ||
         eventRunner_ == EventRunner::Current()) {
@@ -204,7 +204,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         event->SetOwnerId(handlerId_);
         event->SetDelayTime(0);
         event->SetOwner(shared_from_this());
-        eventRunner_->GetEventQueue()->InsertSyncEvent(event, priority);
+        result = eventRunner_->GetEventQueue()->InsertSyncEvent(event, priority);
     } else {
         // Create waiter, used to block.
         auto waiter = event->CreateWaiter();
@@ -240,7 +240,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
     }
 
-    return true;
+    return result;
 }
 
 void EventHandler::RemoveAllEvents()

@@ -111,17 +111,17 @@ EventQueueBase::~EventQueueBase()
     EH_LOGI_LIMIT("EventQueueBase is unavailable hence");
 }
 
-void EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
+bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
     if (!event) {
         HILOGE("Could not insert an invalid event");
-        return;
+        return false;
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
-        return;
+        return false;
     }
     bool needNotify = false;
     event->SetEventPriority(static_cast<int32_t>(priority));
@@ -153,6 +153,7 @@ void EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         TryExecuteObserverCallback(time, EventRunnerStage::STAGE_VIP_EXISTED);
     }
 #endif
+    return true;
 }
 
 void EventQueueBase::RemoveOrphan()
