@@ -103,9 +103,9 @@ EventQueueFFRT::~EventQueueFFRT()
     EH_LOGI_LIMIT("EventQueueFFRT is unavailable hence");
 }
 
-void EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
+bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
-    InsertEvent(event, priority, false, insertType);
+    return InsertEvent(event, priority, false, insertType);
 }
 
 void EventQueueFFRT::RemoveOrphanByHandlerId(const std::string& handlerId)
@@ -427,22 +427,22 @@ void* EventQueueFFRT::GetFfrtQueue()
     return nullptr;
 }
 
-void EventQueueFFRT::InsertSyncEvent(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
+bool EventQueueFFRT::InsertSyncEvent(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
-    InsertEvent(event, priority, true, insertType);
+    return InsertEvent(event, priority, true, insertType);
 }
 
-void EventQueueFFRT::InsertEvent(InnerEvent::Pointer &event, Priority priority, bool syncWait,
+bool EventQueueFFRT::InsertEvent(InnerEvent::Pointer &event, Priority priority, bool syncWait,
     EventInsertType insertType)
 {
     if (!event) {
         HILOGE("Could not insert an invalid event");
-        return;
+        return false;
     }
     std::unique_lock<ffrt::mutex> lock(ffrtLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueFFRT is unavailable.");
-        return;
+        return false;
     }
 
     // taskname: handler Id | has task | inner event id | param | task name
@@ -452,9 +452,9 @@ void EventQueueFFRT::InsertEvent(InnerEvent::Pointer &event, Priority priority, 
     HILOGD("Submit task %{public}s, %{public}d, %{public}d, %{public}d.", taskName.c_str(), priority,
         insertType, syncWait);
     if (insertType == EventInsertType::AT_FRONT) {
-        SubmitEventAtFront(event, priority, syncWait, taskName, lock);
+        return SubmitEventAtFront(event, priority, syncWait, taskName, lock);
     } else {
-        SubmitEventAtEnd(event, priority, syncWait, taskName, lock);
+        return SubmitEventAtEnd(event, priority, syncWait, taskName, lock);
     }
 }
 
@@ -467,7 +467,7 @@ auto MakeCopyableFunction(F&& f)
     return [wrapper]() { (*wrapper)(); };
 }
 
-void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
+bool EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority priority, bool syncWait,
     const std::string &taskName, std::unique_lock<ffrt::mutex> &lock)
 {
     uint64_t time = event->GetDelayTime();
@@ -497,9 +497,10 @@ void EventQueueFFRT::SubmitEventAtEnd(InnerEvent::Pointer &event, Priority prior
         ffrtQueue_->submit(task, ffrt::task_attr().name(taskName.c_str()).delay(time * MILLI_TO_MICRO).
             priority(queuePriority));
     }
+    return true;
 }
 
-void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
+bool EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority priority, bool syncWait,
     const std::string &taskName, std::unique_lock<ffrt::mutex> &lock)
 {
     uint64_t time = event->GetDelayTime();
@@ -529,7 +530,7 @@ void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority pri
     ffrt_queue_t* queue = TransferQueuePtr(ffrtQueue_);
     if (queue == nullptr) {
         HILOGW("SubmitEventAtFront is unavailable.");
-        return;
+        return false;
     }
     ffrt_function_header_t* header = ffrt::create_function_wrapper((task));
     if (syncWait) {
@@ -539,6 +540,7 @@ void EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority pri
     } else {
         ffrt_queue_submit_head(*queue, header, &attribute);
     }
+    return true;
 }
 
 ErrCode EventQueueFFRT::AddFileDescriptorListener(int32_t fileDescriptor, uint32_t events,

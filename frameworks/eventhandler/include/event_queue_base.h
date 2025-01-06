@@ -64,7 +64,7 @@ public:
      *
      * @see #Priority
      */
-    void Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
+    bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
         EventInsertType insertType = EventInsertType::AT_END) override;
 
     /**
