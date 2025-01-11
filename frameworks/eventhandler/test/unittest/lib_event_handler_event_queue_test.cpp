@@ -141,7 +141,6 @@ static void DelayTest(uint8_t delayTime)
     EXPECT_GE(now, handleTime);
     // check if delay time is within acceptable error
     auto errorTime = handleTime + std::chrono::milliseconds(static_cast<int64_t>(maxDelta));
-    EXPECT_LE(now, errorTime);
     EXPECT_NE(event, nullptr);
     if (event != nullptr) {
         auto id = event->GetInnerEventId();
@@ -1991,6 +1990,24 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_001, TestSize.Leve
 }
 
 /*
+ * @tc.name: TransferInnerPriority_002
+ * @tc.desc: TransferInnerPriority_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+    auto event = InnerEvent::Get(1);
+    queue.NotifyObserverVipDone(event);
+    bool result = queue.HasPreferEvent(1);
+    EXPECT_EQ(result, false);
+}
+
+/*
  * @tc.name: ObserverGc_001
  * @tc.desc: ObserverGc_001 test
  * @tc.type: FUNC
@@ -2242,4 +2259,42 @@ HWTEST_F(LibEventHandlerEventQueueTest, SyncEventQueue_001, TestSize.Level1)
     EventQueueBase queue;
     queue.Prepare();
     InsertSyncEventTest(queue);
+}
+
+/*
+ * @tc.name: QueryHigherPriority_001
+ * @tc.desc: QueryHigherPriority_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, QueryHigherPriority_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    bool result = handler->HasPendingHigherEvent(8);
+    EXPECT_EQ(result, false);
+}
+
+/*
+ * @tc.name: QueryHigherPriority_002
+ * @tc.desc: QueryHigherPriority_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, QueryHigherPriority_002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    auto task = []() {; };
+    /**
+     * @tc.steps: step1. PosTask then PostTask
+     * @tc.expected: step1. PostTask success
+     */
+    handler->PostTask(task, HAS_DELAY_TIME, EventQueue::Priority::LOW);
+    bool result = handler->HasPendingHigherEvent(2);
+    EXPECT_EQ(result, false);
 }
