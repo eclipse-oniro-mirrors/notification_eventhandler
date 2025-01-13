@@ -278,9 +278,9 @@ void EventHandler::RemoveEvent(uint32_t innerEventId, int64_t param)
 
 void EventHandler::RemoveTask(const std::string &name)
 {
-    HILOGD("RemoveTask enter");
+    HILOGD("RemoveTask enter name %{public}s", name.c_str());
     if (!eventRunner_) {
-        HILOGE("MUST Set event runner before removing events by task name");
+        HILOGE("MUST Set event runner before removing events by task name %{public}s", name.c_str());
         return;
     }
 
