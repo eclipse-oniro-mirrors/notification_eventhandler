@@ -166,7 +166,7 @@ void EventQueueBase::RemoveOrphan()
 
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
-        HILOGW("EventQueueBase is unavailable.");
+        HILOGW("RemoveOrphan EventQueueBase is unavailable.");
         return;
     }
     RemoveInvalidFileDescriptor();
@@ -178,7 +178,7 @@ void EventQueueBase::RemoveAll()
     HILOGD("enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
-        HILOGW("EventQueueBase is unavailable.");
+        HILOGW("RemoveAll EventQueueBase is unavailable.");
         return;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -189,7 +189,7 @@ void EventQueueBase::RemoveAll()
 
 void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner)
 {
-    HILOGD("enter");
+    HILOGD("Remove owner enter");
     if (!owner) {
         HILOGE("Invalid owner");
         return;
@@ -202,7 +202,7 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner)
 
 void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId)
 {
-    HILOGD("enter");
+    HILOGD("Remove innerEventId enter");
     if (!owner) {
         HILOGE("Invalid owner");
         return;
@@ -216,7 +216,7 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
 
 void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t innerEventId, int64_t param)
 {
-    HILOGD("enter");
+    HILOGD("Remove param enter");
     if (!owner) {
         HILOGE("Invalid owner");
         return;
@@ -232,7 +232,7 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
 
 bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const std::string &name)
 {
-    HILOGD("enter");
+    HILOGD("Remove name enter");
     if ((!owner) || (name.empty())) {
         HILOGE("Invalid owner or task name");
         return false;
@@ -256,7 +256,7 @@ bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const st
 
 void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_sanitize("cfi")))
 {
-    HILOGD("enter");
+    HILOGD("Remove filter enter");
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");

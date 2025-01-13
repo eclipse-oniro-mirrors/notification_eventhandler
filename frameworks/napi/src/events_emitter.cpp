@@ -60,7 +60,7 @@ namespace {
 
     void ProcessCallback(const EventDataWorker* eventDataInner)
     {
-        HILOGD("enter");
+        HILOGD("emit ProcessCallback enter");
 
         std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
         napi_value resultData = nullptr;
@@ -422,19 +422,19 @@ namespace {
 
     napi_value JS_On(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGD("enter");
+        HILOGD("JS_On enter");
         return OnOrOnce(env, cbinfo, false);
     }
 
     napi_value JS_Once(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGD("enter");
+        HILOGD("JS_Once enter");
         return OnOrOnce(env, cbinfo, true);
     }
 
     napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGD("enter");
+        HILOGD("JS_Off enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
@@ -480,7 +480,7 @@ namespace {
 
     bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId &eventId, Priority priority)
     {
-        HILOGD("enter");
+        HILOGD("EmitWithEventData enter");
         napi_valuetype dataType;
         napi_typeof(env, argv, &dataType);
         if (dataType != napi_object) {
@@ -621,7 +621,7 @@ namespace {
 
     napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGD("enter");
+        HILOGD("JS_Emit enter");
         size_t argc = ARGC_NUM + ARGC_ONE;
         napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
@@ -699,7 +699,7 @@ namespace {
 
     napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     {
-        HILOGD("enter");
+        HILOGD("JS_GetListenerCount enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
@@ -739,7 +739,7 @@ namespace {
 
     napi_value EmitterInit(napi_env env, napi_value exports)
     {
-        HILOGD("enter");
+        HILOGD("EmitterInit enter");
         napi_property_descriptor desc[] = {
             DECLARE_NAPI_FUNCTION("on", JS_On),
             DECLARE_NAPI_FUNCTION("once", JS_Once),

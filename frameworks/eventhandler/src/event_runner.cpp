@@ -671,7 +671,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    EH_LOGI_LIMIT("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
+    HILOGI("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
     if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
