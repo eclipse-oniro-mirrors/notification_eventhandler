@@ -133,8 +133,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
             needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime = 
-                (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
-                ->GetHandleTime().time_since_epoch().count();
+                (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())->GetHandleTime().time_since_epoch().count();
             break;
         }
         case Priority::IDLE: {
