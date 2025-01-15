@@ -300,6 +300,7 @@ private:
         std::list<InnerEvent::Pointer> queue;
         uint32_t handledEventsCount{0};
         uint32_t maxHandledEventsCount{DEFAULT_MAX_HANDLED_EVENT_COUNT};
+        uint64_t frontEventHandleTime = UINT64_MAX;
     };
 
     LOCAL_API void Remove(const RemoveFilter &filter);
