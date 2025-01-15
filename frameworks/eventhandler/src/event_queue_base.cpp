@@ -134,7 +134,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime = 
                 (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
-                    ->GetHandleTime().time_since_epoch().count();
+                ->GetHandleTime().time_since_epoch().count();
             break;
         }
         case Priority::IDLE: {
@@ -393,8 +393,7 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
 
     if (subEventQueues_[priorityIndex].queue.size() == 1) {
         subEventQueues_[priorityIndex].frontEventHandleTime = UINT64_MAX;
-    }
-    else {
+    } else {
         auto it = subEventQueues_[priorityIndex].queue.begin();
         subEventQueues_[priorityIndex].frontEventHandleTime = (*(++it))->GetHandleTime().time_since_epoch().count();
     }
