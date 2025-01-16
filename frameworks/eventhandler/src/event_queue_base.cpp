@@ -68,7 +68,7 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
 }
 
 // Help to check whether there is a valid event in list and update wake up time.
-inline bool CheckEventInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
+bool CheckEventInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
     InnerEvent::TimePoint &nextWakeUpTime, bool isBarrierMode)
 {
     if (events.empty()) {
