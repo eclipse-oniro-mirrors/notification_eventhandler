@@ -114,7 +114,7 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
 {
     bool isVsyncListener = false;
     bool isDaemonListener = listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG;
-    if (listener && listener->isVsyncListener()) {
+    if (listener && listener->IsVsyncListener()) {
         listener->SetDelayTime(VSYNC_TASK_DELAYMS);
         vsyncPriorityOnDaemon_ = priority;
         isVsyncListener = true;
@@ -316,7 +316,7 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
 
     for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
         auto listener = it->second;
-        if (!listener || !listener->GetIsDeamonWaiter() || !listener->isVsyncListener()) {
+        if (!listener || !listener->GetIsDeamonWaiter() || !listener->IsVsyncListener()) {
             continue;
         }
         std::shared_ptr<FileDescriptorInfo> fdInfo = nullptr;
