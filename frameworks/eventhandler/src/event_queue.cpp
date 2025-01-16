@@ -348,7 +348,7 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
         } else {
             ioWaiter_->RemoveFileDescriptor(it->first);
         }
-        HILOGD("%{public}s successful! fd = %{public}d, name = %{public}s, ret = %{public}d",
+        HILOGD("%{public}s successful! fd = %{public}d, name = %{public}s, isLazy = %{public}d",
             __func__, it->first, fdInfo->taskName_.c_str(), isLazy);
     }
     isLazyMode_ = isLazy;
