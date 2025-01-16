@@ -132,6 +132,9 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::LOW: {
             needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
+            subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
+                (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
+                    ->GetHandleTime().time_since_epoch().count();
             break;
         }
         case Priority::IDLE: {
@@ -183,6 +186,7 @@ void EventQueueBase::RemoveAll()
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.clear();
+        subEventQueues_[i].frontEventHandleTime = UINT64_MAX;
     }
     idleEvents_.clear();
 }
@@ -267,6 +271,8 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
 #endif
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
+        subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
+            (*subEventQueues_[i].queue.begin())->GetHandleTime().time_since_epoch().count() : UINT64_MAX);
     }
     idleEvents_.remove_if(filter);
 #ifdef NOTIFICATIONG_SMART_GC
@@ -293,6 +299,8 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
             std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
             subEventQueues_[i].queue.erase(subEventQueues_[i].queue.begin(), it);
+            subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
+            (*subEventQueues_[i].queue.begin())->GetHandleTime().time_since_epoch().count() : UINT64_MAX);
         }
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
@@ -381,6 +389,13 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     // Reset handled event count for sub event queues in higher priority.
     for (uint32_t i = 0; i < priorityIndex; ++i) {
         subEventQueues_[i].handledEventsCount = 0;
+    }
+
+    if (subEventQueues_[priorityIndex].queue.size() == 1) {
+        subEventQueues_[priorityIndex].frontEventHandleTime = UINT64_MAX;
+    } else {
+        auto it = subEventQueues_[priorityIndex].queue.begin();
+        subEventQueues_[priorityIndex].frontEventHandleTime = (*(++it))->GetHandleTime().time_since_epoch().count();
     }
 
     return PopFrontEventFromListLocked(subEventQueues_[priorityIndex].queue);
@@ -891,11 +906,7 @@ bool EventQueueBase::hasVipTask()
 
 inline uint64_t EventQueueBase::GetQueueFirstEventHandleTime(int32_t priority)
 {
-    if (!(int32_t)subEventQueues_[static_cast<uint32_t>(priority)].queue.size()) {
-        return UINT64_MAX;
-    }
-    return (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
-            ->GetHandleTime().time_since_epoch().count();
+    return subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS
