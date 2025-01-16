@@ -194,7 +194,7 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
         HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d delay %{public}dms.", fileDescriptor,
             fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_, listener->GetDelayTime());
         // Post a high priority task to handle file descriptor events.
-        auto event = InnerEvent::Get(f, fileDescriptorInfo->taskName_); 
+        auto event = InnerEvent::Get(f, fileDescriptorInfo->taskName_);
         if (event && isVsyncTask) {
             event->MarkVsyncTask();
             auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
