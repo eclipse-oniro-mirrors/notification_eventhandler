@@ -302,11 +302,9 @@ void EventQueue::RemoveInvalidFileDescriptor()
 
 void EventQueue::SetVsyncLazyMode(bool isLazy)
 {
-    HILOGD("%{public}s(%{public}d)", __func__, isLazy);
     if (!MONITOR_FLAG) {
         return;
     }
-
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("%{public}s, EventQueue is unavailable!", __func__);
@@ -331,7 +329,29 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
             HILOGW("%{public}s, fd = %{public}d, fileDescriptorInfo is unavailable!", __func__, it->first);
             continue;
         }
+
+        bool ret;
+        if (isLazy) {
+            ret = ioWaiter_->AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_, fdInfo->listener_, Priority::HIGH);
+        } else {
+            ret = DeamonIoWaiter::GetInstance().AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_,
+                fdInfo->listener_, vsyncPriorityOnDaemon_);
+        }
+        if (!ret) {
+            HILOGW("%{public}s, AddFileDescriptor failed! fd = %{public}d, name = %{public}s, ret = %{public}d",
+                __func__, it->first, fdInfo->taskName_.c_str(), ret);
+            continue;
+        }
+
+        if (isLazy) {
+            DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
+        } else {
+            ioWaiter_->RemoveFileDescriptor(it->first);
+        }
+        HILOGD("%{public}s successful! fd = %{public}d, name = %{public}s, ret = %{public}d",
+            __func__, it->first, fdInfo->taskName_.c_str(), isLazy);
     }
+    isLazyMode_ = isLazy;
 }
 
 void EventQueue::PrepareBase()
