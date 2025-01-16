@@ -332,11 +332,11 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
 
         bool ret;
         if (isLazy) {
-            ret = ioWaiter_->AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_, fdInfo->listener_,
-                Priority::HIGH);
+            ret = ioWaiter_->AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_,
+                fdInfo->listener_, Priority::HIGH);
         } else {
-            ret = DeamonIoWaiter::GetInstance().AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_,
-                fdInfo->listener_, vsyncPriorityOnDaemon_);
+            ret = DeamonIoWaiter::GetInstance().AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT,
+                fdInfo->taskName_, fdInfo->listener_, vsyncPriorityOnDaemon_);
         }
         if (!ret) {
             HILOGW("%{public}s, AddFileDescriptor failed! fd = %{public}d, name = %{public}s, ret = %{public}d",
