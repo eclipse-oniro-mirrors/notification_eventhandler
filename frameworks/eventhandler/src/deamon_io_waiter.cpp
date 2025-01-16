@@ -24,7 +24,6 @@
 #include "event_handler_utils.h"
 #include "event_logger.h"
 #include "event_handler.h"
-#include "parameters.h"
 #ifdef RES_SCHED_ENABLE
 #include "res_type.h"
 #include "res_sched_client.h"
