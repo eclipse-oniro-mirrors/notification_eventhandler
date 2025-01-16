@@ -69,17 +69,29 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
 
 // Help to check whether there is a valid event in list and update wake up time.
 inline bool CheckEventInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
-    InnerEvent::TimePoint &nextWakeUpTime)
+    InnerEvent::TimePoint &nextWakeUpTime, bool isBarrierMode)
 {
-    if (!events.empty()) {
+    if (events.empty()) {
+        return false;
+    }
+    if (!isBarrierMode) {
         const auto &handleTime = events.front()->GetHandleTime();
         if (handleTime < nextWakeUpTime) {
             nextWakeUpTime = handleTime;
             return handleTime <= now;
         }
+        return false;
     }
 
-    return false;
+    auto filter = [&now, &nextWakeUpTime](const InnerEvent::Pointer &p) {
+        const auto &handleTime = p->GetHandleTime();
+        if (handleTime < nextWakeUpTime) {
+            nextWakeUpTime = handleTime;
+            return p->IsBarrierTask() && handleTime <= now;
+        }
+        return false;
+    };
+    return std::find_if(events.begin(), events.end(), filter) != events.end();
 }
 
 inline InnerEvent::Pointer PopFrontEventFromListLocked(std::list<InnerEvent::Pointer> &events)
@@ -89,6 +101,34 @@ inline InnerEvent::Pointer PopFrontEventFromListLocked(std::list<InnerEvent::Poi
     return event;
 }
 
+inline InnerEvent::Pointer PopFrontBarrierEventFromListLocked(std::list<InnerEvent::Pointer> &events)
+{
+    auto filter = [](const InnerEvent::Pointer &p) {
+        return p->IsBarrierTask();
+    };
+    std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), filter);
+    if (iter != events.end()) {
+        std::list<InnerEvent::Pointer> tempList;
+        tempList.splice(tempList.begin(), events, iter);
+        return PopFrontEventFromListLocked(tempList);
+    }
+    return InnerEvent::Pointer(nullptr, nullptr);
+}
+
+inline InnerEvent::Pointer PopFrontBarrierEventFromListWithTimeLocked(std::list<InnerEvent::Pointer> &events,
+    const InnerEvent::TimePoint &sendTime, const InnerEvent::TimePoint &handleTime)
+{
+    auto filter = [](const InnerEvent::Pointer &p) {
+        return p->IsBarrierTask() && (p->GetSendTime() <= sendTime) && (p->GetHandleTime() <= handleTime);
+    };
+    std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), filter);
+    if (iter != events.end()) {
+        std::list<InnerEvent::Pointer> tempList;
+        tempList.splice(tempList.begin(), events, iter);
+        return PopFrontEventFromListLocked(tempList);
+    }
+    return InnerEvent::Pointer(nullptr, nullptr);
+}
 }  // unnamed namespace
 
 EventQueueBase::EventQueueBase() : EventQueue(), historyEvents_(std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
@@ -118,6 +158,10 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         return false;
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
+    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
+        event->MarkBarrierTask();
+    }
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
@@ -130,7 +174,8 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
-            needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
+            needNotify = event->IsVsyncTask() || (event->GetHandleTime() < wakeUpTime_) ||
+                (wakeUpTime_ < InnerEvent::Clock::now());
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
                 (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
@@ -357,13 +402,38 @@ bool EventQueueBase::HasInnerEvent(const HasFilter &filter)
     return false;
 }
 
+InnerEvent::Pointer EventQueueBase::PickFirstVsyncEventLocked()
+{
+    auto events = subEventQueues_[static_cast<uint32_t>(vsyncPriorityOnDaemon_)].queue;
+    auto removeFilter = [](const InnerEvent::Pointer &p) {
+        return !p->GetTaskName().compare("BarrierEvent");
+    };
+    std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), removeFilter);
+    if (iter != events.end()) {
+        std::list<InnerEvent::Pointer> tempList;
+        tempList.splice(tempList.begin(), events, iter);
+    }
+
+    auto filter = [](const InnerEvent::Pointer &p) {
+        return p->IsVsyncTask();
+    };
+    std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), filter);
+    if (iter != events.end()) {
+        std::list<InnerEvent::Pointer> tempList;
+        tempList.splice(tempList.begin(), events, iter);
+        return PopFrontEventFromListLocked(tempList);
+    }
+    return InnerEvent::Pointer(nullptr, nullptr);
+}
+
 InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint &now,
     InnerEvent::TimePoint &nextWakeUpTime)
 {
+    bool isBarrierMode = isBarrierMode_;
     uint32_t priorityIndex = SUB_EVENT_QUEUE_NUM;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         // Check whether any event need to be distributed.
-        if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime)) {
+        if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime, isBarrierMode)) {
             continue;
         }
 
@@ -381,6 +451,13 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
         priorityIndex = i;
     }
 
+    if ((priorityIndex >= static_cast<uint32_t>(Priority::HIGH)) &&
+        sumOfPendingVsync_.load() && !needEpoll_.load()) {
+        auto event = PickFirstVsyncEventLocked();
+        if (event) {
+            return event;
+        }
+    }
     if (priorityIndex >= SUB_EVENT_QUEUE_NUM) {
         // If not found any event to distribute, return nullptr.
         return InnerEvent::Pointer(nullptr, nullptr);
@@ -398,6 +475,9 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
         subEventQueues_[priorityIndex].frontEventHandleTime = (*(++it))->GetHandleTime().time_since_epoch().count();
     }
 
+    if (isBarrierMode) {
+        return PopFrontBarrierEventFromListLocked(subEventQueues_[priorityIndex].queue);
+    }
     return PopFrontEventFromListLocked(subEventQueues_[priorityIndex].queue);
 }
 
@@ -421,18 +501,26 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEventLocked(InnerEvent::TimePoint 
     }
 
     if (!idleEvents_.empty()) {
-        const auto &idleEvent = idleEvents_.front();
+        if (isBarrierMode_) {
+            event = PopFrontBarrierEventFromListWithTimeLocked(idleEvents_, idleTimeStamp_, now);
+            if (event) {
+                currentRunningEvent_ = CurrentRunningEvent(now, event);
+                return event;
+            }
+        } else {
+            const auto &idleEvent = idleEvents_.front();
 
-        // Return the idle event that has been sent before time stamp and reaches its handle time.
-        if ((idleEvent->GetSendTime() <= idleTimeStamp_) && (idleEvent->GetHandleTime() <= now)) {
-            event = PopFrontEventFromListLocked(idleEvents_);
-            currentRunningEvent_ = CurrentRunningEvent(now, event);
-            return event;
+            // Return the idle event that has been sent before time stamp and reaches its handle time.
+            if ((idleEvent->GetSendTime() <= idleTimeStamp_) && (idleEvent->GetHandleTime() <= now)) {
+                event = PopFrontEventFromListLocked(idleEvents_);
+                currentRunningEvent_ = CurrentRunningEvent(now, event);
+                return event;
+            }
         }
     }
 
     // Update wake up time.
-    nextExpiredTime = wakeUpTime_;
+    nextExpiredTime = sumOfPendingVsync_.load()? InnerEvent::Clock::now() : wakeUpTime_;
     currentRunningEvent_ = CurrentRunningEvent();
     return InnerEvent::Pointer(nullptr, nullptr);
 }
@@ -448,6 +536,8 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
         }
         TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_BEFORE_WAITING);
         WaitUntilLocked(nextWakeUpTime, lock);
+        epollTimePoint_ = InnerEvent::Clock::now();
+        needEpoll_.store(false);
         TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_AFTER_WAITING);
     }
 
