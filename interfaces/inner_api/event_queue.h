@@ -376,7 +376,8 @@ public:
     /**
      * the vsync task is comming.
      */
-    inline void DispatchVsyncTaskNotify() {
+    inline void DispatchVsyncTaskNotify()
+    {
         ++sumOfPendingVsync_;
         if (epollTimePoint_ < InnerEvent::Clock::now()) {
             needEpoll_.store(true);
@@ -386,21 +387,24 @@ public:
     /**
      * the vsync task be handled.
      */
-    inline void HandleVsyncTaskNotify() {
+    inline void HandleVsyncTaskNotify()
+    {
         --sumOfPendingVsync_;
     }
 
     /**
      * set the barrier mode.
      */
-    inline void SetBarrierMode(bool isBarrierMode) {
+    inline void SetBarrierMode(bool isBarrierMode)
+    {
         isBarrierMode_ = isBarrierMode;
     }
 
     /**
      * get the barrier mode.
      */
-    inline bool isBarrierMode() {
+    inline bool IsBarrierMode()
+    {
         return isBarrierMode_;
     }
 
