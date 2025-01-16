@@ -306,6 +306,7 @@ private:
     LOCAL_API void Remove(const RemoveFilter &filter);
     LOCAL_API void RemoveOrphan(const RemoveFilter &filter);
     LOCAL_API bool HasInnerEvent(const HasFilter &filter);
+    LOCAL_API InnerEvent::Pointer PickFirstVsyncEventLocked();
     LOCAL_API InnerEvent::Pointer PickEventLocked(const InnerEvent::TimePoint &now,
         InnerEvent::TimePoint &nextWakeUpTime);
     LOCAL_API InnerEvent::Pointer GetExpiredEventLocked(InnerEvent::TimePoint &nextExpiredTime);
