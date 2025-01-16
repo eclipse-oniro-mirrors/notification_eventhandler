@@ -24,6 +24,7 @@
 #include "event_handler_utils.h"
 #include "event_logger.h"
 #include "event_handler.h"
+#include "parameters.h"
 #ifdef RES_SCHED_ENABLE
 #include "res_type.h"
 #include "res_sched_client.h"
@@ -158,8 +159,16 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
             return;
         }
 
+        auto listener = fileDescriptorInfo->listener_;
+        auto runner = handler->GetEventRunner();
+        bool isVsyncTask = runner && listener->IsVsyncListener();
         std::weak_ptr<FileDescriptorListener> wp = fileDescriptorInfo->listener_;
-        auto f = [fileDescriptor, events, wp]() {
+        auto f = [fileDescriptor, events, wp, isVsyncTask]() {
+            if (isVsyncTask) {
+                auto queue = EventRunner::Current()->GetEventQueue();
+                queue->HandleVsyncTaskNotify();
+                queue->SetBarrierMode(false);
+            }
             auto listener = wp.lock();
             if (!listener) {
                 HILOGW("Listener is released");
@@ -183,10 +192,21 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
             }
         };
 
-        HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor,
-            fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_);
+        HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d delay %{public}dms.", fileDescriptor,
+            fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_, listener->GetDelayTime());
         // Post a high priority task to handle file descriptor events.
-        handler->PostTask(f, fileDescriptorInfo->taskName_, 0, fileDescriptorInfo->priority_);
+        auto event = InnerEvent::Get(f, fileDescriptorInfo->taskName_); 
+        if (event && isVsyncTask) {
+            event->MarkVsyncTask();
+            auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
+            handler->PostTask(task, "BarrierEvent", listener->GetDelayTime(), fileDescriptorInfo->priority_);
+        }
+        if (handler->SendEvent(event, listener->GetDelayTime(), fileDescriptorInfo->priority_) && isVsyncTask) {
+            runner->GetEventQueue()->DispatchVsyncTaskNotify();
+        } else if (isVsyncTask) {
+            handler->RemoveTask("BarrierEvent");
+            runner->GetEventQueue()->SetBarrierMode(false);
+        }
     }
 }
 
