@@ -140,7 +140,6 @@ static void DelayTest(uint8_t delayTime)
     now = InnerEvent::Clock::now();
     EXPECT_GE(now, handleTime);
     // check if delay time is within acceptable error
-    auto errorTime = handleTime + std::chrono::milliseconds(static_cast<int64_t>(maxDelta));
     EXPECT_NE(event, nullptr);
     if (event != nullptr) {
         auto id = event->GetInnerEventId();

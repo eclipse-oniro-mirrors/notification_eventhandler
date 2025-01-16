@@ -24,7 +24,7 @@ namespace {
 void FfrtDescriptorListener::OnReadable(int32_t fileDescriptor)
 {
     if (fileDescriptor < 0) {
-        HILOGW("OnReadable bad fd");
+        HILOGW("OnReadable bad fd events %{public}d.", events_);
         return;
     }
     InvokePollCb(EPOLLIN);

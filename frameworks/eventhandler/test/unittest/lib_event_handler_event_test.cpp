@@ -426,7 +426,6 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
     ++eventId;
     auto event = InnerEvent::Get(eventId, param);
     EXPECT_NE(nullptr, event);
-    auto firstAddr = event.get();
     event.reset(nullptr);
 
     /**
@@ -434,7 +433,6 @@ HWTEST_F(LibEventHandlerEventTest, DrainPool002, TestSize.Level1)
      */
     auto f = []() {};
     event = InnerEvent::Get(f);
-    auto secondAddr = event.get();
     event.reset(nullptr);
 
     /**
