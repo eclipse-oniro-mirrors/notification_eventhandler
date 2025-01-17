@@ -407,7 +407,7 @@ InnerEvent::Pointer EventQueueBase::PickFirstVsyncEventLocked()
     auto filter = [](const InnerEvent::Pointer &p) {
         return p->IsVsyncTask();
     };
-    std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), filter);
+    iter = std::find_if(events.begin(), events.end(), filter);
     if (iter != events.end()) {
         std::list<InnerEvent::Pointer> tempList;
         tempList.splice(tempList.begin(), events, iter);
