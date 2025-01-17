@@ -53,7 +53,7 @@ enum class EventRunnerStage {
     STAGE_EXIT_RUNNER = 1<<1,
     // waiting
     STAGE_BEFORE_WAITING = 1<<2,
-    // recover form sleeping7
+    // recover form sleeping
     STAGE_AFTER_WAITING = 1<<3,
     // insert vip task
     STAGE_VIP_EXISTED = 1<<4,
@@ -490,7 +490,7 @@ protected:
 
     EventRunnerObserver observer_ = {.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD),
         .notifyCb = nullptr};
-    
+
     std::atomic_int8_t sumOfPendingVsync_ = 0;
     std::atomic_bool needEpoll_ = true;
     bool isLazyMode_ = true;
