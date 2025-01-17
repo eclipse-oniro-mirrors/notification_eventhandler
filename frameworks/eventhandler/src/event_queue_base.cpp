@@ -108,7 +108,7 @@ inline InnerEvent::Pointer PopFrontBarrierEventFromListLocked(std::list<InnerEve
 inline InnerEvent::Pointer PopFrontBarrierEventFromListWithTimeLocked(std::list<InnerEvent::Pointer> &events,
     const InnerEvent::TimePoint &sendTime, const InnerEvent::TimePoint &handleTime)
 {
-    auto filter = [](const InnerEvent::Pointer &p) {
+    auto filter = [&sendTime, &handleTime](const InnerEvent::Pointer &p) {
         return p->IsBarrierTask() && (p->GetSendTime() <= sendTime) && (p->GetHandleTime() <= handleTime);
     };
     std::list<InnerEvent::Pointer>::iterator iter = std::find_if(events.begin(), events.end(), filter);
