@@ -53,7 +53,7 @@ enum class EventRunnerStage {
     STAGE_EXIT_RUNNER = 1<<1,
     // waiting
     STAGE_BEFORE_WAITING = 1<<2,
-    // recover form sleeping
+    // recover form sleeping7
     STAGE_AFTER_WAITING = 1<<3,
     // insert vip task
     STAGE_VIP_EXISTED = 1<<4,
@@ -495,6 +495,7 @@ protected:
     std::atomic_bool needEpoll_ = true;
     bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
+    Priority vsyncPriority_ = Priority::VIP;
     InnerEvent::TimePoint epollTimePoint_;
 };
 }  // namespace AppExecFwk
