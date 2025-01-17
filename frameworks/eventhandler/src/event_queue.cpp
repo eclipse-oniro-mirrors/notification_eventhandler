@@ -45,8 +45,7 @@ void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDe
         if (filter(it->second)) {
             if (useDeamonIoWaiter_ || (it->second->GetIsDeamonWaiter() && MONITOR_FLAG)) {
                 DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-            }
-            if (ioWaiter) {
+            } else if (ioWaiter) {
                 ioWaiter->RemoveFileDescriptor(it->first);
             }
             it = listeners.erase(it);
@@ -112,22 +111,14 @@ void EventQueue::CheckFileDescriptorEvent()
 bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, const std::string &taskName,
     const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
 {
-    bool isVsyncListener = false;
-    bool isDaemonListener = listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG;
-    if (listener && listener->IsVsyncListener()) {
-        listener->SetDelayTime(VSYNC_TASK_DELAYMS);
-        vsyncPriorityOnDaemon_ = priority;
-        isVsyncListener = true;
-    }
-
-    if (useDeamonIoWaiter_ || (isDaemonListener && (!isVsyncListener || !isLazyMode_))) {
+    if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
+        if (listener && listener->IsVsyncListener()) {
+            listener->SetDelayTime(UINT32_MAX);
+        }
         return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
             listener, priority);
     }
     if (ioWaiter_) {
-        if (isDaemonListener) {
-            priority = Priority::HIGH;
-        }
         return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
     }
     return false;
@@ -142,6 +133,7 @@ bool EventQueue::EnsureIoWaiterLocked(const std::shared_ptr<FileDescriptorListen
             return false;
         }
         DeamonIoWaiter::GetInstance().StartEpollIoWaiter();
+        return true;
     }
 
     if (ioWaiter_->SupportListeningFileDescriptor()) {
@@ -279,6 +271,7 @@ void EventQueue::RemoveListenerByFd(int32_t fileDescriptor)
     if (listeners_.erase(fileDescriptor) > 0) {
         if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
             DeamonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
+            return;
         }
         if (ioWaiter_) {
             ioWaiter_->RemoveFileDescriptor(fileDescriptor);
@@ -319,38 +312,9 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
         if (!listener || !listener->GetIsDeamonWaiter() || !listener->IsVsyncListener()) {
             continue;
         }
-        std::shared_ptr<FileDescriptorInfo> fdInfo = nullptr;
-        if (isLazy) {
-            fdInfo = DeamonIoWaiter::GetInstance().GetFileDescriptorMap(it->first);
-        } else {
-            fdInfo = ioWaiter_->GetFileDescriptorMap(it->first);
-        }
-        if (fdInfo == nullptr) {
-            HILOGW("%{public}s, fd = %{public}d, fileDescriptorInfo is unavailable!", __func__, it->first);
-            continue;
-        }
-
-        bool ret;
-        if (isLazy) {
-            ret = ioWaiter_->AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_,
-                fdInfo->listener_, Priority::HIGH);
-        } else {
-            ret = DeamonIoWaiter::GetInstance().AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT,
-                fdInfo->taskName_, fdInfo->listener_, vsyncPriorityOnDaemon_);
-        }
-        if (!ret) {
-            HILOGW("%{public}s, AddFileDescriptor failed! fd = %{public}d, name = %{public}s, ret = %{public}d",
-                __func__, it->first, fdInfo->taskName_.c_str(), ret);
-            continue;
-        }
-
-        if (isLazy) {
-            DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-        } else {
-            ioWaiter_->RemoveFileDescriptor(it->first);
-        }
-        HILOGD("%{public}s successful! fd = %{public}d, name = %{public}s, isLazy = %{public}d",
-            __func__, it->first, fdInfo->taskName_.c_str(), isLazy);
+        listener->SetDelayTime(isLazy? UINT32_MAX : VSYNC_TASK_DELAYMS);
+        HILOGD("%{public}s successful! fd = %{public}d, isLazy = %{public}d",
+            __func__, it->first, isLazy);
     }
     isLazyMode_ = isLazy;
 }
