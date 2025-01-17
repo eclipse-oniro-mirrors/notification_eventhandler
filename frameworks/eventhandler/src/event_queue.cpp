@@ -113,6 +113,7 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
 {
     if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
         if (listener && listener->IsVsyncListener()) {
+            vsyncPriority_ = priority;
             listener->SetDelayTime(UINT32_MAX);
         }
         return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
