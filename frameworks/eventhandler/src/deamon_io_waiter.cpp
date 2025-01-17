@@ -220,7 +220,8 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
         if (isVsyncTask) {
             PostTaskForVsync(fileDescriptorInfo, handler, f, listener->GetDelayTime());
         } else {
-            handler->PostTask(f, fileDescriptorInfo->taskName_, listener->GetDelayTime(), fileDescriptorInfo->priority_);
+            handler->PostTask(f, fileDescriptorInfo->taskName_, listener->GetDelayTime(),
+                fileDescriptorInfo->priority_);
         }
     }
 }
