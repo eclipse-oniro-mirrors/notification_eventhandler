@@ -495,7 +495,6 @@ protected:
     std::atomic_bool needEpoll_ = true;
     bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
-    Priority vsyncPriorityOnDaemon_ = Priority::VIP;
     InnerEvent::TimePoint epollTimePoint_;
 };
 }  // namespace AppExecFwk
