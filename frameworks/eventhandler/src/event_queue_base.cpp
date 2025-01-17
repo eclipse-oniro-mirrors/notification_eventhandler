@@ -394,7 +394,7 @@ bool EventQueueBase::HasInnerEvent(const HasFilter &filter)
 
 InnerEvent::Pointer EventQueueBase::PickFirstVsyncEventLocked()
 {
-    auto events = subEventQueues_[static_cast<uint32_t>(vsyncPriorityOnDaemon_)].queue;
+    auto events = subEventQueues_[static_cast<uint32_t>(vsyncPriority_)].queue;
     auto removeFilter = [](const InnerEvent::Pointer &p) {
         return !p->GetTaskName().compare("BarrierEvent");
     };
