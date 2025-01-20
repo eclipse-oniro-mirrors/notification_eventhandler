@@ -133,8 +133,8 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
             needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
-                (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
-                    ->GetHandleTime().time_since_epoch().count();
+                static_cast<uint64_t>((*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
+                    ->GetHandleTime().time_since_epoch().count());
             break;
         }
         case Priority::IDLE: {
@@ -272,7 +272,8 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
         subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
-            (*subEventQueues_[i].queue.begin())->GetHandleTime().time_since_epoch().count() : UINT64_MAX);
+            static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
+            ->GetHandleTime().time_since_epoch().count()) : UINT64_MAX);
     }
     idleEvents_.remove_if(filter);
 #ifdef NOTIFICATIONG_SMART_GC
@@ -300,7 +301,8 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
             subEventQueues_[i].queue.erase(subEventQueues_[i].queue.begin(), it);
             subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
-            (*subEventQueues_[i].queue.begin())->GetHandleTime().time_since_epoch().count() : UINT64_MAX);
+            static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
+            ->GetHandleTime().time_since_epoch().count()) : UINT64_MAX);
         }
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
@@ -395,7 +397,8 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
         subEventQueues_[priorityIndex].frontEventHandleTime = UINT64_MAX;
     } else {
         auto it = subEventQueues_[priorityIndex].queue.begin();
-        subEventQueues_[priorityIndex].frontEventHandleTime = (*(++it))->GetHandleTime().time_since_epoch().count();
+        subEventQueues_[priorityIndex].frontEventHandleTime =
+            static_cast<uint64_t>((*(++it))->GetHandleTime().time_since_epoch().count());
     }
 
     return PopFrontEventFromListLocked(subEventQueues_[priorityIndex].queue);
