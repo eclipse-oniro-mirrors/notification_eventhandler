@@ -54,6 +54,21 @@ HWTEST_F(LibEventHandlerInnerEventTest, TraceInfo001, TestSize.Level1)
     EXPECT_EQ("Et:NA", result);
 }
 
+/*
+ * @tc.name: TraceInfo002
+ * @tc.desc: Invoke TraceInfo interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerInnerEventTest, TraceInfo002, TestSize.Level1)
+{
+    uint32_t eventId = 0;
+    int64_t eventParam = 0;
+    Caller caller;
+    auto event = InnerEvent::Get(eventId, eventParam, caller);
+    std::string result = event->TraceInfo();
+    EXPECT_EQ("Et:NA", result);
+}
+
 
 /*
  * @tc.name: GetEventPointer001

@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
+#include "event_handler.h"
 #include "event_queue.h"
-
+#include "event_runner.h"
+#include "inner_event.h"
 
 #include <gtest/gtest.h>
 #include <dlfcn.h>
@@ -33,6 +35,8 @@ typedef bool (*FfrtSyncPostTask)(void* handler, const std::function<void()>& cal
     const std::string &name, EventQueue::Priority priority);
 typedef bool (*RemoveTaskForFFRT)(void* handler, const std::string &name);
 typedef bool (*RemoveAllTaskForFFRT)(void* handler);
+typedef bool (*FfrtPostSyncTask)(void* handler, const std::function<void()>& callback,
+    const std::string &name, EventQueue::Priority priority);
 
 class LibEventHandlerTest : public testing::Test {
 public:
@@ -124,15 +128,15 @@ HWTEST_F(LibEventHandlerTest, Ffrt003, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerTest, Ffrt004, TestSize.Level1)
 {
-    string str = "PostTaskByFFRT";
+    string str = "PostSyncTaskByFFRT";
     void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
     void* temp = GetTemp(str.data(), handle);
     if (temp) {
         auto task = [this]() {
             return;
         };
-        FfrtPostTask ffrt = reinterpret_cast<FfrtPostTask>(temp);
-        bool result = (*ffrt)(nullptr, task, "x", 10, EventQueue::Priority::LOW);
+        FfrtPostSyncTask ffrt = reinterpret_cast<FfrtPostSyncTask>(temp);
+        bool result = (*ffrt)(nullptr, task, "x", EventQueue::Priority::LOW);
         EXPECT_EQ(false, result);
     }
 }
@@ -169,4 +173,34 @@ HWTEST_F(LibEventHandlerTest, Ffrt006, TestSize.Level1)
         EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr);
     }
+}
+
+/*
+ * @tc.name: Ffrt007
+ * @tc.desc: Invoke TraceInfo interface verify whether it is normal
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, Ffrt007, TestSize.Level1)
+{
+    string str = "RemoveAllTaskForFFRT";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        RemoveAllTaskForFFRT ffrt = reinterpret_cast<RemoveAllTaskForFFRT>(temp);
+        EXPECT_NE(nullptr, ffrt);
+        (*ffrt)(nullptr);
+    }
+}
+
+/*
+ * @tc.name: RemoveTask
+ * @tc.desc: remove task by name
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, RemoveTask001, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    auto handler = std::make_shared<EventHandler>(runner);
+    int result = handler->RemoveTaskWithRet("task");
+    EXPECT_EQ(result, 1);
 }
