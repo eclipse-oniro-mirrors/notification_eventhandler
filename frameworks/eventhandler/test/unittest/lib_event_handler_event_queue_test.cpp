@@ -2007,6 +2007,66 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_002, TestSize.Leve
 }
 
 /*
+ * @tc.name: TransferInnerPriority_003
+ * @tc.desc: TransferInnerPriority_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_003, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+    InnerEvent::Pointer event(nullptr, nullptr);
+    EventQueue::Priority priority;
+    EventInsertType insertType;
+    priority = EventQueue::Priority::LOW;
+    insertType = EventInsertType::AT_FRONT;
+    queue.Insert(event, priority, insertType);
+    queue.InsertSyncEvent(event, priority, insertType);
+    bool result = queue.HasPreferEvent(1);
+    EXPECT_EQ(result, false);
+    queue.Finish();
+}
+
+/*
+ * @tc.name: TransferInnerPriority_004
+ * @tc.desc: TransferInnerPriority_004 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_004, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("RunnerFFRT", ThreadMode::FFRT);
+    auto handler = std::make_shared<EventHandler>(runner);
+    handler->RemoveFileDescriptorListener(-1);
+    handler->RemoveAllFileDescriptorListeners();
+    bool result = handler->HasPreferEvent(static_cast<int>(EventQueue::Priority::HIGH));
+    EXPECT_EQ(result, false);
+}
+
+/*
+ * @tc.name: TransferInnerPriority_005
+ * @tc.desc: TransferInnerPriority_005 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_005, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+    queue.QueryPendingTaskInfo(1);
+    auto runner = EventRunner::Create("RunnerFFRT", ThreadMode::FFRT);
+    auto handler = std::make_shared<EventHandler>(runner);
+    int64_t param = 5;
+    bool result = queue.HasInnerEvent(handler, param);
+    EXPECT_EQ(result, false);
+    handler->HasPendingHigherEvent(2);
+}
+
+/*
  * @tc.name: ObserverGc_001
  * @tc.desc: ObserverGc_001 test
  * @tc.type: FUNC
@@ -2174,6 +2234,36 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_007, TestSize.Level1)
     trace.stage = "GFH";
     std::string str = trace.getTraceInfo();
     EXPECT_NE("GFH", str);
+}
+
+/*
+ * @tc.name: ObserverGc_008
+ * @tc.desc: ObserverGc_008 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_008, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueBase queue;
+    queue.Prepare();
+    auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
+        [[maybe_unused]]const StageInfo* info) -> int {
+        return 1;
+    };
+    uint32_t stage = (static_cast<uint32_t>(EventRunnerStage::STAGE_BEFORE_WAITING) |
+        static_cast<uint32_t>(EventRunnerStage::STAGE_AFTER_WAITING) |
+        static_cast<uint32_t>(EventRunnerStage::STAGE_VIP_EXISTED) |
+        static_cast<uint32_t>(EventRunnerStage::STAGE_VIP_NONE));
+    queue.AddObserver(Observer::ARKTS_GC, stage, callback);
+    auto now = InnerEvent::Clock::now();
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_BEFORE_WAITING);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_AFTER_WAITING);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_VIP_EXISTED);
+    queue.TryExecuteObserverCallback(now, EventRunnerStage::STAGE_VIP_NONE);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /**
