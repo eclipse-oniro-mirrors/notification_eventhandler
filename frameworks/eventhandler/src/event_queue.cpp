@@ -32,6 +32,8 @@ namespace AppExecFwk {
 namespace {
 static const bool MONITOR_FLAG =
     system::GetBoolParameter("const.sys.param_file_description_monitor", false);
+static const int32_t VSYNC_TASK_DELAYMS =
+    system::GetIntParameter("const.sys.param_vsync_delayms", 50);
 DEFINE_EH_HILOG_LABEL("EventQueue");
 
 // Help to remove file descriptor listeners.
@@ -57,6 +59,7 @@ void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDe
 EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>())
 {
     HILOGD("enter");
+    epollTimePoint_ = InnerEvent::Clock::now();
 }
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
@@ -69,6 +72,7 @@ EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
             std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
             std::placeholders::_3, std::placeholders::_4));
     }
+    epollTimePoint_ = InnerEvent::Clock::now();
 }
 
 EventQueue::~EventQueue()
@@ -108,6 +112,10 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
     const std::shared_ptr<FileDescriptorListener>& listener, EventQueue::Priority priority)
 {
     if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
+        if (listener && listener->IsVsyncListener()) {
+            vsyncPriority_ = priority;
+            listener->SetDelayTime(UINT32_MAX);
+        }
         return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
             listener, priority);
     }
@@ -284,6 +292,32 @@ void EventQueue::RemoveInvalidFileDescriptor()
     };
 
     RemoveFileDescriptorListenerLocked(listeners_, ioWaiter_, listenerFilter, useDeamonIoWaiter_);
+}
+
+void EventQueue::SetVsyncLazyMode(bool isLazy)
+{
+    if (!MONITOR_FLAG) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        HILOGW("%{public}s, EventQueue is unavailable!", __func__);
+        return;
+    }
+    if (isLazyMode_ == isLazy) {
+        return;
+    }
+
+    for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
+        auto listener = it->second;
+        if (!listener || !listener->GetIsDeamonWaiter() || !listener->IsVsyncListener()) {
+            continue;
+        }
+        listener->SetDelayTime(isLazy? UINT32_MAX : VSYNC_TASK_DELAYMS);
+        HILOGD("%{public}s successful! fd = %{public}d, isLazy = %{public}d",
+            __func__, it->first, isLazy);
+    }
+    isLazyMode_ = isLazy;
 }
 
 void EventQueue::PrepareBase()

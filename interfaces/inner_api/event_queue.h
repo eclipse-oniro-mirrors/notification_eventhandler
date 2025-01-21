@@ -17,6 +17,7 @@
 #define BASE_EVENTHANDLER_INTERFACES_INNER_API_EVENT_QUEUE_H
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <list>
 #include <map>
@@ -366,6 +367,47 @@ public:
      * @param priority The specified priority.
      */
     virtual inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) = 0;
+
+    /**
+     * Set the lazy mode for AppVsync
+     */
+    void SetVsyncLazyMode(bool isLazy);
+
+    /**
+     * the vsync task is comming.
+     */
+    inline void DispatchVsyncTaskNotify()
+    {
+        ++sumOfPendingVsync_;
+        if (epollTimePoint_ < InnerEvent::Clock::now()) {
+            needEpoll_.store(true);
+        }
+    }
+
+    /**
+     * the vsync task be handled.
+     */
+    inline void HandleVsyncTaskNotify()
+    {
+        --sumOfPendingVsync_;
+    }
+
+    /**
+     * set the barrier mode.
+     */
+    inline void SetBarrierMode(bool isBarrierMode)
+    {
+        isBarrierMode_ = isBarrierMode;
+    }
+
+    /**
+     * get the barrier mode.
+     */
+    inline bool IsBarrierMode()
+    {
+        return isBarrierMode_;
+    }
+
 protected:
     void RemoveInvalidFileDescriptor();
 
@@ -448,6 +490,13 @@ protected:
 
     EventRunnerObserver observer_ = {.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD),
         .notifyCb = nullptr};
+
+    std::atomic_int8_t sumOfPendingVsync_ = 0;
+    std::atomic_bool needEpoll_ = true;
+    bool isLazyMode_ = true;
+    bool isBarrierMode_ = false;
+    Priority vsyncPriority_ = Priority::VIP;
+    InnerEvent::TimePoint epollTimePoint_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

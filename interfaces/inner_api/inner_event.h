@@ -747,6 +747,38 @@ public:
         return delayTime_;
     }
 
+    /**
+     * Mark the event is a vsync.
+     */
+    inline void MarkVsyncTask()
+    {
+        isVsync_ = true;
+    }
+
+    /**
+     * Check the event is or not a vsync.
+     */
+    inline bool IsVsyncTask()
+    {
+        return isVsync_;
+    }
+
+    /**
+     * Mark the event can be handled in the barrier mode.
+     */
+    inline void MarkBarrierTask()
+    {
+        isBarrier_ = true;
+    }
+
+    /**
+     * Check the event can be handled in the barrier mode.
+     */
+    inline bool IsBarrierTask()
+    {
+        return isBarrier_;
+    }
+
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -888,6 +920,10 @@ private:
     std::string eventId;
 
     int32_t priority = -1;
+
+    bool isVsync_ = false;
+
+    bool isBarrier_ = false;
 
     std::string ownerId_;
 

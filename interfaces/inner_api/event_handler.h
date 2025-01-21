@@ -1086,6 +1086,17 @@ public:
      */
     const int32_t &GetCurrentEventPriority();
 
+    /**
+     * Set the lazy mode for AppVsync.
+     * @isLazy Lazy or not
+     */
+    inline void SetVsyncLazyMode(bool isLazy)
+    {
+        if (eventRunner_) {
+            eventRunner_->GetEventQueue()->SetVsyncLazyMode(isLazy);
+        }
+    }
+
 protected:
     /**
      * Process the event. Developers should override this method.
