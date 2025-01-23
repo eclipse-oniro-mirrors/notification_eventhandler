@@ -141,6 +141,14 @@ EventQueueBase::~EventQueueBase()
     EH_LOGI_LIMIT("EventQueueBase is unavailable hence");
 }
 
+static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)
+{
+    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
+        event->MarkBarrierTask();
+    }
+}
+
 bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
     if (!event) {
@@ -148,10 +156,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         return false;
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
-    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
-        event->MarkBarrierTask();
-    }
+    MarkBarrierTaskIfNeed(event);
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
