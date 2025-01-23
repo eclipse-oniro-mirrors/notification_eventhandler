@@ -163,9 +163,7 @@ static void PostTaskForVsync(const std::shared_ptr<FileDescriptorInfo> &fileDesc
     event->MarkVsyncTask();
     auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
     handler->PostTask(task, "BarrierEvent", delayTime, fileDescriptorInfo->priority_);
-    if (handler->SendEvent(event, delayTime, fileDescriptorInfo->priority_)) {
-        runner->GetEventQueue()->DispatchVsyncTaskNotify();
-    } else {
+    if (!handler->SendEvent(event, delayTime, fileDescriptorInfo->priority_)) {
         handler->RemoveTask("BarrierEvent");
         runner->GetEventQueue()->SetBarrierMode(false);
     }
