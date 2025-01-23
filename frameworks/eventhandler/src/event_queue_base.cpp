@@ -164,8 +164,11 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
-            needNotify = event->IsVsyncTask() || (event->GetHandleTime() < wakeUpTime_) ||
-                (wakeUpTime_ < InnerEvent::Clock::now());
+            needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
+            if (event->IsVsyncTask()) {
+                needNotify = true;
+                DispatchVsyncTaskNotify();
+            }
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
                 (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
