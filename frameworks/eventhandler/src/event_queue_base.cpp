@@ -141,6 +141,14 @@ EventQueueBase::~EventQueueBase()
     EH_LOGI_LIMIT("EventQueueBase is unavailable hence");
 }
 
+static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)
+{
+    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
+        event->MarkBarrierTask();
+    }
+}
+
 bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
     if (!event) {
@@ -148,10 +156,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         return false;
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
-    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
-        event->MarkBarrierTask();
-    }
+    MarkBarrierTaskIfNeed(event);
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
@@ -164,8 +169,11 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
-            needNotify = event->IsVsyncTask() || (event->GetHandleTime() < wakeUpTime_) ||
-                (wakeUpTime_ < InnerEvent::Clock::now());
+            needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
+            if (event->IsVsyncTask()) {
+                needNotify = true;
+                DispatchVsyncTaskNotify();
+            }
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
             subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
                 static_cast<uint64_t>((*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
