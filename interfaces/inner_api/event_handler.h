@@ -1090,10 +1090,14 @@ public:
      * Set the lazy mode for AppVsync.
      * @isLazy Lazy or not
      */
-    inline void SetVsyncLazyMode(bool isLazy)
+    static inline void SetVsyncLazyMode(bool isLazy)
     {
-        if (eventRunner_) {
-            eventRunner_->GetEventQueue()->SetVsyncLazyMode(isLazy);
+        auto runner = EventRunner::GetMainEventRunner();
+        if (runner) {
+            auto queue = runner->GetEventQueue();
+            if (queue) {
+                queue->SetVsyncLazyMode(isLazy);
+            }
         }
     }
 
