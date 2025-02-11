@@ -1101,6 +1101,21 @@ public:
         }
     }
 
+    /**
+     * Set the policy of AppVsync.
+     * @isDynamic dynamic policy or not
+     */
+    static inline void SetVsyncPolicy(bool isDynamic)
+    {
+        auto runner = EventRunner::GetMainEventRunner();
+        if (runner) {
+            auto queue = runner->GetEventQueue();
+            if (queue) {
+                queue->SetVsyncWaiter(isDynamic);
+            }
+        }
+    }
+
 protected:
     /**
      * Process the event. Developers should override this method.
