@@ -374,6 +374,11 @@ public:
     void SetVsyncLazyMode(bool isLazy);
 
     /**
+     * Set the waiter of AppVsync
+     */
+    void SetVsyncWaiter(bool isDaemon);
+
+    /**
      * the vsync task is comming.
      */
     inline void DispatchVsyncTaskNotify()
@@ -495,6 +500,7 @@ protected:
     std::atomic_bool needEpoll_ = true;
     bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
+    bool isVsyncOnDaemon_ = false;
     Priority vsyncPriority_ = Priority::VIP;
     InnerEvent::TimePoint epollTimePoint_;
 };
