@@ -32,6 +32,7 @@
 #include "event_runner.h"
 #include "inner_event.h"
 #include "event_queue_ffrt.h"
+#include "deamon_io_waiter.h"
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -326,6 +327,31 @@ void LibEventHandlerEventQueueTest::SetUp(void)
 
 void LibEventHandlerEventQueueTest::TearDown(void)
 {}
+
+class IoFileDescriptorListener : public FileDescriptorListener {
+public:
+    IoFileDescriptorListener()
+    {}
+    ~IoFileDescriptorListener()
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnReadable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnWritable(int32_t)
+    {}
+
+    /* @param int32_t fileDescriptor */
+    void OnException(int32_t)
+    {}
+
+    IoFileDescriptorListener(const IoFileDescriptorListener &) = delete;
+    IoFileDescriptorListener &operator=(const IoFileDescriptorListener &) = delete;
+    IoFileDescriptorListener(IoFileDescriptorListener &&) = delete;
+    IoFileDescriptorListener &operator=(IoFileDescriptorListener &&) = delete;
+};
 
 class MyEventHandler : public EventHandler {
 public:
@@ -2386,4 +2412,63 @@ HWTEST_F(LibEventHandlerEventQueueTest, QueryHigherPriority_002, TestSize.Level1
     handler->PostTask(task, HAS_DELAY_TIME, EventQueue::Priority::LOW);
     bool result = handler->HasPendingHigherEvent(2);
     EXPECT_EQ(result, false);
+}
+
+HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. get event with event id and param, then get event id and param from event.
+     * @tc.expected: step1. the event id and param is the same as we set.
+     */
+    int32_t fileDescriptor = 1;
+    uint32_t events = 1;
+    DeamonIoWaiter::GetInstance().Init();
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    handler->SetVsyncLazyMode(false);
+    handler->SetVsyncLazyMode(true);
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+
+    handler->AddFileDescriptorListener(fileDescriptor, events,
+        listener, "CheckEventInListLocked_001", EventQueue::Priority::VIP);
+    bool result = DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor,
+        events, "CheckEventInListLocked_001", listener, EventQueue::Priority::VIP);
+    EXPECT_EQ(result, true);
+
+    handler->SetVsyncLazyMode(false);
+    handler->SetVsyncLazyMode(true);
+
+    auto f = []() {; };
+    handler->PostTask(f, "VIP task", 0, EventQueue::Priority::VIP);
+    handler->PostTask(f, "VIP task", 50, EventQueue::Priority::VIP);
+    usleep(500);
+}
+
+HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. get event with event id and param, then get event id and param from event.
+     * @tc.expected: step1. the event id and param is the same as we set.
+     */
+    DeamonIoWaiter::GetInstance().Init();
+    auto runner = EventRunner::Create(true);
+    runner->GetEventQueue()->SetBarrierMode(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "CheckEventInListLocked_002");
+    auto event1 = InnerEvent::Get(f, "CheckEventInListLocked_002");
+    auto event2 = InnerEvent::Get(f, "CheckEventInListLocked_002");
+    auto event3 = InnerEvent::Get(f, "CheckEventInListLocked_002");
+    event->MarkBarrierTask();
+    event1->MarkBarrierTask();
+    event2->MarkBarrierTask();
+    event3->MarkBarrierTask();
+    handler->SendEvent(event, 0, EventQueue::Priority::VIP);
+    handler->SendEvent(event1, 50, EventQueue::Priority::VIP);
+    handler->SendEvent(event2, 0, EventQueue::Priority::IDLE);
+    handler->SendEvent(event3, 50, EventQueue::Priority::IDLE);
+    EXPECT_EQ(handler->GetEventRunner()->GetEventQueue()->IsBarrierMode(), true);
+    usleep(500);
 }

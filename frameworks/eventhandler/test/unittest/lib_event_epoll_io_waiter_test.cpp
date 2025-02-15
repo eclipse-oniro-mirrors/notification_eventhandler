@@ -18,7 +18,10 @@
 #include <cstdlib>
 #include <vector>
 
+#include "event_handler.h"
+#include "event_runner.h"
 #include "epoll_io_waiter.h"
+#include "deamon_io_waiter.h"
 
 using namespace testing::ext;
 using namespace OHOS::AppExecFwk;
@@ -150,3 +153,34 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor003, TestSize.Level1
     EXPECT_EQ(result, false);
 }
 
+HWTEST_F(LibEventHandlerEpollIoWaiterTest, PostTaskForVsync001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. get event with event id and param, then get event id and param from event.
+     * @tc.expected: step1. the event id and param is the same as we set.
+     */
+
+    int32_t fileDescriptor = 1;
+    uint32_t events = 1;
+    DeamonIoWaiter::GetInstance().Init();
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+
+    handler->AddFileDescriptorListener(fileDescriptor, events,
+        listener, "PostTaskForVsync001", EventQueue::Priority::VIP);
+    bool result = DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor,
+        events, "PostTaskForVsync001", listener, EventQueue::Priority::VIP);
+    EXPECT_EQ(result, true);
+
+    DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor, events);
+    usleep(500);
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor, events);
+    usleep(500);
+    events = FILE_DESCRIPTOR_INPUT_EVENT | FILE_DESCRIPTOR_OUTPUT_EVENT|
+        FILE_DESCRIPTOR_SHUTDOWN_EVENT | FILE_DESCRIPTOR_EXCEPTION_EVENT;
+    DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor, events);
+    usleep(500);
+}
