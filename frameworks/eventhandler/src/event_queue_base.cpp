@@ -530,6 +530,12 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
 {
     std::unique_lock<std::mutex> lock(queueLock_);
     while (!finished_) {
+        if (isBarrierMode_ && !needEpoll_.load()) {
+            auto event = PickFirstVsyncEventLocked();
+            if (event) {
+                return event;
+            }
+        }
         InnerEvent::TimePoint nextWakeUpTime = InnerEvent::TimePoint::max();
         InnerEvent::Pointer event = GetExpiredEventLocked(nextWakeUpTime);
         if (event) {
