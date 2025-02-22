@@ -467,15 +467,6 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     for (uint32_t i = 0; i < priorityIndex; ++i) {
         subEventQueues_[i].handledEventsCount = 0;
     }
-
-    if (subEventQueues_[priorityIndex].queue.size() == 1) {
-        subEventQueues_[priorityIndex].frontEventHandleTime = UINT64_MAX;
-    } else {
-        auto it = subEventQueues_[priorityIndex].queue.begin();
-        subEventQueues_[priorityIndex].frontEventHandleTime =
-            static_cast<uint64_t>((*(++it))->GetHandleTime().time_since_epoch().count());
-    }
-
     if (isBarrierMode) {
         return PopFrontBarrierEventFromListLocked(subEventQueues_[priorityIndex].queue);
     }
@@ -489,6 +480,9 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEventLocked(InnerEvent::TimePoint 
     // Find an event which could be distributed right now.
     InnerEvent::Pointer event = PickEventLocked(now, wakeUpTime_);
     if (event) {
+        int32_t prio = event->GetEventPriority();
+        subEventQueues_[prio].frontEventHandleTime = subEventQueues_[prio].queue.empty() ? UINT64_MAX :
+            static_cast<uint64_t>((*subEventQueues_[prio].queue.begin())->GetHandleTime().time_since_epoch().count());
         // Exit idle mode, if found an event to distribute.
         isIdle_ = false;
         currentRunningEvent_ = CurrentRunningEvent(now, event);
@@ -1003,6 +997,9 @@ bool EventQueueBase::hasVipTask()
 
 inline uint64_t EventQueueBase::GetQueueFirstEventHandleTime(int32_t priority)
 {
+    if (__builtin_expect(isBarrierMode_, 0)) {
+        return UINT64_MAX;
+    }
     return subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
 }
 }  // namespace AppExecFwk

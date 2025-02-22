@@ -500,7 +500,7 @@ protected:
     std::atomic_bool needEpoll_ = true;
     bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
-    bool isVsyncOnDaemon_ = false;
+    bool isVsyncOnDaemon_ = true;
     Priority vsyncPriority_ = Priority::VIP;
     InnerEvent::TimePoint epollTimePoint_;
 };
