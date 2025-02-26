@@ -206,7 +206,14 @@ void EventQueueBase::RemoveOrphan()
 {
     HILOGD("enter");
     // Remove all events which lost its owner.
-    auto filter = [](const InnerEvent::Pointer &p) { return p->GetWeakOwner().expired(); };
+    auto filter = [this](const InnerEvent::Pointer &p) {
+        bool ret = p->GetWeakOwner().expired();
+        if (ret && p->IsVsyncTask()) {
+            HandleVsyncTaskNotify();
+            SetBarrierMode(false);
+        }
+        return ret;
+    };
 
     RemoveOrphan(filter);
 
