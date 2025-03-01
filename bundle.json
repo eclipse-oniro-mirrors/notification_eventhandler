@@ -28,7 +28,8 @@
                 "ffrt",
                 "c_utils",
                 "ipc",
-                "resource_schedule_service"
+                "resource_schedule_service",
+                "runtime_core"
             ]
         },
         "build": {
@@ -39,7 +40,8 @@
                 "fwk_group": [
                     "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
                     "//base/notification/eventhandler/frameworks:eventhandler_native_target",
-                    "//base/notification/eventhandler/frameworks:napi_packages"
+                    "//base/notification/eventhandler/frameworks:napi_packages",
+                    "//base/notification/eventhandler/frameworks/ani:eventEmitter"
                 ],
                 "service_group": [
 
