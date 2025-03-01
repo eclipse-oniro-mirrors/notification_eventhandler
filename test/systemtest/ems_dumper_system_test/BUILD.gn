@@ -13,7 +13,7 @@
 
 import("//build/test.gni")
 
-module_output_path = "notification/eventhandlermgrsst"
+module_output_path = "eventhandler/eventhandler/eventhandlermgrsst"
 
 ohos_systemtest("EmsDumperSystemTest") {
   module_out_path = module_output_path
