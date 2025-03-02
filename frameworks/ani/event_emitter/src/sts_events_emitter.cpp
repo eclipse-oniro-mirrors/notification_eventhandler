@@ -20,7 +20,6 @@
 #include <mutex>
 #include <map>
 #include <unordered_set>
-#include <uv.h>
 #include "event_logger.h"
 
 using namespace OHOS::AppExecFwk;
@@ -67,32 +66,12 @@ std::shared_ptr<AniAsyncCallbackInfo> EventsEmitter::SearchCallbackInfo(
         return callbackInfo;
     }
     return nullptr;
-
 }
 
 void EventsEmitter::ReleaseCallbackInfo(ani_env *env, AniAsyncCallbackInfo* callbackInfo)
 {
     if (callbackInfo != nullptr) {
-        uv_loop_s *loop = nullptr;
-        if(loop == nullptr) {
-            delete callbackInfo;
-            callbackInfo = nullptr;
-            return;
-        }
-        uv_work_t *work = new (std::nothrow) uv_work_t;
-        if (work == nullptr) {
-            delete callbackInfo;
-            callbackInfo = nullptr;
-            return;
-        }
-        work->data = reinterpret_cast<void*>(callbackInfo);
-        auto ret = ANI_OK;
-        if (ret != ANI_OK) {
-            delete callbackInfo;
-            callbackInfo = nullptr;
-            delete work;
-            work = nullptr;
-        }
+        // TODO
     }
 }
 
@@ -234,16 +213,17 @@ static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
+    ani_status status = ANI_ERROR;
     ani_env *env;
     if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
         HILOGE("Unsupported ANI_VERSION_1.");
         return ANI_ERROR;
     }
 
-    static const char *className = "L@ohos/events/emitter/EventsEmitter;";
-    ani_class cls;
-    if (ANI_OK != env->FindClass(className, &cls)) {
-        HILOGE("Not found Class: %{public}s.", className);
+    ani_namespace kitNs;
+    status = env->FindNamespace("L@ohos/events/emitter/EventsEmitter;", &kitNs);
+    if (status != ANI_OK) {
+        HILOGE("Not found ani_namespace L@ohos/app/ability/abilityDelegatorRegistry");
         return ANI_INVALID_ARGS;
     }
 
@@ -255,10 +235,11 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function{"OffGenericEventSync", nullptr, reinterpret_cast<void *>(OffGenericEventSync)},
     };
     
-    if (ANI_OK != env->Class_BindNativeMethods(cls, methods.data(), methods.size())) {
-        HILOGE("Cannot bind native methods to: %{public}s.", className);
+    status = env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
+    if (status != ANI_OK) {
+        HILOGE("Cannot bind native methods toL @ohos/events/emitter/EventsEmitter");
         return ANI_INVALID_TYPE;
-    };
+    }
 
     *result = ANI_VERSION_1;
     return ANI_OK;

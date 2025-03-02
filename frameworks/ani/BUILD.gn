@@ -12,36 +12,15 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
-import("//build/ohos/ace/ace.gni")
 import("../../eventhandler.gni")
 
-ohos_shared_library("eventEmitter") {
-  sanitize = {
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
+group("ani_event_emitter_packages") {
+  if (qemu_disable) {
+    deps = [
+      "${frameworks_path}/ani/event_emitter:eventEmitter",
+      "${frameworks_path}/ani/event_emitter:event_emitter_abc",
+    ]
+  } else {
+    deps = []
   }
-  branch_protector_ret = "pac_ret"
-
-  include_dirs = [
-    "include",
-    "${inner_api_path}",
-  ]
-
-  sources = [ "src/sts_events_emitter.cpp" ]
-
-  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "napi:ace_napi",
-    "runtime_core:ani",
-  ]
-
-  subsystem_name = "notification"
-  part_name = "eventhandler"
 }
