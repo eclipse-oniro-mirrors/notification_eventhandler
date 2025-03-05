@@ -69,6 +69,9 @@
                         ]
                     },
                     "name": "//base/notification/eventhandler/frameworks/native:eventhandler_native"
+                },
+                {
+                    "name": "//base/notification/eventhandler/frameworks/cj:cj_emitter_ffi"
                 }
             ],
             "test": [
