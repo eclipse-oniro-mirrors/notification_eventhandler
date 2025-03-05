@@ -21,23 +21,23 @@
 using namespace OHOS::FFI;
 using namespace OHOS::EventsEmitter;
 
-extern "C" {
-    CallbackImpl *CreateCallback(CEventCallback &callbackInfo)
-    {
-        auto onChange = [lambda = CJLambda::Create(callbackInfo.callbackRef)](const CEventData data) -> void {
-            lambda(data);
-        };
-        CallbackImpl *callbackImpl = new CallbackImpl(std::string(callbackInfo.name), onChange);
-        if (callbackImpl == nullptr) {
-            LOGE("Fail to create CallbackImpl.")
-            return nullptr;
-        }
-        return callbackImpl;
+std::shared_ptr<CallbackImpl> CreateCallback(CEventCallback &callbackInfo)
+{
+    auto onChange = [lambda = CJLambda::Create(callbackInfo.callbackRef)](const CEventData data) -> void {
+        lambda(data);
+    };
+    auto callbackImpl = std::make_shared<CallbackImpl>(std::string(callbackInfo.name), onChange);
+    if (callbackImpl == nullptr) {
+        LOGE("Fail to create CallbackImpl.")
+        return nullptr;
     }
+    return callbackImpl;
+}
 
+extern "C" {
     int32_t CJ_OnWithId(uint32_t eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
@@ -46,7 +46,7 @@ extern "C" {
 
     int32_t CJ_OnWithStringId(char* eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
@@ -55,7 +55,7 @@ extern "C" {
 
     int32_t CJ_OnceWithId(uint32_t eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
@@ -64,7 +64,7 @@ extern "C" {
 
     int32_t CJ_OnceWithStringId(char* eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
@@ -83,23 +83,21 @@ extern "C" {
 
     int32_t CJ_OffWithIdCallback(uint32_t eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
         Emitter::Off(eventId, callback);
-        delete callback;
         return SUCCESS_CODE;
     }
 
     int32_t CJ_OffWithStringCallback(char* eventId, CEventCallback callbackInfo)
     {
-        CallbackImpl *callback = CreateCallback(callbackInfo);
+        auto callback = CreateCallback(callbackInfo);
         if (callback == nullptr) {
             return MEMORY_ERROR;
         }
         Emitter::Off(eventId, callback);
-        delete callback;
         return SUCCESS_CODE;
     }
 
