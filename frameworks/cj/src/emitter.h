@@ -30,29 +30,27 @@ public:
 
 struct CallbackInfo {
     std::atomic<bool> once = false;
-    std::atomic<bool> isDeleted = false;
-    std::atomic<bool> processed = false;
-    CallbackImpl *callbackImpl = nullptr;
+    std::shared_ptr<CallbackImpl> callbackImpl = nullptr;
     ~CallbackInfo();
 };
 
 class Emitter {
 public:
-    static int32_t On(uint32_t eventId, CallbackImpl *callback);
+    static int32_t On(uint32_t eventId, std::shared_ptr<CallbackImpl> &callback);
 
-    static int32_t On(char* eventId, CallbackImpl *callback);
+    static int32_t On(char* eventId, std::shared_ptr<CallbackImpl> &callback);
 
-    static int32_t Once(uint32_t eventId, CallbackImpl *callback);
+    static int32_t Once(uint32_t eventId, std::shared_ptr<CallbackImpl> &callback);
 
-    static int32_t Once(char* eventId, CallbackImpl *callback);
+    static int32_t Once(char* eventId, std::shared_ptr<CallbackImpl> &callback);
 
     static void Off(uint32_t eventId);
 
     static void Off(char* eventId);
 
-    static void Off(uint32_t eventId, CallbackImpl *callback);
+    static void Off(uint32_t eventId, std::shared_ptr<CallbackImpl> &callback);
 
-    static void Off(char* eventId, CallbackImpl *callback);
+    static void Off(char* eventId, std::shared_ptr<CallbackImpl> &callback);
 
     static void Emit(uint32_t eventId, uint32_t priority, CEventData data);
 
