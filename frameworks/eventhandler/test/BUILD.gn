@@ -18,7 +18,7 @@ config("libeventhandler_test_private_config") {
   configs = [ "${frameworks_path}/eventhandler:libeventhandler_config" ]
 }
 
-module_output_path = "notification/eventhandler"
+module_output_path = "eventhandler/eventhandler"
 
 ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
   module_out_path = module_output_path

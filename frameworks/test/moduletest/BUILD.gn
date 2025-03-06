@@ -21,7 +21,7 @@ config("libeventhandler_module_test_config") {
   configs = [ "${frameworks_path}/eventhandler:libeventhandler_config" ]
 }
 
-module_output_path = "notification/mstlibeventhandler"
+module_output_path = "eventhandler/eventhandler/mstlibeventhandler"
 
 ohos_moduletest("EventHandlerSendEventModuleTest") {
   module_out_path = module_output_path
