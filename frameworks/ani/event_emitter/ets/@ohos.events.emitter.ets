@@ -13,25 +13,51 @@
  * limitations under the License.
  */
 
-enum EventPriority {
-  LOW = 0,
-  NORMAL = 1,
-  HIGH = 2,
-  IMMEDIATE = 3,
-}
-
-class InnerEvent {
-  eventId: number;
-  priority?: EventPriority;
-}
-
 type Callback<T> = (data: T) => void;
 
-class EventData {}
-class GenericEventData<T> {}
+namespace emitter {
 
-namespace EventsEmitter {
-  
+  export interface EventData {
+    data?: Map<string, object>;
+  }
+
+  class EventDataInner implements EventData {
+    public data?: Map<string, object> | undefined;
+  }
+
+  export interface GenericEventData<T> {
+    data?: T;
+  }
+
+  class GenericEventDataInner<T> implements GenericEventData<T> {
+    public data?: T | undefined;
+  }
+
+  export enum EventPriority {
+    IMMEDIATE = 0,
+    HIGH = 1,
+    LOW = 2,
+    IDLE = 3,
+  }
+
+  export interface InnerEvent {
+    eventId: number;
+    priority?: EventPriority;
+  }
+
+  class InnerEventInner implements InnerEvent {
+    public eventId: number = 0;
+    public priority?: EventPriority | undefined;
+  }
+
+  export interface Options {
+    priority?: EventPriority;
+  }
+
+  class OptionsInner implements Options {
+    public priority?: EventPriority | undefined;
+  }
+
   export native function OffStringSync(eventId: string, callback: Callback<EventData>): void;
   export native function OffGenericEventSync<T>(eventId: string, callback: Callback<GenericEventData<T>>): void;
   export native function OnOrOnceStringSync(eventId: string, once : boolean, callback: Callback<EventData>): void;
@@ -40,23 +66,24 @@ namespace EventsEmitter {
   
   export function on(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
-      launch EventsEmitter.OnOrOnceSync(event.eventId, false, callback);
+      emitter.OnOrOnceSync(event.eventId, false, callback);
     }
   }
 
   export function off<T>(eventId: string, callback: Callback<GenericEventData<T>> | Callback<EventData>): void {
     if (callback instanceof Callback<EventData>) {
-      launch EventsEmitter.OffStringSync(eventId, callback as Callback<EventData>);
+      emitter.OffStringSync(eventId, callback as Callback<EventData>);
     } else {
-      launch EventsEmitter.OffGenericEventSync(eventId, callback as Callback<GenericEventData<T>>);
+      emitter.OffGenericEventSync(eventId, callback as Callback<GenericEventData<T>>);
     }
   }
 
   export function on<T>(eventId: string, callback: Callback<GenericEventData<T>> | Callback<EventData>): void {
     if (callback instanceof Callback<EventData>) {
-      launch EventsEmitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>);
+      emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>);
     } else {
-      launch EventsEmitter.OnOrOnceGenericEventSync(eventId, false, callback as Callback<GenericEventData<T>>);
+      emitter.OnOrOnceGenericEventSync(eventId, false, callback as Callback<GenericEventData<T>>);
     }
   }
 }
+export default emitter;

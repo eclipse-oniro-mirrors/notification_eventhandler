@@ -180,12 +180,14 @@ void EventsEmitter::onOrOnce(ani_env *env, InnerEvent::EventId eventId, bool onc
 
 static void OnOrOnceSync(ani_env *env, ani_object obj, ani_double eventId, ani_boolean once, ani_ref callback)
 {
+    HILOGD("OnOrOnceSync begin");
     InnerEvent::EventId id = (uint32_t)eventId;
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
 
 static void OnOrOnceStringSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
 {
+    HILOGD("OnOrOnceStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
@@ -193,12 +195,14 @@ static void OnOrOnceStringSync(ani_env *env, ani_object obj, ani_string eventId,
 static void OnOrOnceGenericEventSync(
     ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
 {
+    HILOGD("OnOrOnceGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
 
 static void OffStringSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
 {
+    HILOGD("OffStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
     EventsEmitter::offEmitterInstances(id);
@@ -206,6 +210,7 @@ static void OffStringSync(ani_env *env, ani_object obj, ani_string eventId, ani_
 
 static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
 {
+    HILOGD("OffGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
     EventsEmitter::offEmitterInstances(id);
@@ -213,6 +218,7 @@ static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
+    HILOGD("ANI_Constructor begin");
     ani_status status = ANI_ERROR;
     ani_env *env;
     if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
@@ -221,9 +227,9 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     }
 
     ani_namespace kitNs;
-    status = env->FindNamespace("L@ohos/events/emitter/EventsEmitter;", &kitNs);
+    status = env->FindNamespace("L@ohos/event/ets/@ohos/events/emitter/emitter;", &kitNs);
     if (status != ANI_OK) {
-        HILOGE("Not found ani_namespace L@ohos/app/ability/abilityDelegatorRegistry");
+        HILOGE("Not found ani_namespace L@ohos/event/ets/@ohos/events/emitter/emitter");
         return ANI_INVALID_ARGS;
     }
 
@@ -237,7 +243,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     
     status = env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
     if (status != ANI_OK) {
-        HILOGE("Cannot bind native methods toL @ohos/events/emitter/EventsEmitter");
+        HILOGE("Cannot bind native methods to L@ohos/event/ets/@ohos/events/emitter/emitter");
         return ANI_INVALID_TYPE;
     }
 

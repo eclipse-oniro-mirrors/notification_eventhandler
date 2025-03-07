@@ -10,7 +10,7 @@
         ]
       },
       "outDir": "../cache",
-      "package": ""
+      "package": "@ohos.event"
     },
     "include": [
       "./ets/*.ets"
