@@ -19,9 +19,11 @@
 #include <vector>
 
 #include "event_handler.h"
+#include "event_queue.h"
 #include "event_runner.h"
 #include "epoll_io_waiter.h"
 #include "deamon_io_waiter.h"
+#include "none_io_waiter.h"
 
 using namespace testing::ext;
 using namespace OHOS::AppExecFwk;
@@ -183,4 +185,18 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, PostTaskForVsync001, TestSize.Level1)
         FILE_DESCRIPTOR_SHUTDOWN_EVENT | FILE_DESCRIPTOR_EXCEPTION_EVENT;
     DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor, events);
     usleep(500);
+}
+
+/*
+ * @tc.name: NoneIoWaiter001
+ * @tc.desc: NoneIoWaiter001
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEpollIoWaiterTest, NoneIoWaiter001, TestSize.Level1)
+{
+    NoneIoWaiter ioWaiter;
+    ioWaiter.RemoveFileDescriptor(1);
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    bool result = ioWaiter.AddFileDescriptor(1, 2, "task", listener, EventQueue::Priority::VIP);
+    EXPECT_EQ(result, false);
 }

@@ -33,6 +33,7 @@
 #include "inner_event.h"
 #include "event_queue_ffrt.h"
 #include "deamon_io_waiter.h"
+#include "none_io_waiter.h"
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -2471,4 +2472,158 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_002, TestSize.Lev
     handler->SendEvent(event3, 50, EventQueue::Priority::IDLE);
     EXPECT_EQ(handler->GetEventRunner()->GetEventQueue()->IsBarrierMode(), true);
     usleep(500);
+}
+
+/*
+ * @tc.name: SetVsyncPolicy_001
+ * @tc.desc: SetVsyncPolicy_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    handler->SetVsyncPolicy(true);
+    bool result = handler->HasPendingHigherEvent(8);
+    EXPECT_EQ(result, false);
+}
+
+/*
+ * @tc.name: SetVsyncPolicy_002
+ * @tc.desc: SetVsyncPolicy_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    handler->SetVsyncPolicy(false);
+    bool result = handler->HasPendingHigherEvent(8);
+    EXPECT_EQ(result, false);
+}
+
+/*
+ * @tc.name: SetVsyncPolicy_003
+ * @tc.desc: SetVsyncPolicy_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_003, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.Prepare();
+    queue.SetVsyncWaiter(true);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+ /*
+ * @tc.name: SetVsyncPolicy_004
+ * @tc.desc: SetVsyncPolicy_004 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_004, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.Prepare();
+    queue.SetVsyncWaiter(false);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+/*
+ * @tc.name: GetFfrtQueue_001
+ * @tc.desc: GetFfrtQueue_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+    auto result = queue.GetEvent();
+    EXPECT_EQ(result, nullptr);
+}
+
+/*
+ * @tc.name: GetFfrtQueue_002
+ * @tc.desc: GetFfrtQueue_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    EventQueueFFRT queue;
+    queue.Prepare();
+    InnerEvent::TimePoint time = InnerEvent::Clock::now();
+    auto result = queue.GetExpiredEvent(time);
+    EXPECT_EQ(result, nullptr);
+}
+
+/*
+ * @tc.name: GetFfrtQueue_003
+ * @tc.desc: GetFfrtQueue_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_003, TestSize.Level1)
+{
+    /**
+     * @tc.setup: prepare queue.
+     */
+    EventQueueFFRT queue(std::make_shared<NoneIoWaiter>());
+    queue.Prepare();
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "event");
+    EventQueue::Priority priority;
+    EventInsertType insertType;
+    priority = EventQueue::Priority::LOW;
+    insertType = EventInsertType::AT_FRONT;
+    queue.Insert(event, priority, insertType);
+    int result = queue.HasPreferEvent(1);
+    EXPECT_EQ(result, false);
+}
+
+/*
+ * @tc.name: GetQueueBase_001
+ * @tc.desc: GetQueueBase_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetQueueBase_001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init handler and runner.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    handler->DistributeTimeoutHandler(InnerEvent::Clock::now());
+    int result = handler->RemoveTaskWithRet("event");
+    EXPECT_EQ(result, 1);
+}
+
+/*
+ * @tc.name: GetQueueBase_002
+ * @tc.desc: GetQueueBase_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetQueueBase_002, TestSize.Level1)
+{
+    /**
+    * @tc.setup: init handler and runner.
+    */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    handler->QueryPendingTaskInfo(1);
+    handler->EnableEventLog(true);
+    auto f = []() {; };
+    bool result = handler->PostSyncTask(f, "VIP task", EventQueue::Priority::VIP);
+    EXPECT_EQ(result, true);
 }
