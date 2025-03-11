@@ -28,7 +28,8 @@
                 "ffrt",
                 "c_utils",
                 "ipc",
-                "resource_schedule_service"
+                "resource_schedule_service",
+                "runtime_core"
             ]
         },
         "build": {
