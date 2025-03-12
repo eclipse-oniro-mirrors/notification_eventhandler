@@ -29,6 +29,7 @@
 #include "inner_event.h"
 #include "none_io_waiter.h"
 #include "event_hitrace_meter_adapter.h"
+#include "parameters.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -41,6 +42,8 @@ constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
 constexpr std::string_view STAGE_VIP_EXISTED = "STAGE_VIP_EXISTED";
 constexpr std::string_view STAGE_VIP_NONE = "STAGE_VIP_NONE";
+static const int32_t VSYNC_BARRIER_TIMEOUT = system::GetIntParameter("const.sys.param_vsync_barrier_timeout", 100);
+static constexpr uint64_t MILLISECONDS_TO_NANOSECONDS_RATIO = 1000000;
 // Help to insert events into the event queue sorted by handle time.
 void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Pointer &event,
     EventInsertType insertType)
@@ -69,17 +72,30 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
 
 // Help to check whether there is a valid event in list and update wake up time.
 inline bool CheckEventInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
-    InnerEvent::TimePoint &nextWakeUpTime, bool isBarrierMode)
+    InnerEvent::TimePoint &nextWakeUpTime)
+{
+    if (!events.empty()) {
+        const auto &handleTime = events.front()->GetHandleTime();
+        if (handleTime < nextWakeUpTime) {
+            nextWakeUpTime = handleTime;
+            return handleTime <= now;
+        }
+    }
+
+    return false;
+}
+
+inline bool CheckBarrierTaskInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
+    InnerEvent::TimePoint &nextWakeUpTime, uint32_t idx)
 {
     if (events.empty()) return false;
 
-    auto filter = [&now, &nextWakeUpTime, isBarrierMode](const InnerEvent::Pointer &p) {
+    auto filter = [&now, &nextWakeUpTime, idx](const InnerEvent::Pointer &p) {
         const auto &handleTime = p->GetHandleTime();
         if (handleTime < nextWakeUpTime) {
             nextWakeUpTime = handleTime;
-            return handleTime <= now && (!isBarrierMode || p->IsBarrierTask());
         }
-        return false;
+        return handleTime <= now && (p->IsBarrierTask() || (!idx && !p->IsVsyncTask()));
     };
     return std::find_if(events.begin(), events.end(), filter) != events.end();
 }
@@ -149,14 +165,14 @@ static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)
     }
 }
 
-bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
+bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType, bool noBarrier)
 {
     if (!event) {
         HILOGE("Could not insert an invalid event");
         return false;
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
-    MarkBarrierTaskIfNeed(event);
+    if (!noBarrier) MarkBarrierTaskIfNeed(event);
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
@@ -440,7 +456,11 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     uint32_t priorityIndex = SUB_EVENT_QUEUE_NUM;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         // Check whether any event need to be distributed.
-        if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime, isBarrierMode)) {
+        if (__builtin_expect(isBarrierMode, 0)) {
+            if (!CheckBarrierTaskInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime, i)) {
+                continue;
+            }
+        } else if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime)) {
             continue;
         }
 
@@ -474,7 +494,7 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     for (uint32_t i = 0; i < priorityIndex; ++i) {
         subEventQueues_[i].handledEventsCount = 0;
     }
-    if (isBarrierMode) {
+    if (isBarrierMode && priorityIndex) {
         return PopFrontBarrierEventFromListLocked(subEventQueues_[priorityIndex].queue);
     }
     return PopFrontEventFromListLocked(subEventQueues_[priorityIndex].queue);
@@ -531,7 +551,15 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
 {
     std::unique_lock<std::mutex> lock(queueLock_);
     while (!finished_) {
-        if (isBarrierMode_ && !needEpoll_.load()) {
+        if (__builtin_expect((isBarrierMode_ && needEpoll_.load() &&
+            (enterBarrierTime_ + VSYNC_BARRIER_TIMEOUT * MILLISECONDS_TO_NANOSECONDS_RATIO <
+            static_cast<uint64_t>(InnerEvent::Clock::now().time_since_epoch().count()))), 0)) {
+            StartTraceAdapterMsg("BarrierModeTimeOut");
+            SetBarrierMode(false);
+            isLazyMode_.store(true);
+            FinishTraceAdapter();
+        }
+        if (__builtin_expect(isBarrierMode_ && !needEpoll_.load(), 0)) {
             auto event = PickFirstVsyncEventLocked();
             if (event) {
                 return event;
@@ -1004,7 +1032,7 @@ bool EventQueueBase::hasVipTask()
 
 inline uint64_t EventQueueBase::GetQueueFirstEventHandleTime(int32_t priority)
 {
-    if (__builtin_expect(isBarrierMode_, 0)) {
+    if (__builtin_expect(isBarrierMode_, 0) || isLazyMode_.load()) {
         return UINT64_MAX;
     }
     return subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
