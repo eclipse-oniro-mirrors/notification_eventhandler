@@ -22,7 +22,8 @@
 #include <unordered_set>
 #include "event_logger.h"
 
-using namespace OHOS::AppExecFwk;
+namespace OHOS {
+namespace AppExecFwk {
 
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
 static std::mutex g_eventsEmitterInsMutex;
@@ -135,20 +136,11 @@ void EventsEmitter::offEmitterInstances(InnerEvent::EventId eventIdValue)
 
 void EventsEmitter::AniWrap(ani_env *env, ani_ref callback)
 {
-    static const char *className = "L@ohos/events/emitter/EventsEmitter;";
-    ani_class cls;
-    if (ANI_OK != env->FindClass(className, &cls)) {
-        HILOGE("Not found '%{public}s'", className);
+    static const char *nameSpace = "L@ohos/events/emitter/emitter;";
+    ani_namespace cls;
+    if (ANI_OK != env->FindNamespace(nameSpace, &cls)) {
+        HILOGE("Not found '%{public}s'", nameSpace);
         return;
-    }
-    ani_method ctor;
-    if (ANI_OK != env->Class_FindMethod(cls, "<ctor>", "J:V", &ctor)) {
-        HILOGE("Not found ctor");
-        return;
-    }
-    ani_object emitter_object;
-    if (ANI_OK !=env->Object_New(cls, ctor, &emitter_object, reinterpret_cast<ani_long>(callback))) {
-        HILOGE("Failed to create object");
     }
 }
 
@@ -216,6 +208,7 @@ static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId
     EventsEmitter::offEmitterInstances(id);
 }
 
+extern "C" {
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
     HILOGD("ANI_Constructor begin");
@@ -227,9 +220,9 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     }
 
     ani_namespace kitNs;
-    status = env->FindNamespace("L@ohos/event/ets/@ohos/events/emitter/emitter;", &kitNs);
+    status = env->FindNamespace("L@ohos/events/emitter/emitter;", &kitNs);
     if (status != ANI_OK) {
-        HILOGE("Not found ani_namespace L@ohos/event/ets/@ohos/events/emitter/emitter");
+        HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
         return ANI_INVALID_ARGS;
     }
 
@@ -243,10 +236,14 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     
     status = env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
     if (status != ANI_OK) {
-        HILOGE("Cannot bind native methods to L@ohos/event/ets/@ohos/events/emitter/emitter");
+        HILOGE("Cannot bind native methods to L@ohos/events/emitter/emitter");
         return ANI_INVALID_TYPE;
     }
 
     *result = ANI_VERSION_1;
     return ANI_OK;
 }
+}
+
+}  // namespace AppExecFwk
+}  // namespace OHOS

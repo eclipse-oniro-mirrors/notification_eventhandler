@@ -16,7 +16,7 @@
 type Callback<T> = (data: T) => void;
 
 namespace emitter {
-
+  loadLibrary("eventEmitter.z");
   export interface EventData {
     data?: Map<string, object>;
   }
@@ -70,7 +70,7 @@ namespace emitter {
     }
   }
 
-  export function off<T>(eventId: string, callback: Callback<GenericEventData<T>> | Callback<EventData>): void {
+  export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
     if (callback instanceof Callback<EventData>) {
       emitter.OffStringSync(eventId, callback as Callback<EventData>);
     } else {
@@ -78,7 +78,7 @@ namespace emitter {
     }
   }
 
-  export function on<T>(eventId: string, callback: Callback<GenericEventData<T>> | Callback<EventData>): void {
+  export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
     if (callback instanceof Callback<EventData>) {
       emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>);
     } else {

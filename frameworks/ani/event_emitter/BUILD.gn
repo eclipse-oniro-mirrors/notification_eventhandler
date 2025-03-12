@@ -39,6 +39,7 @@ ohos_shared_library("eventEmitter") {
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
+    "runtime_core:ani",
   ]
 
   subsystem_name = "notification"
@@ -46,17 +47,14 @@ ohos_shared_library("eventEmitter") {
 }
 
 generate_static_abc("event_emitter_abc") {
-  arktsconfig = "${frameworks_path}/ani/event_emitter/event_emitter_config.json"
-  dst_file = "$target_out_dir/event_emitter.abc"
-  out_puts = [ "$target_out_dir/event_emitter.abc" ]
-
+  base_url = "./ets"
+  files = [ "./ets/@ohos.events.emitter.ets" ]
   is_boot_abc = "True"
-  device_dst_file = "/system/framework/event_emitter.abc"
-  cache_path = "$target_out_dir/cache"
+  device_dst_file = "/system/framework/event_emitter_abc.abc"
 }
 
 ohos_prebuilt_etc("event_emitter_abc_etc") {
-  source = "$target_out_dir/event_emitter.abc"
+  source = "$target_out_dir/event_emitter_abc.abc"
   module_install_dir = "framework"
   subsystem_name = "notification"
   part_name = "eventhandler"

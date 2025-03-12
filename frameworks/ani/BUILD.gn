@@ -15,7 +15,7 @@ import("//build/ohos.gni")
 import("../../eventhandler.gni")
 
 group("ani_event_emitter_packages") {
-  if (qemu_disable && is_system_component) {
+  if (qemu_disable && support_jsapi) {
     deps = [
       "${frameworks_path}/ani/event_emitter:eventEmitter",
       "${frameworks_path}/ani/event_emitter:event_emitter_abc_etc",
