@@ -446,7 +446,10 @@ public:
      * @return Returns true if task has been sent successfully.
      */
     bool PostTaskAtFront(const Callback &callback, const std::string &name = std::string(),
-                         Priority priority = Priority::LOW, const Caller &caller = {});
+                         Priority priority = Priority::LOW, const Caller &caller = {}, bool noBarrier = false);
+
+    bool PostTaskAtTail(const Callback &callback, const std::string &name = std::string(),
+                         Priority priority = Priority::LOW, const Caller &caller = {}, bool noBarrier = false);
 
     /**
      * Set delivery time out callback.
@@ -1125,6 +1128,8 @@ protected:
     virtual void ProcessEvent(const InnerEvent::Pointer &event);
 
 private:
+    InnerEvent::Pointer CreateTask(const Callback &callback, const std::string &name,
+        Priority priority, const Caller &caller);
     std::string handlerId_;
     bool enableEventLog_ {false};
     std::shared_ptr<EventRunner> eventRunner_;

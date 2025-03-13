@@ -129,18 +129,18 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     return eventRunner_->GetEventQueue()->Insert(event, priority);
 }
 
-bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+InnerEvent::Pointer EventHandler::CreateTask(const Callback &callback, const std::string &name, Priority priority,
     const Caller &caller)
 {
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before posting events");
-        return false;
+        return InnerEvent::Pointer(nullptr, nullptr);
     }
 
     auto event = InnerEvent::Get(callback, name, caller);
     if (!event) {
         HILOGE("Get an invalid event");
-        return false;
+        return InnerEvent::Pointer(nullptr, nullptr);
     }
 
     event->SetDelayTime(0);
@@ -155,8 +155,30 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
     if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
         HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
     }
+    return event;
+}
+
+bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller, bool noBarrier)
+{
+    auto event = CreateTask(callback, name, priority, caller);
+    if (!event) {
+        return false;
+    }
     HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
-    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
+    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT, noBarrier);
+    return true;
+}
+
+bool EventHandler::PostTaskAtTail(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller, bool noBarrier)
+{
+    auto event = CreateTask(callback, name, priority, caller);
+    if (!event) {
+        return false;
+    }
+    HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_END, noBarrier);
     return true;
 }
 

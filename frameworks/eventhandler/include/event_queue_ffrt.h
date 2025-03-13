@@ -44,7 +44,7 @@ public:
      * @see #Priority
      */
     LOCAL_API bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END) override;
+        EventInsertType insertType = EventInsertType::AT_END, bool noBarrier = false) override;
 
     /**
      * Remove events if its owner is invalid.

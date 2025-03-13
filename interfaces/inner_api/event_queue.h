@@ -140,7 +140,7 @@ public:
      * @see #Priority
      */
     virtual bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END) = 0;
+        EventInsertType insertType = EventInsertType::AT_END, bool noBarrier = false) = 0;
 
     /**
      * Remove events if its owner is invalid, for base queue.
@@ -403,6 +403,8 @@ public:
     inline void SetBarrierMode(bool isBarrierMode)
     {
         isBarrierMode_ = isBarrierMode;
+        enterBarrierTime_ = !isBarrierMode? UINT64_MAX :
+            static_cast<uint64_t>(InnerEvent::Clock::now().time_since_epoch().count());
     }
 
     /**
@@ -498,11 +500,12 @@ protected:
 
     std::atomic_int8_t sumOfPendingVsync_ = 0;
     std::atomic_bool needEpoll_ = true;
-    bool isLazyMode_ = true;
+    std::atomic_bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
     bool isVsyncOnDaemon_ = true;
     Priority vsyncPriority_ = Priority::VIP;
     InnerEvent::TimePoint epollTimePoint_;
+    uint64_t enterBarrierTime_ = UINT64_MAX;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

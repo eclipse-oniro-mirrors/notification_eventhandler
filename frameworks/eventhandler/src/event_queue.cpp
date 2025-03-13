@@ -309,7 +309,7 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
         HILOGW("%{public}s, EventQueue is unavailable!", __func__);
         return;
     }
-    if (isLazyMode_ == isLazy) {
+    if (isLazyMode_.load() == isLazy) {
         return;
     }
 
@@ -322,7 +322,7 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
         HILOGD("%{public}s successful! fd = %{public}d, isLazy = %{public}d",
             __func__, it->first, isLazy);
     }
-    isLazyMode_ = isLazy;
+    isLazyMode_.store(isLazy);
 }
 
 void EventQueue::SetVsyncWaiter(bool isDaemon)
