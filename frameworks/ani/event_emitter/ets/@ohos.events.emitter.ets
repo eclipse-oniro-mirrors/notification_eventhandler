@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-type Callback<T> = (data: T) => void;
+import { Callback } from '@ohos.base';
 
 namespace emitter {
   loadLibrary("eventEmitter.z");
