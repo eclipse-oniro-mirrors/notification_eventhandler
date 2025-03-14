@@ -122,11 +122,11 @@ void EventsEmitter::DeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &
 
 void EventsEmitter::offEmitterInstances(InnerEvent::EventId eventIdValue)
 {
-    HILOGD("offeventsEmitterInstances begin");
+    HILOGI("offeventsEmitterInstances begin");
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto subscribe = eventsEmitterInstances.find(eventIdValue);
     if (subscribe != eventsEmitterInstances.end()) {
-        HILOGD("offeventsEmitterInstances_find");
+        HILOGI("offeventsEmitterInstances_find");
         for (auto callbackInfo : subscribe->second) {
             callbackInfo->isDeleted = true;
         }
@@ -146,7 +146,7 @@ void EventsEmitter::AniWrap(ani_env *env, ani_ref callback)
 
 void EventsEmitter::onOrOnce(ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback)
 {
-    HILOGD("onOrOncebegin\n");
+    HILOGI("onOrOncebegin\n");
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto callbackInfo = SearchCallbackInfo(env, eventId, callback);
     if (callbackInfo != nullptr) {
@@ -166,43 +166,43 @@ void EventsEmitter::onOrOnce(ani_env *env, InnerEvent::EventId eventId, bool onc
         env->GlobalReference_Create(callback, &callbackInfo->callback);
         AniWrap(env, callback);
         eventsEmitterInstances[eventId].insert(callbackInfo);
-        HILOGD("onOrOnceEnd\n");
+        HILOGI("onOrOnceEnd\n");
     }
 }
 
-static void OnOrOnceSync(ani_env *env, ani_object obj, ani_double eventId, ani_boolean once, ani_ref callback)
+static void OnOrOnceSync(ani_env *env, ani_double eventId, ani_boolean once, ani_ref callback)
 {
-    HILOGD("OnOrOnceSync begin");
+    HILOGI("OnOrOnceSync begin");
     InnerEvent::EventId id = (uint32_t)eventId;
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
 
-static void OnOrOnceStringSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
+static void OnOrOnceStringSync(ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback)
 {
-    HILOGD("OnOrOnceStringSync begin");
+    HILOGI("OnOrOnceStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
 
 static void OnOrOnceGenericEventSync(
-    ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
+    ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback)
 {
-    HILOGD("OnOrOnceGenericEventSync begin");
+    HILOGI("OnOrOnceGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::onOrOnce(env, id, once, callback);
 }
 
-static void OffStringSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
+static void OffStringSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    HILOGD("OffStringSync begin");
+    HILOGI("OffStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
     EventsEmitter::offEmitterInstances(id);
 }
 
-static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId, ani_boolean once, ani_ref callback)
+static void OffGenericEventSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    HILOGD("OffGenericEventSync begin");
+    HILOGI("OffGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
     EventsEmitter::offEmitterInstances(id);
@@ -211,7 +211,7 @@ static void OffGenericEventSync(ani_env *env, ani_object obj, ani_string eventId
 extern "C" {
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
-    HILOGD("ANI_Constructor begin");
+    HILOGI("ANI_Constructor begin");
     ani_status status = ANI_ERROR;
     ani_env *env;
     if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
