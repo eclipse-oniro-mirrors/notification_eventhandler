@@ -21,6 +21,7 @@
 using namespace OHOS::FFI;
 using namespace OHOS::EventsEmitter;
 
+namespace {
 std::shared_ptr<CallbackImpl> CreateCallback(CEventCallback &callbackInfo)
 {
     auto onChange = [lambda = CJLambda::Create(callbackInfo.callbackRef)](const CEventData data) -> void {
@@ -32,6 +33,7 @@ std::shared_ptr<CallbackImpl> CreateCallback(CEventCallback &callbackInfo)
         return nullptr;
     }
     return callbackImpl;
+}
 }
 
 extern "C" {
