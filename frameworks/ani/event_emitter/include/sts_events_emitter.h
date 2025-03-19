@@ -16,16 +16,24 @@
 #ifndef STS_EVENTS_EMITTER_H
 #define STS_EVENTS_EMITTER_H
 
+#include <memory>
+#include <unordered_set>
 #include "ani.h"
 #include "../../../interfaces/inner_api/inner_event.h"
+#include "event_queue.h"
+#include "event_handler.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 
+using Priority = EventQueue::Priority;
+using EventDataAni = std::shared_ptr<ani_object>;
 struct AniAsyncCallbackInfo {
-    std::atomic<ani_env*> env;
+    ani_env* env;
     std::atomic<bool> once = false;
     std::atomic<bool> isDeleted = false;
+    ani_object data = nullptr;
+    std::string dataType;
     ani_ref callback = 0;
     InnerEvent::EventId eventId;
     ~AniAsyncCallbackInfo();
@@ -39,9 +47,24 @@ public:
     static void ReleaseCallbackInfo(ani_env *env, AniAsyncCallbackInfo* callbackInfo);
     static void UpdateOnceFlag(std::shared_ptr<AniAsyncCallbackInfo>callbackInfo, bool once);
     static void DeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback);
-    static void onOrOnce(ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback);
-    static void offEmitterInstances(InnerEvent::EventId eventId);
+    static void OnOrOnce(ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType);
+    static void OffEmitterInstances(InnerEvent::EventId eventId);
     static void AniWrap(ani_env *env, ani_ref callback);
+    static ani_double GetListenerCount(InnerEvent::EventId eventId);
+    static bool IsExistValidCallback(const InnerEvent::EventId &eventId, ani_object eventData);
+    static void EmitWithEventId(ani_env *env, ani_object innerEvent, ani_object eventData);
+    static void EmitWithEventIdString(
+       ani_env *env, ani_string eventId, ani_object eventData, ani_enum_item enumItem);
+    static void ThreadFunction(ani_env* env, ani_ref callback, ani_object data, std::string dataType);
+};
+
+class EventsEmitterInstance : public EventHandler {
+public:
+    EventsEmitterInstance(const std::shared_ptr<EventRunner>& runner);
+    static std::shared_ptr<EventsEmitterInstance> GetInstance();
+    void ProcessEvent(const InnerEvent::Pointer& event) override;
+    std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> GetAsyncCallbackInfo(const InnerEvent::EventId &eventId);
+    ~EventsEmitterInstance();
 };
 }
 }
