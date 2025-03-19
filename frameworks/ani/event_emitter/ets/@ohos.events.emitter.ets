@@ -18,11 +18,11 @@ import { Callback } from '@ohos.base';
 namespace emitter {
   loadLibrary("eventEmitter.z");
   export interface EventData {
-    data?: Map<string, object>;
+    data?: Record<string, Object>;
   }
 
   class EventDataInner implements EventData {
-    public data?: Map<string, object> | undefined;
+    public data?: Record<string,Object> | undefined;
   }
 
   export interface GenericEventData<T> {
@@ -60,13 +60,22 @@ namespace emitter {
 
   export native function OffStringSync(eventId: string, callback: Callback<EventData>): void;
   export native function OffGenericEventSync<T>(eventId: string, callback: Callback<GenericEventData<T>>): void;
-  export native function OnOrOnceStringSync(eventId: string, once : boolean, callback: Callback<EventData>): void;
-  export native function OnOrOnceGenericEventSync<T>(eventId: string, once : boolean, callback: Callback<GenericEventData<T>>): void;
-  export native function OnOrOnceSync(eventId: number, once : boolean, callback: Callback<EventData>): void;
+  export native function OffNumberSync(eventId: number): void;
+  export native function OffNumberCallbackSync(eventId: number, callback: Callback<EventData>): void;
+  export native function OnOrOnceStringSync(eventId: string, once: boolean, callback: Callback<EventData>, dataType: string): void;
+  export native function OnOrOnceGenericEventSync<T>(eventId: string, once : boolean, callback: Callback<GenericEventData<T>>, dataType: string): void;
+  export native function OnOrOnceSync(eventId: number, once: boolean, callback: Callback<EventData>, dataType: string): void;
+  export native function getListenerCountSync(eventId: number): number;
+  export native function getListenerCountStringSync(eventId: string): number;
+  export native function EmitInnerEventSync(eventId: InnerEvent): void;
+  export native function EmitInnerEventDataSync(eventId: InnerEvent, data: EventData): void;
+  export native function EmitStringSync(eventId: string): void;
+  export native function EmitStringDataSync(eventId: string, data: EventData): void;
+  export native function EmitStringGenericSync<T>(eventId: string, data: GenericEventData<T>): void;
   
   export function on(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
-      emitter.OnOrOnceSync(event.eventId, false, callback);
+      emitter.OnOrOnceSync(event.eventId, false, callback, "eventData");
     }
   }
 
@@ -78,12 +87,50 @@ namespace emitter {
     }
   }
 
+  export function off(eventId: number): void {
+    emitter.OffNumberSync(eventId);
+  }
+
+  export function off(eventId: number, callback: Callback<EventData>): void {
+    emitter.OffNumberCallbackSync(eventId, callback);
+  }
+
   export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
     if (callback instanceof Callback<EventData>) {
-      emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>);
+      emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>, "eventData");
     } else {
-      emitter.OnOrOnceGenericEventSync(eventId, false, callback as Callback<GenericEventData<T>>);
+      emitter.OnOrOnceGenericEventSync(eventId, false, callback as Callback<GenericEventData<T>>, "genericEventData");
     }
+  }
+
+  export function emit<T>(eventId: string, data?: EventData | GenericEventData<T>): void {
+    if (data != undefined) {
+      if (data instanceof EventData) {
+        emitter.EmitStringDataSync(eventId, data as EventData);
+      } else {
+        emitter.EmitStringGenericSync(eventId, data as GenericEventData<T>);
+      }
+    } else {
+      emitter.EmitStringSync(eventId);
+    }
+  }
+
+  export function emit(event: InnerEvent, data?: EventData): void {
+    if (data != undefined) {
+      emitter.EmitInnerEventDataSync(event, data);
+    } else {
+      emitter.EmitInnerEventSync(event);
+    }
+  }
+
+  export function getListenerCount(eventId: number | string): number {
+    let count : number = 1;
+    if (typeof eventId === "number") {
+      count = emitter.getListenerCountSync(eventId as number);
+    } else {
+      count = emitter.getListenerCountStringSync(eventId as string);
+    }
+    return count;
   }
 }
 export default emitter;
