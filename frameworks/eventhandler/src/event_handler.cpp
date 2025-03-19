@@ -165,7 +165,7 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
     if (!event) {
         return false;
     }
-    HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    HILOGD("Current front event id: %{public}s .", (event->GetEventUniqueId()).c_str());
     eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT, noBarrier);
     return true;
 }
@@ -177,7 +177,7 @@ bool EventHandler::PostTaskAtTail(const Callback &callback, const std::string &n
     if (!event) {
         return false;
     }
-    HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    HILOGD("Current event id: %{public}s .", (event->GetEventUniqueId()).c_str());
     eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_END, noBarrier);
     return true;
 }
@@ -461,7 +461,7 @@ void EventHandler::DistributeTimeoutHandler(const InnerEvent::TimePoint& beginTi
         InnerEvent::TimePoint endTime = InnerEvent::Clock::now();
         if ((endTime - std::chrono::milliseconds(distributeTimeout)) > beginTime &&
             EventRunner::distributeCallback_) {
-            HILOGI("AppMainThread Callback.");
+            HILOGD("AppMainThread Callback.");
             auto diff = endTime - beginTime;
             int64_t durationTime = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
             EventRunner::distributeCallback_(durationTime);
@@ -479,9 +479,9 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     currentEventHandler = shared_from_this();
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        auto currentRunningInfo = "start at " + InnerEvent::DumpTimeToString(now) + "; " + event->Dump() +
-        eventRunner_->GetEventQueue()->DumpCurrentQueueSize();
-        HILOGD("%{public}s", currentRunningInfo.c_str());
+        HILOGD("start at %{public}s, event %{public}s, CurrentQueueSize %{public}s",
+            (InnerEvent::DumpTimeToString(now)).c_str(), (event->Dump()).c_str(),
+            (eventRunner_->GetEventQueue()->DumpCurrentQueueSize()).c_str());
     }
 
     StartTraceAdapter(event);
@@ -496,7 +496,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
 
     InnerEvent::TimePoint nowStart = InnerEvent::Clock::now();
     DeliveryTimeAction(event, nowStart);
-    HILOGD("EventName is %{public}s, eventId is %{public}s priority %{public}d.", GetEventName(event).c_str(),
+    HILOGD("EventName: %{public}s, eventId: %{public}s, priority: %{public}d", GetEventName(event).c_str(),
         (event->GetEventUniqueId()).c_str(), event->GetEventPriority());
 
     SetCurrentEventPriority(event->GetEventPriority());
@@ -532,7 +532,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     }
     if (enableEventLog_) {
         auto now = InnerEvent::Clock::now();
-        HILOGD("end at %{public}s", InnerEvent::DumpTimeToString(now).c_str());
+        HILOGD("end: %{public}s", InnerEvent::DumpTimeToString(now).c_str());
     }
     FinishTraceAdapter();
 }

@@ -366,7 +366,7 @@ bool DeamonIoWaiter::AddFileDescriptor(int32_t fileDescriptor, uint32_t events, 
 void DeamonIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
 {
     if (fileDescriptor < 0) {
-        HILOGE("Invalid param while removing fd, fd = %{public}d", fileDescriptor);
+        HILOGE("Invalid param while removing fd: %{public}d", fileDescriptor);
         return;
     }
 

@@ -575,7 +575,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode th
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new (std::nothrow) EventRunner(false, Mode::DEFAULT));
     if (sp == nullptr) {
-        HILOGI("Failed to create EventRunner Instance");
+        HILOGW("Failed to create EventRunner Instance");
         return nullptr;
     }
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
