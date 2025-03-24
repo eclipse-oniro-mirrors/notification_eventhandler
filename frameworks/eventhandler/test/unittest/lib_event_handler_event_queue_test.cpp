@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "epoll_io_waiter.h"
 #include "event_handler.h"
 #include "event_queue.h"
 #include "event_queue_base.h"
@@ -2538,9 +2539,21 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_002, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_003, TestSize.Level1)
 {
-    EventQueueBase queue;
+    auto newIoWaiter = std::make_shared<NoneIoWaiter>();
+    EventQueueBase queue(newIoWaiter);
     queue.Prepare();
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    listener->SetDeamonWaiter();
+    auto listener1 = std::make_shared<IoFileDescriptorListener>();
+    auto listener2 = std::make_shared<IoFileDescriptorListener>();
+    listener2->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    listener2->SetDeamonWaiter();
+    queue.AddFileDescriptorListener(1, 1, listener1, "t1", EventQueue::Priority::VIP);
+    queue.AddFileDescriptorListener(2, 1, listener, "t2", EventQueue::Priority::VIP);
+    DeamonIoWaiter::GetInstance().AddFileDescriptor(3, 1, "t3", listener2, EventQueue::Priority::VIP);
     queue.SetVsyncWaiter(true);
+    queue.SetVsyncWaiter(false);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
@@ -2555,6 +2568,27 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_004, TestSize.Level1)
     EventQueueBase queue;
     queue.Prepare();
     queue.SetVsyncWaiter(false);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
+}
+
+/*
+ * @tc.name: SetVsyncPolicy_005
+ * @tc.desc: SetVsyncPolicy_005 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_005, TestSize.Level1)
+{
+    auto newIoWaiter = std::make_shared<EpollIoWaiter>();
+    newIoWaiter->Init();
+    EventQueueBase queue(newIoWaiter);
+    queue.Prepare();
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    listener->SetDeamonWaiter();
+    queue.AddFileDescriptorListener(2, 1, listener, "t1", EventQueue::Priority::VIP);
+    newIoWaiter->AddFileDescriptor(2, 1, "t2", listener, EventQueue::Priority::VIP);
+    queue.SetVsyncWaiter(true);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
@@ -2616,6 +2650,32 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_003, TestSize.Level1)
 }
 
 /*
+ * @tc.name: GetFfrtQueue_004
+ * @tc.desc: GetFfrtQueue_004 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_004, TestSize.Level1)
+{
+    /**
+    * @tc.setup: prepare queue.
+    */
+    EventQueueFFRT queue(std::make_shared<NoneIoWaiter>());
+    queue.Prepare();
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "event");
+    EventQueue::Priority priority;
+    EventInsertType insertType;
+    priority = EventQueue::Priority::IDLE;
+    insertType = EventInsertType::AT_FRONT;
+    queue.InsertSyncEvent(event, priority, insertType);
+    auto runner = EventRunner::Create("runner");
+    auto handler = std::make_shared<EventHandler>(runner);
+    queue.Remove(handler, 1, 1);
+    int result = queue.HasPreferEvent(1);
+    EXPECT_EQ(result, false);
+}
+
+/*
  * @tc.name: GetQueueBase_001
  * @tc.desc: GetQueueBase_001 test
  * @tc.type: FUNC
@@ -2649,6 +2709,119 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetQueueBase_002, TestSize.Level1)
     auto f = []() {; };
     bool result = handler->PostSyncTask(f, "VIP task", EventQueue::Priority::VIP);
     EXPECT_EQ(result, true);
+}
+
+/*
+ * @tc.name: EventDumpe_001
+ * @tc.desc: EventDumpe_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventDumpe_001, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    auto handler = std::make_shared<EventHandler>(runner);
+    InnerEvent::EventId eventId = 0u;
+    Caller call;
+    auto event = InnerEvent::Get(eventId, 1, call);
+    event->SetOwner(handler);
+    event->Dump();
+    InnerEvent::EventId id = "a";
+    auto event1 = InnerEvent::Get(id, 1, call);
+    event1->SetOwner(handler);
+    event1->Dump();
+    EXPECT_NE(event, event1);
+}
+ 
+/*
+ * @tc.name: EventTraceInfo_001
+ * @tc.desc: EventTraceInfo_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, EventTraceInfo_001, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    auto handler = std::make_shared<EventHandler>(runner);
+    InnerEvent::EventId eventId = 0u;
+    Caller call;
+    auto event = InnerEvent::Get(eventId, 1, call);
+    event->SetOwner(handler);
+    event->TraceInfo();
+    InnerEvent::EventId id = "a";
+    auto event1 = InnerEvent::Get(id, 1, call);
+    event1->SetOwner(handler);
+    event1->TraceInfo();
+    auto f = []() {; };
+    auto event2 = InnerEvent::Get(f, "event");
+    event2->SetOwner(handler);
+    event2->TraceInfo();
+    EXPECT_NE(event, event1);
+}
+ 
+/*
+ * @tc.name: AddFileDescriptorListener_001
+ * @tc.desc: AddFileDescriptorListener_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_001, TestSize.Level1)
+{
+    auto newIoWaiter = std::make_shared<EpollIoWaiter>();
+    newIoWaiter->Init();
+    newIoWaiter->Init();
+    EventQueueBase queue(newIoWaiter);
+    queue.Prepare();
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    newIoWaiter->AddFileDescriptor(-1, 1, "task", listener, EventQueue::Priority::VIP);
+    auto result = newIoWaiter->GetFileDescriptorMap(2);
+    EXPECT_EQ(nullptr, result);
+}
+ 
+/*
+ * @tc.name: AddFileDescriptorListener_002
+ * @tc.desc: AddFileDescriptorListener_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_002, TestSize.Level1)
+{
+    EventQueueFFRT queue(std::make_shared<NoneIoWaiter>());
+    queue.Prepare();
+    auto runner1 = EventRunner::Create(false, ThreadMode::FFRT);
+    auto handler = std::make_shared<EventHandler>(runner1);
+    queue.Remove(handler, 1, 1);
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    ErrCode code = queue.AddFileDescriptorListener(-1, 1, listener, "task", EventQueue::Priority::VIP);
+    EXPECT_EQ(code, EVENT_HANDLER_ERR_INVALID_PARAM);
+    queue.RemoveFileDescriptorListener(nullptr);
+    queue.RemoveFileDescriptorListener(-1);
+    DumpTest dumper;
+    runner1->Dump(dumper);
+    std::string str = "dump";
+    runner1->DumpRunnerInfo(str);
+}
+ 
+/*
+ * @tc.name: AddFileDescriptorListener_003
+ * @tc.desc: AddFileDescriptorListener_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_003, TestSize.Level1)
+{
+    auto newIoWaiter = std::make_shared<EpollIoWaiter>();
+    newIoWaiter->Init();
+    EventQueueBase queue(newIoWaiter);
+    queue.Prepare();
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    listener->SetDeamonWaiter();
+    auto listener1 = std::make_shared<IoFileDescriptorListener>();
+    queue.AddFileDescriptorListener(2, 1, listener, "t1", EventQueue::Priority::VIP);
+    queue.AddFileDescriptorListener(1, 1, listener1, "t2", EventQueue::Priority::VIP);
+    newIoWaiter->AddFileDescriptor(2, 1, "t1", listener, EventQueue::Priority::VIP);
+    newIoWaiter->AddFileDescriptor(1, 1, "t2", listener1, EventQueue::Priority::VIP);
+    queue.SetVsyncLazyMode(false);
+    DeamonIoWaiter::GetInstance().Init();
+    DeamonIoWaiter::GetInstance().GetFileDescriptorMap(1);
+    void* ffrt = queue.GetFfrtQueue();
+    EXPECT_EQ(nullptr, ffrt);
 }
 
 /*
