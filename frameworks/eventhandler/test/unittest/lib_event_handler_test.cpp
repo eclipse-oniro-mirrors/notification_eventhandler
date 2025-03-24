@@ -17,6 +17,10 @@
 #include "event_queue.h"
 #include "event_runner.h"
 #include "inner_event.h"
+#ifdef FFRT_USAGE_ENABLE
+#include "ffrt_inner.h"
+#endif // FFRT_USAGE_ENABLE
+#include "ffrt_descriptor_listener.h"
 
 #include <gtest/gtest.h>
 #include <dlfcn.h>
@@ -37,6 +41,8 @@ typedef bool (*RemoveTaskForFFRT)(void* handler, const std::string &name);
 typedef bool (*RemoveAllTaskForFFRT)(void* handler);
 typedef bool (*FfrtPostSyncTask)(void* handler, const std::function<void()>& callback,
     const std::string &name, EventQueue::Priority priority);
+typedef int (*AddFdListenerByFFRT)(void* handler, uint32_t fd, uint32_t event, void* data, ffrt_poller_cb cb);
+typedef int (*RemoveFdListenerByFFRT)(void* handler, uint32_t fd);
 
 class LibEventHandlerTest : public testing::Test {
 public:
@@ -138,6 +144,9 @@ HWTEST_F(LibEventHandlerTest, Ffrt004, TestSize.Level1)
         FfrtPostSyncTask ffrt = reinterpret_cast<FfrtPostSyncTask>(temp);
         bool result = (*ffrt)(nullptr, task, "x", EventQueue::Priority::LOW);
         EXPECT_EQ(false, result);
+        auto handler = std::make_shared<EventHandler>(nullptr);
+        bool result1 = (*ffrt)(&handler, task, "x", EventQueue::Priority::LOW);
+        EXPECT_EQ(false, result1);
     }
 }
 
@@ -155,6 +164,8 @@ HWTEST_F(LibEventHandlerTest, Ffrt005, TestSize.Level1)
         RemoveTaskForFFRT ffrt = reinterpret_cast<RemoveTaskForFFRT>(temp);
         EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr, "x");
+        auto handler = std::make_shared<EventHandler>(nullptr);
+        (*ffrt)(&handler, "x");
     }
 }
 
@@ -189,6 +200,54 @@ HWTEST_F(LibEventHandlerTest, Ffrt007, TestSize.Level1)
         RemoveAllTaskForFFRT ffrt = reinterpret_cast<RemoveAllTaskForFFRT>(temp);
         EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr);
+        auto handler = std::make_shared<EventHandler>(nullptr);
+        (*ffrt)(&handler);
+    }
+}
+
+/*
+ * @tc.name: Ffrt008
+ * @tc.desc: Ffrt008 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, Ffrt008, TestSize.Level1)
+{
+    string str = "AddFdListenerByFFRT";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        AddFdListenerByFFRT ffrt = reinterpret_cast<AddFdListenerByFFRT>(temp);
+        EXPECT_NE(nullptr, ffrt);
+        (*ffrt)(nullptr, 1, 1, nullptr, nullptr);
+        auto handler = std::make_shared<EventHandler>(nullptr);
+        ffrt_poller_cb cb = [](void* data, uint32_t param) {
+            if (!data) {
+                return;
+            }
+            if (param ==0) {
+                return;
+            }
+        };
+        (*ffrt)(&handler, 1, 1, &handler, cb);
+    }
+}
+
+/*
+ * @tc.name: Ffrt009
+ * @tc.desc: Ffrt009 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, Ffrt009, TestSize.Level1)
+{
+    string str = "RemoveFdListenerByFFRT";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        RemoveFdListenerByFFRT ffrt = reinterpret_cast<RemoveFdListenerByFFRT>(temp);
+        EXPECT_NE(nullptr, ffrt);
+        (*ffrt)(nullptr, 1);
+        auto handler = std::make_shared<EventHandler>(nullptr);
+        (*ffrt)(&handler, 1);
     }
 }
 
@@ -203,4 +262,43 @@ HWTEST_F(LibEventHandlerTest, RemoveTask001, TestSize.Level1)
     auto handler = std::make_shared<EventHandler>(runner);
     int result = handler->RemoveTaskWithRet("task");
     EXPECT_EQ(result, 1);
+}
+
+/*
+ * @tc.name: RemoveFileDescriptor_001
+ * @tc.desc: RemoveFileDescriptor_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, RemoveFileDescriptor_001, TestSize.Level1)
+{
+    auto handler = std::make_shared<EventHandler>(nullptr);
+    handler->RemoveAllFileDescriptorListeners();
+    handler->RemoveFileDescriptorListener(1);
+    handler->HasPendingHigherEvent(1);
+    handler->QueryPendingTaskInfo(1);
+    handler->TaskCancelAndWait();
+    int result = handler->RemoveTaskWithRet("task");
+    EXPECT_EQ(result, 1);
+}
+
+/*
+ * @tc.name: DistributeTimeoutHandler_001
+ * @tc.desc: DistributeTimeoutHandler_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, DistributeTimeoutHandler_001, TestSize.Level1)
+{
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    runner->SetTimeout(2);
+    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    handler->DistributeTimeoutHandler(now);
+    InnerEvent::Pointer event(nullptr, nullptr);
+    handler->GetEventName(event);
+    bool result = handler->HasPendingHigherEvent(0);
+    EXPECT_EQ(result, false);
+    Caller call;
+    InnerEvent::EventId id = "a";
+    auto event1 = InnerEvent::Get(id, 1, call);
+    handler->GetEventName(event1);
 }
