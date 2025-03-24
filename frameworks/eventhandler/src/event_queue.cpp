@@ -78,7 +78,7 @@ EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
 
 EventQueue::~EventQueue()
 {
-    EH_LOGI_LIMIT("EventQueue is unavailable hence");
+    EH_LOGD_LIMIT("EventQueue is unavailable hence");
 }
 
 InnerEvent::Pointer EventQueue::GetEvent()

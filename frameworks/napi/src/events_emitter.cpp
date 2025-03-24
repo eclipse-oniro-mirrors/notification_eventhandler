@@ -41,11 +41,11 @@ namespace {
     }
     EventHandlerInstance::EventHandlerInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
     {
-        HILOGI("EventHandlerInstance constructed");
+        HILOGD("EventHandlerInstance constructed");
     }
     EventHandlerInstance::~EventHandlerInstance()
     {
-        HILOGI("EventHandlerInstance de-constructed");
+        HILOGD("EventHandlerInstance de-constructed");
     }
     std::shared_ptr<EventHandlerInstance> EventHandlerInstance::GetInstance()
     {

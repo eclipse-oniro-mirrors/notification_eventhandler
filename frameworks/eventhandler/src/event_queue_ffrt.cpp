@@ -100,7 +100,7 @@ EventQueueFFRT::~EventQueueFFRT()
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
-    EH_LOGI_LIMIT("EventQueueFFRT is unavailable hence");
+    EH_LOGD_LIMIT("EventQueueFFRT is unavailable hence");
 }
 
 bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType, bool noBarrier)
