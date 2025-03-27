@@ -2760,3 +2760,4 @@ HWTEST_F(LibEventHandlerEventQueueTest, BarrierModeTimeOut001, TestSize.Level1)
     result = handler->PostSyncTask(f, "VIP task", EventQueue::Priority::VIP);
     EXPECT_EQ(result, true);
 }
+
