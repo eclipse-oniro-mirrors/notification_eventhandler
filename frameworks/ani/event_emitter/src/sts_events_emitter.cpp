@@ -39,12 +39,12 @@ std::shared_ptr<EventsEmitterInstance> eventHandler;
 
 AniAsyncCallbackInfo::~AniAsyncCallbackInfo()
 {
-    env = nullptr;
+    vm = nullptr;
 }
 
 EventsEmitterInstance::EventsEmitterInstance(const std::shared_ptr<EventRunner>& runner): EventHandler(runner)
 {
-    HILOGI("EventHandlerInstance constructed");
+    HILOGD("EventHandlerInstance constructed");
 }
 EventsEmitterInstance::~EventsEmitterInstance()
 {
@@ -70,15 +70,36 @@ void EventsEmitterInstance::ProcessEvent(const InnerEvent::Pointer& event)
         return;
     }
     for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
-        HILOGI("callbackInfo begin\n");
+        HILOGD("callbackInfo begin\n");
         if (*it == nullptr) {
             HILOGE("*it is empty\n");
             continue;
         }
 
-        auto t = std::thread(EventsEmitter::ThreadFunction, (*it)->env, (*it)->callback, (*it)->data, (*it)->dataType);
+        if ((*it)->vm == nullptr) {
+            continue;
+        }
+        ani_boolean wasReleased = ANI_FALSE;
+        ani_ref refa {};
+        ani_env *env;
+        ani_option interopEnabled {"--interop=disable", nullptr};
+        ani_options aniArgs {1, &interopEnabled};
+        if (ANI_OK != (*it)->vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env)) {
+            HILOGE("vm GetEnv error");
+            continue;
+        }
+        if (env->WeakReference_GetReference((*it)->callback, &wasReleased, &refa) != ANI_OK) {
+            HILOGE("WeakReference_GetReference error");
+            continue;
+        }
+        if (wasReleased) {
+            HILOGD("callback is released");
+            continue;
+        }
+
+        auto t = std::thread(EventsEmitter::ThreadFunction, env, refa, (*it)->data, (*it)->dataType);
         t.join();
-        HILOGI("callbackInfo end\n");
+        HILOGD("callbackInfo end\n");
     }
 }
 
@@ -93,7 +114,7 @@ std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> EventsEmitterInstance:
         return result;
     }
     for (auto it = iter->second.begin(); it != iter->second.end();) {
-        if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+        if ((*it)->isDeleted == true || (*it)->vm == nullptr) {
             it = iter->second.erase(it);
             continue;
         }
@@ -124,11 +145,16 @@ std::shared_ptr<AniAsyncCallbackInfo> EventsEmitter::SearchCallbackInfo(
         if (callbackInfo->isDeleted) {
             continue;
         }
-        if (callbackInfo->env != env) {
+        ani_boolean wasReleased = ANI_FALSE;
+        ani_ref refa {};
+        if (env->WeakReference_GetReference(callbackInfo->callback, &wasReleased, &refa) != ANI_OK) {
+            continue;
+        }
+        if (wasReleased) {
             continue;
         }
         ani_boolean isEq = false;
-        env->Reference_StrictEquals(callback, callbackInfo->callback, &isEq);
+        env->Reference_StrictEquals(callback, refa, &isEq);
         if (!isEq) {
             continue;
         }
@@ -140,7 +166,12 @@ std::shared_ptr<AniAsyncCallbackInfo> EventsEmitter::SearchCallbackInfo(
 void EventsEmitter::ReleaseCallbackInfo(ani_env *env, AniAsyncCallbackInfo* callbackInfo)
 {
     if (callbackInfo != nullptr) {
-        callbackInfo->env->GlobalReference_Delete(callbackInfo->callback);
+        ani_env *MyEnv;
+        if (ANI_OK != callbackInfo->vm->GetEnv(ANI_VERSION_1, &MyEnv)) {
+            return;
+        }
+        MyEnv->WeakReference_Delete(callbackInfo->callback);
+        MyEnv->GlobalReference_Delete(callbackInfo->data);
         delete callbackInfo;
         callbackInfo = nullptr;
     }
@@ -150,16 +181,16 @@ void EventsEmitter::UpdateOnceFlag(std::shared_ptr<AniAsyncCallbackInfo>callback
 {
     if (!once) {
         if (callbackInfo->once) {
-            HILOGI("JS_On change once to on");
+            HILOGD("JS_On change once to on");
             callbackInfo->once = false;
         } else {
-            HILOGI("JS_On already on");
+            HILOGD("JS_On already on");
         }
     } else {
         if (callbackInfo->once) {
-            HILOGI("JS_Once already once");
+            HILOGD("JS_Once already once");
         } else {
-            HILOGI("JS_Once change on to once");
+            HILOGD("JS_Once change on to once");
             callbackInfo->once = true;
         }
     }
@@ -173,32 +204,37 @@ void EventsEmitter::DeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &
         return;
     }
     for (auto callbackInfo = iter->second.begin(); callbackInfo != iter->second.end();) {
-        if ((*callbackInfo)->env != env) {
+        HILOGD("DeleteCallbackInfo env equal");
+        ani_boolean wasReleased = ANI_FALSE;
+        ani_ref refa {};
+        if (env->WeakReference_GetReference((*callbackInfo)->callback, &wasReleased, &refa) != ANI_OK) {
             ++callbackInfo;
             continue;
         }
-        HILOGI("DeleteCallbackInfo env equal");
+        if (wasReleased) {
+            continue;
+        }
         ani_boolean isEq = false;
-        env->Reference_StrictEquals(callback, (*callbackInfo)->callback, &isEq);
+        env->Reference_StrictEquals(callback, refa, &isEq);
         if (!isEq) {
             ++callbackInfo;
             continue;
         }
-        HILOGI("DeleteCallbackInfo callback equal");
+        HILOGD("DeleteCallbackInfo callback equal");
         (*callbackInfo)->isDeleted = true;
         callbackInfo = iter->second.erase(callbackInfo);
-        HILOGI("DeleteCallbackInfo success");
+        HILOGD("DeleteCallbackInfo success");
         return;
     }
 }
 
 void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
 {
-    HILOGI("offeventsEmitterInstances begin");
+    HILOGD("offeventsEmitterInstances begin");
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto subscribe = eventsEmitterInstances.find(eventIdValue);
     if (subscribe != eventsEmitterInstances.end()) {
-        HILOGI("offeventsEmitterInstances_find");
+        HILOGD("offeventsEmitterInstances_find");
         for (auto callbackInfo : subscribe->second) {
             callbackInfo->isDeleted = true;
         }
@@ -206,20 +242,10 @@ void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
     eventsEmitterInstances.erase(eventIdValue);
 }
 
-void EventsEmitter::AniWrap(ani_env *env, ani_ref callback)
-{
-    static const char *nameSpace = "L@ohos/events/emitter/emitter;";
-    ani_namespace cls;
-    if (ANI_OK != env->FindNamespace(nameSpace, &cls)) {
-        HILOGE("Not found '%{public}s'", nameSpace);
-        return;
-    }
-}
-
 void EventsEmitter::OnOrOnce(
     ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType)
 {
-    HILOGI("onOrOncebegin\n");
+    HILOGD("onOrOncebegin\n");
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto callbackInfo = SearchCallbackInfo(env, eventId, callback);
     if (callbackInfo != nullptr) {
@@ -233,25 +259,34 @@ void EventsEmitter::OnOrOnce(
             HILOGE("new object failed");
             return;
         }
-        callbackInfo->env = env;
+        env->GetVM(&callbackInfo->vm);
         callbackInfo->once = once;
         callbackInfo->eventId = eventId;
-        env->GlobalReference_Create(callback, &callbackInfo->callback);
+        env->WeakReference_Create(callback, &callbackInfo->callback);
         callbackInfo->dataType = EventsEmitter::GetStdString(env, dataType);
-        AniWrap(env, callback);
         eventsEmitterInstances[eventId].insert(callbackInfo);
-        HILOGI("onOrOnceEnd\n");
+        HILOGD("onOrOnceEnd\n");
     }
 }
 
-ani_double EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
+ani_double EventsEmitter::GetListenerCount(ani_env *env, InnerEvent::EventId eventId)
 {
     ani_double cnt = 0;
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto subscribe = eventsEmitterInstances.find(eventId);
     if (subscribe != eventsEmitterInstances.end()) {
         for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
-            if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+            if ((*it)->isDeleted == true || (*it)->vm == nullptr) {
+                it = subscribe->second.erase(it);
+                continue;
+            }
+            ani_boolean wasReleased = ANI_FALSE;
+            ani_ref refa {};
+            if (env->WeakReference_GetReference((*it)->callback, &wasReleased, &refa) != ANI_OK) {
+                ++it;
+                continue;
+            }
+            if (wasReleased) {
                 it = subscribe->second.erase(it);
                 continue;
             }
@@ -264,18 +299,23 @@ ani_double EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
 
 bool EventsEmitter::IsExistValidCallback(const InnerEvent::EventId &eventId, ani_object eventData)
 {
-    HILOGI("IsExistValidCallback begin");
+    HILOGD("IsExistValidCallback begin");
     std::lock_guard<std::mutex> lock(g_eventsEmitterInsMutex);
     auto subscribe = eventsEmitterInstances.find(eventId);
     if (subscribe == eventsEmitterInstances.end()) {
-        HILOGI("Emit has no callback");
+        HILOGW("IsExistValidCallback, Emit has no callback");
         return false;
     }
     if (subscribe->second.size() != 0) {
         for (auto it = subscribe->second.begin(); it != subscribe->second.end(); ++it) {
-            if (*it != nullptr && eventData != nullptr) {
-                (*it)->env->GlobalReference_Create(eventData, reinterpret_cast<ani_ref*>(&(*it)->data));
+            if (*it == nullptr && eventData == nullptr) {
+                continue;
             }
+            ani_env *env;
+            if ((*it)->vm == nullptr || (*it)->vm->GetEnv(ANI_VERSION_1, &env) != ANI_OK) {
+                continue;
+            }
+            env->GlobalReference_Create(eventData, reinterpret_cast<ani_ref*>(&(*it)->data));
         }
         return true;
     }
@@ -284,17 +324,17 @@ bool EventsEmitter::IsExistValidCallback(const InnerEvent::EventId &eventId, ani
 
 void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_object eventData)
 {
-    HILOGI("EmitWithEventId begin");
+    HILOGD("EmitWithEventId begin");
     ani_double eventId = 0;
     ani_status status = ANI_ERROR;
     if ((status = env->Object_GetPropertyByName_Double(InnerEvent, "eventId", &eventId)) != ANI_OK) {
         HILOGE("eventId not find");
         return;
     }
-    HILOGI("EmitWithEventId eventId: %f\n", eventId);
+    HILOGD("EmitWithEventId eventId: %f\n", eventId);
     InnerEvent::EventId id = (uint32_t)eventId;
     if (!IsExistValidCallback(id, eventData)) {
-        HILOGI("Emit has no callback");
+        HILOGI("EmitWithEventId, Emit has no callback");
         return;
     }
 
@@ -303,22 +343,22 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
     status = ANI_ERROR;
     Priority priority = Priority::LOW;
     if ((status = env->Object_GetPropertyByName_Ref(InnerEvent, "priority", &obj)) == ANI_OK) {
-        HILOGI("get priority");
+        HILOGD("get priority");
         if ((status = env->Reference_IsUndefined(obj, &isUndefined)) == ANI_OK) {
-            HILOGI("get priority isUndefined success");
+            HILOGD("get priority isUndefined success");
             if (!isUndefined) {
-                HILOGI("get priority not undefined");
+                HILOGD("get priority not undefined");
                 ani_int res;
                 env->EnumItem_GetValue_Int(reinterpret_cast<ani_enum_item>(obj), &res);
-                HILOGI("priority is %{public}d", res);
+                HILOGD("priority is %{public}d", res);
                 priority = static_cast<Priority>(res);
             }
         }
     }
-    HILOGI("get priority end");
+    HILOGD("get priority end");
     auto event = InnerEvent::Get(id, std::make_unique<EventDataAni>());
     eventHandler->SendEvent(event, 0, priority);
-    HILOGI("EmitWithEventId end");
+    HILOGD("EmitWithEventId end");
 }
 
 void EventsEmitter::EmitWithEventIdString(
@@ -326,7 +366,7 @@ void EventsEmitter::EmitWithEventIdString(
 {
     InnerEvent::EventId id = GetStdString(env, eventId);
     if (!IsExistValidCallback(id, eventData)) {
-        HILOGI("Emit has no callback");
+        HILOGI("EmitWithEventIdString, Emit has no callback");
         return;
     }
     Priority priority = Priority::LOW;
@@ -334,7 +374,7 @@ void EventsEmitter::EmitWithEventIdString(
     if (enumItem !=nullptr) {
         ani_int res;
         env->EnumItem_GetValue_Int(enumItem, &res);
-        HILOGI("priority is %{public}d", res);
+        HILOGD("priority is %{public}d", res);
         priority = static_cast<Priority>(res);
         return;
     }
@@ -345,20 +385,20 @@ void EventsEmitter::EmitWithEventIdString(
 
 void EventsEmitter::ThreadFunction(ani_env *env, ani_ref callback, ani_object data, std::string dataType)
 {
-    HILOGI("threadFunciton begin");
+    HILOGD("threadFunciton begin");
     ani_vm *etsVm;
     ani_env *etsEnv;
     [[maybe_unused]] int res = env->GetVM(&etsVm);
     if (res != ANI_OK) {
         return;
     }
-    HILOGI("threadFunciton GetVM success");
+    HILOGD("threadFunciton GetVM success");
     ani_option interopEnabled {"--interop=disable", nullptr};
     ani_options aniArgs {1, &interopEnabled};
     if (ANI_OK != etsVm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &etsEnv)) {
         return;
     }
-    HILOGI("threadFunciton AttachCurrentThread success");
+    HILOGD("threadFunciton AttachCurrentThread success");
     auto fnObj = reinterpret_cast<ani_fn_object>(callback);
     if (fnObj == nullptr) {
         HILOGE("threadFunciton fnObj is nullptr");
@@ -366,7 +406,7 @@ void EventsEmitter::ThreadFunction(ani_env *env, ani_ref callback, ani_object da
     }
     std::vector<ani_ref> args;
     if (data == nullptr) {
-        HILOGI("threadFunciton data is nullptr");
+        HILOGD("threadFunciton data is nullptr");
         ani_class cls;
         ani_status status = ANI_ERROR;
         if (dataType == EVENT_DATA) {
@@ -390,7 +430,7 @@ void EventsEmitter::ThreadFunction(ani_env *env, ani_ref callback, ani_object da
             HILOGE("threadFunciton Object_New error%{public}d", status);
             return;
         }
-        HILOGI("threadFunciton Object_New create");
+        HILOGD("threadFunciton Object_New create");
         args.push_back(reinterpret_cast<ani_ref>(obj1));
     } else {
         args.push_back(reinterpret_cast<ani_ref>(data));
@@ -400,7 +440,7 @@ void EventsEmitter::ThreadFunction(ani_env *env, ani_ref callback, ani_object da
         return;
     }
 
-    HILOGI("hello thread");
+    HILOGD("hello thread");
     if (ANI_OK != etsVm->DetachCurrentThread()) {
         return;
     }
@@ -408,7 +448,7 @@ void EventsEmitter::ThreadFunction(ani_env *env, ani_ref callback, ani_object da
 
 static void OnOrOnceSync(ani_env *env, ani_double eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    HILOGI("OnOrOnceSync begin");
+    HILOGD("OnOrOnceSync begin");
     InnerEvent::EventId id = (uint32_t)eventId;
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
@@ -416,7 +456,7 @@ static void OnOrOnceSync(ani_env *env, ani_double eventId, ani_boolean once, ani
 static void OnOrOnceStringSync(
     ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    HILOGI("OnOrOnceStringSync begin");
+    HILOGD("OnOrOnceStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
@@ -424,87 +464,87 @@ static void OnOrOnceStringSync(
 static void OnOrOnceGenericEventSync(
     ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    HILOGI("OnOrOnceGenericEventSync begin");
+    HILOGD("OnOrOnceGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
 static void OffStringSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    HILOGI("OffStringSync begin");
+    HILOGD("OffStringSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
 }
 
 static void OffGenericEventSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    HILOGI("OffGenericEventSync begin");
+    HILOGD("OffGenericEventSync begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
 }
 
 static void OffNumberSync(ani_env *env, ani_double eventId)
 {
-    HILOGI("OffNumberSync begin");
+    HILOGD("OffNumberSync begin");
     InnerEvent::EventId id = (uint32_t)eventId;
     EventsEmitter::OffEmitterInstances(id);
 }
 
 static void OffNumberCallbackSync(ani_env *env, ani_double eventId, ani_ref callback)
 {
-    HILOGI("OffNumberCallbackSync begin");
+    HILOGD("OffNumberCallbackSync begin");
     InnerEvent::EventId id = (uint32_t)eventId;
     EventsEmitter::DeleteCallbackInfo(env, id, callback);
 }
 
 static ani_double getListenerCountNumber(ani_env *env, ani_double eventId)
 {
-    HILOGI("getListenerCountNumber begin");
+    HILOGD("getListenerCountNumber begin");
     InnerEvent::EventId id = (uint32_t)eventId;
-    return EventsEmitter::GetListenerCount(id);
+    return EventsEmitter::GetListenerCount(env, id);
 }
 
 static ani_double getListenerCountString(ani_env *env, ani_string eventId)
 {
-    HILOGI("getListenerCountString begin");
+    HILOGD("getListenerCountString begin");
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
-    return EventsEmitter::GetListenerCount(id);
+    return EventsEmitter::GetListenerCount(env, id);
 }
 
 static void EmitStringSync(ani_env *env, ani_string eventId)
 {
-    HILOGI("EmitStringSync begin");
+    HILOGD("EmitStringSync begin");
     EventsEmitter::EmitWithEventIdString(env, eventId, nullptr, nullptr);
 }
 
 static void EmitStringDataSync(ani_env *env, ani_string eventId, ani_string EventData)
 {
-    HILOGI("EmitStringDataSync begin");
+    HILOGD("EmitStringDataSync begin");
     EventsEmitter::EmitWithEventIdString(env, eventId, EventData, nullptr);
 }
 
 static void EmitStringGenericSync(ani_env *env, ani_string eventId, ani_object GenericEventData)
 {
-    HILOGI("EmitStringGenericSync begin");
+    HILOGD("EmitStringGenericSync begin");
     EventsEmitter::EmitWithEventIdString(env, eventId, GenericEventData, nullptr);
 }
 
 static void EmitInnerEventSync(ani_env *env, ani_object InnerEvent)
 {
-    HILOGI("EmitInnerEventSync begin");
+    HILOGD("EmitInnerEventSync begin");
     EventsEmitter::EmitWithEventId(env, InnerEvent, nullptr);
 }
 
 static void EmitInnerEventDataSync(ani_env *env, ani_object InnerEvent, ani_object EventData)
 {
-    HILOGI("EmitInnerEventDataSync begin");
+    HILOGD("EmitInnerEventDataSync begin");
     EventsEmitter::EmitWithEventId(env, InnerEvent, EventData);
 }
 
 extern "C" {
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
-    HILOGI("ANI_Constructor begin");
+    HILOGD("ANI_Constructor begin");
     eventHandler = EventsEmitterInstance::GetInstance();
     ani_status status = ANI_ERROR;
     ani_env *env;

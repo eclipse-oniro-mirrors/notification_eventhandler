@@ -29,12 +29,12 @@ namespace AppExecFwk {
 using Priority = EventQueue::Priority;
 using EventDataAni = std::shared_ptr<ani_object>;
 struct AniAsyncCallbackInfo {
-    ani_env* env;
+    ani_vm* vm = nullptr;
     std::atomic<bool> once = false;
     std::atomic<bool> isDeleted = false;
     ani_object data = nullptr;
     std::string dataType;
-    ani_ref callback = 0;
+    ani_wref callback = 0;
     InnerEvent::EventId eventId;
     ~AniAsyncCallbackInfo();
 };
@@ -49,8 +49,7 @@ public:
     static void DeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback);
     static void OnOrOnce(ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType);
     static void OffEmitterInstances(InnerEvent::EventId eventId);
-    static void AniWrap(ani_env *env, ani_ref callback);
-    static ani_double GetListenerCount(InnerEvent::EventId eventId);
+    static ani_double GetListenerCount(ani_env *env, InnerEvent::EventId eventId);
     static bool IsExistValidCallback(const InnerEvent::EventId &eventId, ani_object eventData);
     static void EmitWithEventId(ani_env *env, ani_object innerEvent, ani_object eventData);
     static void EmitWithEventIdString(
