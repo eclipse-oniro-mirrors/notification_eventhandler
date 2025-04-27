@@ -549,6 +549,51 @@ static void EmitInnerEventDataSync(ani_env *env, ani_object InnerEvent, ani_obje
     EventsEmitter::EmitWithEventId(env, InnerEvent, EventData);
 }
 
+static ani_status getPriority(ani_env *env, ani_object options, ani_enum_item &priority)
+{
+    HILOGD("get priority");
+    ani_ref obj;
+    ani_boolean isUndefined = true;
+    ani_status status = ANI_ERROR;
+    if ((status = env->Object_GetPropertyByName_Ref(options, "priority", &obj)) == ANI_OK) {
+        if ((status = env->Reference_IsUndefined(obj, &isUndefined)) == ANI_OK) {
+            if (!isUndefined) {
+                HILOGD("get priority not undefined");
+                priority = reinterpret_cast<ani_enum_item>(obj);
+            }
+        }
+    }
+    return status;
+}
+static void EmitStringOptionsSync(ani_env *env, ani_string eventId, ani_object options)
+{
+    HILOGD("EmitStringOptionsSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, nullptr, priority);
+    HILOGD("EmitStringOptionsSync end");
+}
+
+static void EmitStringOptionsGenericSync(ani_env *env,
+    ani_string eventId, ani_object options, ani_object GenericEventData)
+{
+    HILOGD("EmitStringOptionsGenericSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, GenericEventData, priority);
+    HILOGD("EmitStringOptionsGenericSync end");
+}
+
+static void EmitStringOptionsDataSync(ani_env *env,
+    ani_string eventId, ani_object options, ani_object EventData)
+{
+    HILOGD("EmitStringOptionsDataSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, EventData, priority);
+    HILOGD("EmitStringOptionsDataSync end");
+}
+
 ani_status init(ani_env *env, ani_namespace kitNs)
 {
     std::array methods = {
