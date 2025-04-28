@@ -469,6 +469,14 @@ static void OnOrOnceGenericEventSync(
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
+static void OffStringIdSync(ani_env *env, ani_string eventId)
+{
+    HILOGD("OffStringIdSync begin");
+    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    EventsEmitter::OffEmitterInstances(id);
+    HILOGD("OffStringIdSync end");
+}
+
 static void OffStringSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
     HILOGD("OffStringSync begin");
@@ -541,29 +549,58 @@ static void EmitInnerEventDataSync(ani_env *env, ani_object InnerEvent, ani_obje
     EventsEmitter::EmitWithEventId(env, InnerEvent, EventData);
 }
 
-extern "C" {
-ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
+static ani_status getPriority(ani_env *env, ani_object options, ani_enum_item &priority)
 {
-    HILOGD("ANI_Constructor begin");
-    eventHandler = EventsEmitterInstance::GetInstance();
+    HILOGD("get priority");
+    ani_ref obj;
+    ani_boolean isUndefined = true;
     ani_status status = ANI_ERROR;
-    ani_env *env;
-    if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
-        HILOGE("Unsupported ANI_VERSION_1.");
-        return ANI_ERROR;
+    if ((status = env->Object_GetPropertyByName_Ref(options, "priority", &obj)) == ANI_OK) {
+        if ((status = env->Reference_IsUndefined(obj, &isUndefined)) == ANI_OK) {
+            if (!isUndefined) {
+                HILOGD("get priority not undefined");
+                priority = reinterpret_cast<ani_enum_item>(obj);
+            }
+        }
     }
+    return status;
+}
+static void EmitStringOptionsSync(ani_env *env, ani_string eventId, ani_object options)
+{
+    HILOGD("EmitStringOptionsSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, nullptr, priority);
+    HILOGD("EmitStringOptionsSync end");
+}
 
-    ani_namespace kitNs;
-    status = env->FindNamespace("L@ohos/events/emitter/emitter;", &kitNs);
-    if (status != ANI_OK) {
-        HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
-        return ANI_INVALID_ARGS;
-    }
+static void EmitStringOptionsGenericSync(ani_env *env,
+    ani_string eventId, ani_object options, ani_object GenericEventData)
+{
+    HILOGD("EmitStringOptionsGenericSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, GenericEventData, priority);
+    HILOGD("EmitStringOptionsGenericSync end");
+}
 
+static void EmitStringOptionsDataSync(ani_env *env,
+    ani_string eventId, ani_object options, ani_object EventData)
+{
+    HILOGD("EmitStringOptionsDataSync begin");
+    ani_enum_item priority = nullptr;
+    getPriority(env, options, priority);
+    EventsEmitter::EmitWithEventIdString(env, eventId, EventData, priority);
+    HILOGD("EmitStringOptionsDataSync end");
+}
+
+ani_status init(ani_env *env, ani_namespace kitNs)
+{
     std::array methods = {
         ani_native_function{"OnOrOnceSync", nullptr, reinterpret_cast<void *>(OnOrOnceSync)},
         ani_native_function{"OnOrOnceStringSync", nullptr, reinterpret_cast<void *>(OnOrOnceStringSync)},
         ani_native_function{"OnOrOnceGenericEventSync", nullptr, reinterpret_cast<void *>(OnOrOnceGenericEventSync)},
+        ani_native_function{"OffStringIdSync", nullptr, reinterpret_cast<void *>(OffStringIdSync)},
         ani_native_function{"OffStringSync", nullptr, reinterpret_cast<void *>(OffStringSync)},
         ani_native_function{"OffGenericEventSync", nullptr, reinterpret_cast<void *>(OffGenericEventSync)},
         ani_native_function{"OffNumberSync", "D:V", reinterpret_cast<void *>(OffNumberSync)},
@@ -583,9 +620,39 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function{"EmitStringGenericSync",
             "Lstd/core/String;L@ohos/events/emitter/emitter/GenericEventData;:V",
             reinterpret_cast<void *>(EmitStringGenericSync)},
+        ani_native_function{"EmitStringOptionsSync",
+            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;:V",
+            reinterpret_cast<void *>(EmitStringOptionsSync)},
+        ani_native_function{"EmitStringOptionsGenericSync",
+            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/GenericEventData;:V",
+            reinterpret_cast<void *>(EmitStringOptionsGenericSync)},
+        ani_native_function{"EmitStringOptionsDataSync",
+            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/EventData;:V",
+            reinterpret_cast<void *>(EmitStringOptionsDataSync)},
     };
-    
-    status = env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
+
+    return env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
+}
+
+extern "C" {
+ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
+{
+    HILOGD("ANI_Constructor begin");
+    eventHandler = EventsEmitterInstance::GetInstance();
+    ani_status status = ANI_ERROR;
+    ani_env *env;
+    if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
+        HILOGE("Unsupported ANI_VERSION_1.");
+        return ANI_ERROR;
+    }
+
+    ani_namespace kitNs;
+    status = env->FindNamespace("L@ohos/events/emitter/emitter;", &kitNs);
+    if (status != ANI_OK) {
+        HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
+        return ANI_INVALID_ARGS;
+    }
+    status = init(env, kitNs);
     if (status != ANI_OK) {
         HILOGE("Cannot bind native methods to L@ohos/events/emitter/emitter");
         return ANI_INVALID_TYPE;

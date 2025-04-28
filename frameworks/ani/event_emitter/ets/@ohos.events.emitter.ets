@@ -58,6 +58,7 @@ namespace emitter {
     public priority?: EventPriority | undefined;
   }
 
+  export native function OffStringIdSync(eventId: string): void;
   export native function OffStringSync(eventId: string, callback: Callback<EventData>): void;
   export native function OffGenericEventSync<T>(eventId: string, callback: Callback<GenericEventData<T>>): void;
   export native function OffNumberSync(eventId: number): void;
@@ -72,11 +73,18 @@ namespace emitter {
   export native function EmitStringSync(eventId: string): void;
   export native function EmitStringDataSync(eventId: string, data: EventData): void;
   export native function EmitStringGenericSync<T>(eventId: string, data: GenericEventData<T>): void;
+  export native function EmitStringOptionsDataSync(eventId: string, options: Options, data: EventData): void;
+  export native function EmitStringOptionsGenericSync<T>(eventId: string, options: Options, data: GenericEventData<T>): void;
+  export native function EmitStringOptionsSync(eventId:string, options: Options): void;
   
   export function on(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
       emitter.OnOrOnceSync(event.eventId, false, callback, "eventData");
     }
+  }
+
+  export function off(eventId: string): void {
+    emitter.OffStringIdSync(eventId);
   }
 
   export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
@@ -103,6 +111,21 @@ namespace emitter {
     }
   }
 
+  function emit(eventId: string, options: Options, data?: EventData): void {
+    if (data != undefined) {
+      emitter.EmitStringOptionsDataSync(eventId, options, data as EventData);
+    } else {
+      emitter.EmitStringOptionsSync(eventId, options);
+    }
+  }
+
+  export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+    if (data != undefined) {
+      emitter.EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
+    } else {
+      emitter.EmitStringOptionsSync(eventId, options);
+    }
+  }
   export function emit<T>(eventId: string, data?: EventData | GenericEventData<T>): void {
     if (data != undefined) {
       if (data instanceof EventData) {
