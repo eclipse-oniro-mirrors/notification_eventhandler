@@ -111,7 +111,7 @@ namespace emitter {
     }
   }
 
-  function emit(eventId: string, options: Options, data?: EventData): void {
+  export function emit(eventId: string, options: Options, data?: EventData): void {
     if (data != undefined) {
       emitter.EmitStringOptionsDataSync(eventId, options, data as EventData);
     } else {
@@ -126,6 +126,7 @@ namespace emitter {
       emitter.EmitStringOptionsSync(eventId, options);
     }
   }
+
   export function emit<T>(eventId: string, data?: EventData | GenericEventData<T>): void {
     if (data != undefined) {
       if (data instanceof EventData) {
