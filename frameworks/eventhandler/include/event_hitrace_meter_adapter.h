@@ -101,14 +101,6 @@ LOCAL_API static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
         }
     }
 }
-LOCAL_API static inline void StartTraceAdapterMsg(const char* msg)
-{
-    if (TraceAdapter::Instance()->IsTagEnabled && TraceAdapter::Instance()->StartTrace) {
-        if (TraceAdapter::Instance()->IsTagEnabled(HITRACE_TAG_NOTIFICATION)) {
-            TraceAdapter::Instance()->StartTrace(HITRACE_TAG_NOTIFICATION, msg, -1);
-        }
-    }
-}
 LOCAL_API static inline void StartTraceObserver(ObserverTrace &observer)
 {
     if (TraceAdapter::Instance()->IsTagEnabled && TraceAdapter::Instance()->StartTrace) {
@@ -128,9 +120,6 @@ LOCAL_API static inline void FinishTraceAdapter()
 namespace OHOS {
 namespace AppExecFwk {
 static inline void StartTraceAdapter(const InnerEvent::Pointer &event)
-{
-}
-static inline void StartTraceAdapterMsg(const char* msg)
 {
 }
 static inline void StartTraceObserver(ObserverTrace &observer)

@@ -55,8 +55,6 @@ const uint32_t REMOVE_EVENT_ID = 0;
 const uint32_t HAS_EVENT_ID = 100;
 const int64_t HAS_EVENT_PARAM = 1000;
 const uint32_t INSERT_DELAY = 10;
-const uint32_t INNER_EVENT_ID = 0;
-const int64_t PARAM = 0;
 bool isDump = false;
 
 std::atomic<bool> eventRan(false);
@@ -952,27 +950,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, RemoveEvent004, TestSize.Level1)
     usleep(delayWaitTime);
     auto called = taskCalled.load();
     EXPECT_FALSE(called);
-}
-
-/*
- * @tc.name: RemoveEvent005
- * @tc.desc: remove events with task from queue
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, RemoveEvent005, TestSize.Level1)
-{
-    /**
-     * @tc.setup: init handler
-     */
-    auto handler = std::make_shared<EventHandler>(nullptr);
-    auto f = []() {; };
-    bool result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP);
-    EXPECT_EQ(result, false);
-    handler->RemoveEvent(INNER_EVENT_ID);
-    handler->RemoveEvent(INNER_EVENT_ID, PARAM);
-    handler->RemoveTask("VIP task");
-    handler->RemoveTaskWithRet("VIP task");
-    handler->RemoveAllEvents();
 }
 
 /*
@@ -2904,61 +2881,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, PostTaskAtFront001, TestSize.Level1)
     auto handler = std::make_shared<EventHandler>(runner);
     auto f = []() {; };
     bool result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP);
-    EXPECT_EQ(result, true);
-}
-
-/*
- * @tc.name: PostTaskAtFront002
- * @tc.desc: PostTaskAtFront002 test
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, PostTaskAtFront002, TestSize.Level1)
-{
-    /**
-    * @tc.setup: init handler and runner.
-    */
-    auto runner = EventRunner::Create(true);
-    auto handler = std::make_shared<EventHandler>(runner);
-    auto f = []() {; };
-    Caller c;
-    bool result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP, c, true);
-    EXPECT_EQ(result, true);
-}
-
-/*
- * @tc.name: PostTaskAtTail001
- * @tc.desc: PostTaskAtTail001 test
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, PostTaskAtTail001, TestSize.Level1)
-{
-    /**
-    * @tc.setup: init handler and runner.
-    */
-    auto runner = EventRunner::Create(true);
-    auto handler = std::make_shared<EventHandler>(runner);
-    auto f = []() {; };
-    bool result = handler->PostTaskAtTail(f, "VIP task", EventQueue::Priority::VIP);
-    EXPECT_EQ(result, true);
-}
-
-/*
- * @tc.name: CheckBarrierTaskInListLocked001
- * @tc.desc: CheckBarrierTaskInListLocked001 test
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, CheckBarrierTaskInListLocked001, TestSize.Level1)
-{
-    /**
-    * @tc.setup: init handler and runner.
-    */
-    auto runner = EventRunner::Create(true);
-    auto handler = std::make_shared<EventHandler>(runner);
-    handler->GetEventRunner()->GetEventQueue()->SetBarrierMode(true);
-    auto f = []() {; };
-    bool result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP);
-    Caller c;
-    result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP, c, true);
     EXPECT_EQ(result, true);
 }
 
