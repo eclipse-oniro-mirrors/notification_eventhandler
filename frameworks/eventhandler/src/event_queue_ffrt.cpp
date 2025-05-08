@@ -103,7 +103,7 @@ EventQueueFFRT::~EventQueueFFRT()
     EH_LOGD_LIMIT("EventQueueFFRT is unavailable hence");
 }
 
-bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType, bool noBarrier)
+bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
 {
     return InsertEvent(event, priority, false, insertType);
 }

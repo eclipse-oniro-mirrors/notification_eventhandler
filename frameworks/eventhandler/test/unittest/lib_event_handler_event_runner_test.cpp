@@ -399,20 +399,3 @@ HWTEST_F(LibEventHandlerEventRunnerTest, SetTimeOut001, TestSize.Level1)
     EXPECT_EQ(reTimeout, timeout);
     EXPECT_EQ(nullptr, EventRunner::distributeCallback_);
 }
-
-/*
- * @tc.name: NullEventRunner001
- * @tc.desc: check NullEventRunner success
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventRunnerTest, NullEventRunner001, TestSize.Level1)
-{
-    /**
-     * @tc.setup: init handler and runner
-     */
-    auto handler = std::make_shared<EventHandler>(nullptr);
-    auto f = []() {; };
-    bool result = handler->PostTaskAtFront(f, "VIP task", EventQueue::Priority::VIP);
-    result = handler->PostTaskAtTail(f, "VIP task", EventQueue::Priority::VIP);
-    EXPECT_EQ(result, false);
-}
