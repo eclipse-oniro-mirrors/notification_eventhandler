@@ -27,23 +27,18 @@ ohos_shared_library("eventEmitter") {
   }
   branch_protector_ret = "pac_ret"
 
-  include_dirs = [ "include" ]
-
-  sources = [
-    "src/ani_emitter.cpp",
-    "src/ani_serialize.cpp",
-    "src/sts_events_json_common.cpp",
+  include_dirs = [
+    "include",
+    "${inner_api_path}",
   ]
 
-  deps = [
-    "${frameworks_path}/emitter/base:emitter_base",
-    "${frameworks_path}/eventhandler:libeventhandler",
-  ]
+  sources = [ "src/sts_events_emitter.cpp" ]
+
+  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
-    "napi:ace_napi",
     "runtime_core:ani",
   ]
 
@@ -64,19 +59,4 @@ ohos_prebuilt_etc("event_emitter_abc_etc") {
   subsystem_name = "notification"
   part_name = "eventhandler"
   deps = [ ":event_emitter_abc" ]
-}
-
-generate_static_abc("event_json_abc") {
-  base_url = "./ets"
-  files = [ "./ets/@ohos.events.json.ets" ]
-  is_boot_abc = "True"
-  device_dst_file = "/system/framework/event_json_abc.abc"
-}
-
-ohos_prebuilt_etc("event_json_abc_etc") {
-  source = "$target_out_dir/event_json_abc.abc"
-  module_install_dir = "framework"
-  subsystem_name = "notification"
-  part_name = "eventhandler"
-  deps = [ ":event_json_abc" ]
 }

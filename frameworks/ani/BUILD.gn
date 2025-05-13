@@ -14,14 +14,11 @@
 import("//build/ohos.gni")
 import("../../eventhandler.gni")
 
-group("emitter_packages") {
+group("ani_event_emitter_packages") {
   if (support_jsapi) {
     deps = [
-      "ani:eventEmitter",
-      "ani:event_emitter_abc_etc",
-      "ani:event_json_abc_etc",
-      "base:emitter_base",
-      "napi:emitter",
+      "${frameworks_path}/ani/event_emitter:eventEmitter",
+      "${frameworks_path}/ani/event_emitter:event_emitter_abc_etc",
     ]
   } else {
     deps = []
