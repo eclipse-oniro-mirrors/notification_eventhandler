@@ -1,0 +1,55 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//build/ohos/ace/ace.gni")
+import("../../../eventhandler.gni")
+
+config("public_emitter_base_config") {
+  include_dirs = [ "include" ]
+}
+
+ohos_shared_library("emitter_base") {
+  sanitize = {
+    integer_overflow = true
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+  branch_protector_ret = "pac_ret"
+
+  public_configs = [ ":public_emitter_base_config" ]
+
+  sources = [
+    "src/ani_async_callback_manager.cpp",
+    "src/ani_deserialize.cpp",
+    "src/async_callback_manager.cpp",
+    "src/eventhandler_emitter.cpp",
+    "src/napi_async_callback_manager.cpp",
+    "src/napi_deserialize.cpp",
+  ]
+
+  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "napi:ace_napi",
+    "runtime_core:ani",
+  ]
+
+  subsystem_name = "notification"
+  part_name = "eventhandler"
+}
