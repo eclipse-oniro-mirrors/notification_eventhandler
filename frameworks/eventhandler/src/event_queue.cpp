@@ -24,6 +24,7 @@
 #include "event_handler.h"
 #include "event_handler_utils.h"
 #include "event_logger.h"
+#include "frame_report_sched.h"
 #include "none_io_waiter.h"
 #include "parameters.h"
 
@@ -247,6 +248,9 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
         taskName.c_str(), priority);
     // Post a high priority task to handle file descriptor events.
     handler->PostTask(f, taskName, 0, priority);
+    if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
+        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
+    }
 }
 
 void EventQueue::RemoveListenerByOwner(const std::shared_ptr<EventHandler> &owner)

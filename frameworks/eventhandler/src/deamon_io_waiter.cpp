@@ -24,6 +24,7 @@
 #include "event_handler_utils.h"
 #include "event_logger.h"
 #include "event_handler.h"
+#include "frame_report_sched.h"
 #ifdef RES_SCHED_ENABLE
 #include "res_type.h"
 #include "res_sched_client.h"
@@ -163,6 +164,7 @@ static void PostTaskForVsync(const std::shared_ptr<FileDescriptorInfo> &fileDesc
     event->MarkVsyncTask();
     auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
     handler->PostTask(task, "BarrierEvent", delayTime, fileDescriptorInfo->priority_);
+    FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
     if (!handler->SendEvent(event, delayTime, fileDescriptorInfo->priority_)) {
         handler->RemoveTask("BarrierEvent");
         runner->GetEventQueue()->SetBarrierMode(false);
