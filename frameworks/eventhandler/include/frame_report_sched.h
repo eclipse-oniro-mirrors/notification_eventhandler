@@ -19,36 +19,37 @@
 
 #include <string>
 #include <unordered_map>
-
-namespace OHOS{
-namespace AppExecFwk{
-enum class FrameSchedEvent{
+ 
+namespace OHOS {
+namespace AppExecFwk {
+enum class FrameSchedEvent {
     SCHED_EVENT_BASE = 0,
     INIT = 1,
     UI_FLUSH_BEGIN = 20001,
     UI_EVENT_HANDLE_BEGIN = 20005,
     SCHED_EVENT_MAX,
 };
-
+ 
 using ReportSchedEventFunc = void (*)(FrameSchedEvent, const std::unordered_map<std::string, std::string>&);
-
+ 
 class FrameReport final {
 public:
     static FrameReport& GetInstance();
-    void ReportSchedEvent(FrameSchedEvent event, const std::unordered_map<std::string, std::string> &payload);
-
+    void ReportSchedEvent(FrameSchedEvent event, const std::unordered_map<std::string, std::string>& payload);
+    
 private:
     FrameReport();
     ~FrameReport();
     void LoadLibrary();
     void CloseLibrary();
-    void *LoadSymbol(const char *symName);
-
-    void *frameSchedHandle_ = nullptr;
+    void* LoadSymbol(const char* symName);
+ 
+    void* frameSchedHandle_ = nullptr;
     bool frameSchedSoLoaded_ = false;
     int uid_ = 0;
     ReportSchedEventFunc reportSchedEventFunc_ = nullptr;
 };
-} // namespace AppExecFwk
-} // namespace OHOS
-#endif //#ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_FRAME_REPORT_SCHED_H
+}  // namespace AppExecFwk
+}  // namespace OHOS
+ 
+#endif  // #ifndef BASE_EVENTHANDLER_FRAMEWORKS_EVENTHANDLER_INCLUDE_FRAME_REPORT_SCHED_H

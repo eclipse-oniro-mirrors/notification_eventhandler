@@ -217,13 +217,13 @@ ohos_unittest("LibEventHandlerTest") {
 
 ohos_unittest("FrameReportTest") {
   module_out_path = module_output_path
-
+ 
   sources = inner_api_sources
-
+ 
   sources += [ "unittest/lib_frame_report_sched_test.cpp" ]
-
+ 
   configs = [ ":libeventhandler_test_private_config" ]
-
+ 
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
@@ -232,7 +232,7 @@ ohos_unittest("FrameReportTest") {
     "hitrace:libhitracechain",
     "init:libbegetutil",
   ]
-
+ 
   cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]

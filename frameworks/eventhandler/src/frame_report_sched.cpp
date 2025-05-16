@@ -14,12 +14,12 @@
  */
 
 #include "frame_report_sched.h"
-
+ 
 #include <dlfcn.h>
 #include <unistd.h>
-
+ 
 #include "event_logger.h"
-
+ 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
@@ -32,24 +32,24 @@ FrameReport& FrameReport::GetInstance()
     static FrameReport instance;
     return instance;
 }
-
+ 
 FrameReport::FrameReport()
 {
     LoadLibrary();
     uid_ = getuid();
 }
-
+ 
 FrameReport::~FrameReport()
 {
     CloseLibrary();
 }
-
+ 
 void FrameReport::LoadLibrary()
 {
     if (!frameSchedSoLoaded_) {
         frameSchedHandle_ = dlopen(FRAME_AWARE_SO_PATH.c_str(), RTLD_LAZY);
         if (frameSchedHandle_ == nullptr) {
-            HILOGE("[LoadLibrary]dlopen libframe_ui_intf.so failed!"
+            HILOGE("[LoadLibrary] dlopen libframe_ui_intf.so failed!"
                 " error = %{public}s\n", dlerror());
             return;
         }
@@ -59,19 +59,18 @@ void FrameReport::LoadLibrary()
     reportSchedEventFunc_ = (ReportSchedEventFunc)LoadSymbol("ReportSchedEvent");
     return;
 }
-
+ 
 void FrameReport::CloseLibrary()
 {
     if (dlclose(frameSchedHandle_) != 0) {
-        HILOGE("[CloseLibrary]libframe_ui_intf.so failed\n");
+        HILOGE("[CloseLibrary] libframe_ui_intf.so failed!\n");
         return;
     }
     frameSchedHandle_ = nullptr;
     frameSchedSoLoaded_ = false;
-    HILOGD("[CloseLibrary]libframe_ui_intf.so close success\n");
 }
-
-void *FrameReport::LoadSymbol(const char *symName)
+ 
+void* FrameReport::LoadSymbol(const char* symName)
 {
     if (frameSchedHandle_ == nullptr) {
         HILOGE("[loadSymbol]libframe_ui_intf.so not loaded.\n");
@@ -79,27 +78,27 @@ void *FrameReport::LoadSymbol(const char *symName)
     }
     void *funcSym = dlsym(frameSchedHandle_, symName);
     if (funcSym == nullptr) {
-        HILOGE("[loadSymbol]Get %{public}s symbol failed: %{public}s\n", symName, dlerror());
+        HILOGE("[loadSymbol] Get %{public}s symbol failed: %{public}s\n", symName, dlerror());
         return nullptr;
     }
     return funcSym;
 }
-
-void FrameReport::ReportSchedEvent(FrameSchedEvent event, const std::unordered_map<std::string, std::string>& payload)
+ 
+void FrameReport::ReportSchedEvent(FrameSchedEvent event, const std::unordered_map<std::string, std::string> &payload)
 {
     if (!frameSchedSoLoaded_) {
-        HILOGD("[ReportSchedEvent] libframe_ui_intf.so is close");
+        HILOGD("[ReportSchedEvent] libframe_ui_intf.so is closed");
         return;
     }
     if (reportSchedEventFunc_ == nullptr) {
         HILOGD("[ReportSchedEvent] reportSchedEventFunc_ is nullptr");
         return;
     }
-    if (uid == RS_UID) {
-        HILOGD("[ReportSchedEvent] uid == RS_UID");
+    if (uid_ == RS_UID) {
+        HILOGD("[ReportSchedEvent] uid_ == RS_UID");
         return;
     }
     reportSchedEventFunc_(event, payload);
 }
-} // namespace AppExecFwk
-}// namespace OHOS
+}  // namespace AppExecFwk
+}  // namespace OHOS
