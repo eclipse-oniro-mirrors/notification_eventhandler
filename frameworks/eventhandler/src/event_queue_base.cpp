@@ -57,13 +57,18 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
         return;
     }
 
-    auto f = [](const InnerEvent::Pointer &first, const InnerEvent::Pointer &second) {
-        if (!first || !second) {
-            return false;
+    auto it = events.end();
+    auto eventTime = event->GetHandleTime();
+    while (it != events.begin()) {
+        auto prevIt = std::prev(it);
+        if ((*prevIt) == nullptr) {
+            continue;
         }
-        return first->GetHandleTime() < second->GetHandleTime();
-    };
-    auto it = std::upper_bound(events.begin(), events.end(), event, f);
+        if ((*prevIt)->GetHandleTime() <= eventTime) {
+            break;
+        }
+        it = prevIt;
+    }
     events.insert(it, std::move(event));
 }
 
