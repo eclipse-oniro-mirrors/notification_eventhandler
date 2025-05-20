@@ -83,6 +83,7 @@ class RecordWriter {
   private writeArray(arr: Array<valueType>): void {
     this.buffer.append('[');
     const length = arr.length.toInt();
+    const length = arr.length.toInt();
     this.checkReferencesCycle(arr);
     this.store.add(arr);
     for (let idx = 0; idx < length; idx++) {
@@ -101,6 +102,7 @@ class RecordWriter {
 
   private writeBuildArray(arr: Object, arrayValue: ArrayValue): void {
     this.buffer.append('[');
+    const length = arrayValue.getLength().toInt();
     const length = arrayValue.getLength().toInt();
     this.checkReferencesCycle(arr);
     this.store.add(arr);
