@@ -83,8 +83,26 @@ namespace emitter {
     }
   }
 
+  export function once(event: InnerEvent, callback: Callback<EventData>): void {
+    if (event.eventId) {
+      emitter.OnOrOnceSync(event.eventId, true, callback, "eventData");
+    }
+  }
+
+  export function on(eventId: string, callback: Callback<EventData>): void {
+      emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
+  }
+
+  export function once(eventId: string, callback: Callback<EventData>): void {
+      emitter.OnOrOnceStringSync(eventId, true, callback, "eventData");
+  }
+
   export function off(eventId: string): void {
     emitter.OffStringIdSync(eventId);
+  }
+
+  export function off(eventId: string, callback: Callback<EventData>): void {
+    emitter.OffStringSync(eventId, callback);
   }
 
   export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
@@ -144,6 +162,14 @@ namespace emitter {
       emitter.EmitInnerEventDataSync(event, data);
     } else {
       emitter.EmitInnerEventSync(event);
+    }
+  }
+
+  export function emit(eventId: string, data?: EventData): void {
+    if (data != undefined) {
+      emitter.EmitStringDataSync(eventId , data);
+    } else {
+      emitter.EmitStringSync(eventId);
     }
   }
 
