@@ -288,7 +288,10 @@ void NapiAsyncCallbackManager::NapiProcessCallback(const EventDataWorker* eventD
     napi_value callback = nullptr;
     napi_value returnVal = nullptr;
     napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
-    napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
+    auto status = napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
+    if (status != napi_ok) {
+        HILOGE("Call function failed. status = %{public}d", status);
+    }
     if (callbackInner->once) {
         HILOGD("ProcessEvent delete once");
         callbackInner->isDeleted = true;

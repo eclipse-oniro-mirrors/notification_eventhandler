@@ -34,7 +34,7 @@ bool AniSerialize::PeerSerialize(ani_env* env, ani_object argv, std::shared_ptr<
         if (record != nullptr) {
             ani_ref peerData = nullptr;
             if (env->GlobalReference_Create(record, &peerData) != ANI_OK) {
-                HILOGI("Json stringify failed2.");
+                HILOGI("Json stringify failed");
                 return false;
             }
             serializeData->peerData = peerData;
