@@ -224,7 +224,6 @@ std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> AniAsyncCallbackManage
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
     auto iter = aniAsyncCallbackContainer_.find(eventId);
     if (iter == aniAsyncCallbackContainer_.end()) {
-        HILOGW("ProcessEvent has no callback");
         std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> result;
         return result;
     }
