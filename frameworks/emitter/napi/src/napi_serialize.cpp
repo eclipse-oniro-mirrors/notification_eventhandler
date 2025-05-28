@@ -20,17 +20,6 @@ namespace OHOS {
 namespace AppExecFwk {
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
-bool IsSupportedType(napi_env env, napi_value value)
-{
-    napi_valuetype dType;
-    auto status = napi_typeof(env, value, &dType);
-    if (status != napi_ok) {
-        HILOGE("Napi check type fail");
-        return false;
-    }
-    return (dType == napi_string || dType == napi_number || dType == napi_boolean ||
-            dType == napi_undefined || dType == napi_null);
-}
 }
 bool NapiSerialize::PeerSerialize(napi_env env, napi_value argv, std::shared_ptr<SerializeData> serializeData)
 {
@@ -63,10 +52,6 @@ bool NapiSerialize::CrossSerialize(napi_env env, napi_value argv, std::shared_pt
     if (hasData) {
         napi_value data = nullptr;
         napi_get_named_property(env, argv, "data", &data);
-        if (!IsSupportedType(env, data)) {
-            HILOGI("Data type is not supported");
-            return true;
-        }
         napi_value globalValue;
         napi_get_global(env, &globalValue);
         napi_value jsonValue;

@@ -73,5 +73,17 @@ void AsyncCallbackManager::DoCallback(const InnerEvent::Pointer& event)
     napiAsyncCallbackManager_.NapiDoCallback(event);
     aniAsyncCallbackManager_.AniDoCallback(event);
 }
+
+bool AsyncCallbackManager::IsCrossRuntime(const InnerEvent::EventId &eventId, EnvType envType)
+{
+    if (envType == EnvType::NAPI) {
+        return aniAsyncCallbackManager_.AniIsExistValidCallback(eventId);
+    }
+
+    if (envType == EnvType::ANI) {
+        return napiAsyncCallbackManager_.NapiIsExistValidCallback(eventId);
+    }
+    return false;
+}
 }
 }

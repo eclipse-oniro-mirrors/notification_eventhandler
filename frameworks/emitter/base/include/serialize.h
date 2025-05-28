@@ -32,9 +32,10 @@ enum EnvType {
 };
 
 struct SerializeData {
-    std::variant<napi_value, ani_ref> peerData;
-    std::string crossData;
-    EnvType envType;
+    std::variant<napi_value, ani_ref> peerData {};
+    std::string crossData {};
+    EnvType envType {EnvType::NAPI};
+    bool isCrossRuntime {false};
 };
 
 } // namespace AppExecFwk

@@ -96,6 +96,15 @@ public:
      * @param event Event Emitted by user.
      */
     void DoCallback(const InnerEvent::Pointer& event);
+
+    /**
+     * Whether needs to cross runtime.
+     *
+     * @param eventId event id.
+     * @param envType The type of runtime environment.
+     * @return Returns true if needs to cross runtime.
+     */
+    bool IsCrossRuntime(const InnerEvent::EventId &eventId, EnvType envType);
 private:
     AsyncCallbackManager() = default;
 
