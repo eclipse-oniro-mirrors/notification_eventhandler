@@ -21,10 +21,6 @@ namespace OHOS {
 namespace AppExecFwk {
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
-constexpr int STRINGIFY_ARG_COUNTS = 3;
-constexpr int STRINGIFY_FIRST_PARAM_INDEX = 0;
-constexpr int STRINGIFY_SECOND_PARAM_INDEX = 1;
-constexpr int STRINGIFY_THIRD_PARAM_INDEX = 2;
 }
 
 bool AniSerialize::PeerSerialize(ani_env* env, ani_object argv, std::shared_ptr<SerializeData> serializeData)
@@ -64,10 +60,7 @@ bool AniSerialize::CrossSerialize(ani_env* env, ani_object argv, std::shared_ptr
                 return false;
             }
             ani_ref ref {};
-            ani_value args[STRINGIFY_ARG_COUNTS];
-            args[STRINGIFY_FIRST_PARAM_INDEX].r = record;
-            args[STRINGIFY_SECOND_PARAM_INDEX].r = nullptr;
-            args[STRINGIFY_THIRD_PARAM_INDEX].r = nullptr;
+            ani_value args[] = {{.r = record}, {.r = nullptr}, {.r = nullptr}};
             status = env->Function_Call_Ref_A(fnStringify, &ref, args);
             if (status != ANI_OK) {
                 HILOGI("Failed to call stringify");

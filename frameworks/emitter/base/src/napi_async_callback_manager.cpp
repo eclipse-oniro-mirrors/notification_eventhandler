@@ -273,11 +273,13 @@ void NapiAsyncCallbackManager::NapiProcessCallback(const EventDataWorker* eventD
     std::shared_ptr<NapiAsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
     napi_value resultData = nullptr;
     auto serializeData = eventDataInner->serializeData;
-    bool isDeserializeSuccess = true;
+    bool isDeserializeSuccess = false;
     if (serializeData->envType == EnvType::NAPI) {
         isDeserializeSuccess = NapiDeserialize::PeerDeserialize(callbackInner->env, &resultData, serializeData);
     } else {
-        isDeserializeSuccess = NapiDeserialize::CrossDeserialize(callbackInner->env, &resultData, serializeData);
+        if (serializeData->isCrossRuntime) {
+            isDeserializeSuccess = NapiDeserialize::CrossDeserialize(callbackInner->env, &resultData, serializeData);
+        }
     }
     if (!isDeserializeSuccess) {
         return;

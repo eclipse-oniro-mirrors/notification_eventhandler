@@ -186,9 +186,14 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
         data = nullptr;
     });
     serializeData->envType = EnvType::NAPI;
-    if (!NapiSerialize::PeerSerialize(env, argv, serializeData) ||
-        !NapiSerialize::CrossSerialize(env, argv, serializeData)) {
+    if (!NapiSerialize::PeerSerialize(env, argv, serializeData)) {
         return false;
+    }
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
+        serializeData->isCrossRuntime = true;
+        if (!NapiSerialize::CrossSerialize(env, argv, serializeData)) {
+            return false;
+        }
     }
     auto event = InnerEvent::Get(eventId, serializeData);
     EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);

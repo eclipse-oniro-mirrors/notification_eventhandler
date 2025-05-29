@@ -113,9 +113,14 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
         }
     }
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
-    if (!AniSerialize::PeerSerialize(env, eventData, serializeData) ||
-        !AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+    if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
         return;
+    }
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(id, EnvType::ANI)) {
+        serializeData->isCrossRuntime = true;
+        if (!AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+            return;
+        }
     }
     auto event = InnerEvent::Get(id, serializeData);
     EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);
@@ -137,9 +142,14 @@ void EventsEmitter::EmitWithEventIdString(
     }
 
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
-    if (!AniSerialize::PeerSerialize(env, eventData, serializeData) ||
-        !AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+    if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
         return;
+    }
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(id, EnvType::ANI)) {
+        serializeData->isCrossRuntime = true;
+        if (!AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+            return;
+        }
     }
     auto event = InnerEvent::Get(id, serializeData);
 

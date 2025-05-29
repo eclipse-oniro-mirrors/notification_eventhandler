@@ -43,6 +43,19 @@ void AniAsyncCallbackInfo::ProcessEvent([[maybe_unused]] const InnerEvent::Point
 ani_status AniAsyncCallbackInfo::GetCallbackArgs(
     ani_env *env, std::string& dataType, std::vector<ani_ref>& args, std::shared_ptr<SerializeData> serializeData)
 {
+    ani_ref eventData;
+    bool isDeserializeSuccess = false;
+    if (serializeData->envType == EnvType::ANI) {
+        isDeserializeSuccess = AniDeserialize::PeerDeserialize(env, &eventData, serializeData);
+    } else {
+        if (serializeData->isCrossRuntime) {
+            isDeserializeSuccess = AniDeserialize::CrossDeserialize(env, &eventData, serializeData);
+        }
+    }
+    if (!isDeserializeSuccess) {
+        return ANI_INVALID_ARGS;
+    }
+
     ani_status status = ANI_OK;
     ani_class cls;
     if (dataType == EVENT_DATA) {
@@ -67,13 +80,6 @@ ani_status AniAsyncCallbackInfo::GetCallbackArgs(
     if (status != ANI_OK) {
         HILOGE("threadFunciton Object_New error%{public}d", status);
         return status;
-    }
-
-    ani_ref eventData;
-    if (serializeData->envType == EnvType::ANI) {
-        AniDeserialize::PeerDeserialize(env, &eventData, serializeData);
-    } else {
-        AniDeserialize::CrossDeserialize(env, &eventData, serializeData);
     }
 
     env->Object_SetPropertyByName_Ref(obj, "data", eventData);
