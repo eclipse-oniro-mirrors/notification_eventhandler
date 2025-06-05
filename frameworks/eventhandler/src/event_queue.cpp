@@ -249,7 +249,7 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     // Post a high priority task to handle file descriptor events.
     handler->PostTask(f, taskName, 0, priority);
     if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
-        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
+        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_FLUSH_BEGIN, {});
     }
 }
 

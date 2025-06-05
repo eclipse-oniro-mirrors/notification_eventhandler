@@ -46,7 +46,7 @@ private:
  
     void* frameSchedHandle_ = nullptr;
     bool frameSchedSoLoaded_ = false;
-    int uid_ = 0;
+    unsigned int uid_ = 0;
     ReportSchedEventFunc reportSchedEventFunc_ = nullptr;
 };
 }  // namespace AppExecFwk
