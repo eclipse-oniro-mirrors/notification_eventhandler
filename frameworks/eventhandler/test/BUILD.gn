@@ -245,7 +245,6 @@ group("unittest") {
   deps = [
     ":LibEventHandlerCheckTest",
     ":LibEventHandlerEpollIoWaiterTest",
-    ":LibEventHandlerEventQueueTest",
     ":LibEventHandlerEventRunnerTest",
     ":LibEventHandlerEventTest",
     ":LibEventHandlerInnerEventTest",
