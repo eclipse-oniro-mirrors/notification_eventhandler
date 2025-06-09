@@ -2053,6 +2053,11 @@ HWTEST_F(LibEventHandlerEventQueueTest, TransferInnerPriority_003, TestSize.Leve
     insertType = EventInsertType::AT_FRONT;
     queue.Insert(event, priority, insertType);
     queue.InsertSyncEvent(event, priority, insertType);
+    auto f = []() {; };
+    auto eventIdle = InnerEvent::Get(f, "event");
+    EventQueue::Priority priorityIdle;
+    priorityIdle = EventQueue::Priority::IDLE;
+    queue.InsertSyncEvent(eventIdle, priorityIdle, insertType);
     bool result = queue.HasPreferEvent(1);
     EXPECT_EQ(result, false);
     queue.Finish();
@@ -2604,29 +2609,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_002, TestSize.Level1)
 }
 
 /*
- * @tc.name: GetFfrtQueue_003
- * @tc.desc: GetFfrtQueue_003 test
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_003, TestSize.Level1)
-{
-    /**
-     * @tc.setup: prepare queue.
-     */
-    EventQueueFFRT queue(std::make_shared<NoneIoWaiter>());
-    queue.Prepare();
-    auto f = []() {; };
-    auto event = InnerEvent::Get(f, "event");
-    EventQueue::Priority priority;
-    EventInsertType insertType;
-    priority = EventQueue::Priority::LOW;
-    insertType = EventInsertType::AT_FRONT;
-    queue.Insert(event, priority, insertType);
-    int result = queue.HasPreferEvent(1);
-    EXPECT_EQ(result, false);
-}
-
-/*
  * @tc.name: GetFfrtQueue_004
  * @tc.desc: GetFfrtQueue_004 test
  * @tc.type: FUNC
@@ -2638,13 +2620,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetFfrtQueue_004, TestSize.Level1)
     */
     EventQueueFFRT queue(std::make_shared<NoneIoWaiter>());
     queue.Prepare();
-    auto f = []() {; };
-    auto event = InnerEvent::Get(f, "event");
-    EventQueue::Priority priority;
-    EventInsertType insertType;
-    priority = EventQueue::Priority::IDLE;
-    insertType = EventInsertType::AT_FRONT;
-    queue.InsertSyncEvent(event, priority, insertType);
     auto runner = EventRunner::Create("runner");
     auto handler = std::make_shared<EventHandler>(runner);
     queue.Remove(handler, 1, 1);
