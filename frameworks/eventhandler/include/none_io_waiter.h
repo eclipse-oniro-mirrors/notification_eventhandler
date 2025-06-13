@@ -32,7 +32,7 @@ public:
     ~NoneIoWaiter() final;
     DISALLOW_COPY_AND_MOVE(NoneIoWaiter);
 
-    LOCAL_API bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) final;
+    LOCAL_API bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly = false) final;
 
     LOCAL_API void NotifyOne() final;
     LOCAL_API void NotifyAll() final;

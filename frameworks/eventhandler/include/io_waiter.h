@@ -56,9 +56,10 @@ public:
      *
      * @param lock An unique lock which must be locked by the current thread.
      * @param nanoseconds Nanoseconds for time out, negative value indicate waiting forever.
+     * @param vsyncOnly wait for vsync fd event only.
      * @return True if succeeded.
      */
-    LOCAL_API virtual bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds) = 0;
+    LOCAL_API virtual bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly = false) = 0;
 
     /**
      * Unblocks one of the waiting threads.

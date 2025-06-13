@@ -1103,16 +1103,30 @@ public:
 
     /**
      * Set the policy of AppVsync.
-     * @isDynamic dynamic policy or not
+     * @isFirst Vsync first policy or not
      */
-    static inline void SetVsyncPolicy(bool isDynamic)
+    static inline void SetVsyncPolicy(bool isFirst)
     {
         auto runner = EventRunner::GetMainEventRunner();
         if (runner) {
             auto queue = runner->GetEventQueue();
             if (queue) {
-                queue->SetVsyncWaiter(isDynamic);
+                queue->SetVsyncFirst(isFirst);
             }
+        }
+    }
+
+    /**
+     * Notification of request next vsync.
+     *
+     * @param lastFrameTime is the received time of the last frame.
+     * @param period is vsync period, the unit is nanoseconds.
+     */
+    inline void RequestVsyncNotification(int64_t lastFrameTime, int64_t period)
+    {
+        auto queue = eventRunner_->GetEventQueue();
+        if (queue) {
+            queue->UpdateVsyncCheckTime(lastFrameTime, period);
         }
     }
 

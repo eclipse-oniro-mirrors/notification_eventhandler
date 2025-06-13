@@ -33,8 +33,7 @@ namespace AppExecFwk {
 namespace {
 static const bool MONITOR_FLAG =
     system::GetBoolParameter("const.sys.param_file_description_monitor", false);
-static const int32_t VSYNC_TASK_DELAYMS =
-    system::GetIntParameter("const.sys.param_vsync_delayms", 50);
+static bool g_vsyncFirstEnabled = true;
 DEFINE_EH_HILOG_LABEL("EventQueue");
 
 // Help to remove file descriptor listeners.
@@ -61,7 +60,6 @@ void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDe
 EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>())
 {
     HILOGD("enter");
-    epollTimePoint_ = InnerEvent::Clock::now();
 }
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
@@ -74,7 +72,6 @@ EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
             std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
             std::placeholders::_3, std::placeholders::_4));
     }
-    epollTimePoint_ = InnerEvent::Clock::now();
 }
 
 EventQueue::~EventQueue()
@@ -92,11 +89,11 @@ InnerEvent::Pointer EventQueue::GetExpiredEvent(InnerEvent::TimePoint &nextExpir
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
-void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock)
+void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock, bool vsyncOnly)
 {
     // Get a temp reference of IO waiter, otherwise it maybe released while waiting.
     auto ioWaiterHolder = ioWaiter_;
-    if (!ioWaiterHolder->WaitFor(lock, TimePointToTimeOut(when))) {
+    if (!ioWaiterHolder->WaitFor(lock, TimePointToTimeOut(when), vsyncOnly)) {
         HILOGE("Failed to call wait, reset IO waiter");
         ioWaiter_ = std::make_shared<NoneIoWaiter>();
         listeners_.clear();
@@ -117,17 +114,13 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
     bool isDaemonListener = listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG;
  
     if (isVsyncListener) {
-        vsyncPriority_ = priority;
-        listener->SetDelayTime(UINT32_MAX);
+        priority = Priority::VIP;
     }
-    if (useDeamonIoWaiter_ || (isDaemonListener && (!isVsyncListener || isVsyncOnDaemon_))) {
+    if (useDeamonIoWaiter_ || (isDaemonListener && !isVsyncListener)) {
         return DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName,
             listener, priority);
     }
     if (ioWaiter_) {
-        if (isDaemonListener) {
-            priority = Priority::HIGH;
-        }
         return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
     }
     return false;
@@ -191,26 +184,54 @@ ErrCode EventQueue::AddFileDescriptorListenerBase(int32_t fileDescriptor, uint32
     return ERR_OK;
 }
 
+static void PostTaskForVsync(const InnerEvent::Callback &cb, const std::string &name,
+    const std::shared_ptr<EventHandler> &handler, EventQueue::Priority priority)
+{
+    auto runner = handler->GetEventRunner();
+    if (!runner) {
+        return;
+    }
+    auto queue = runner->GetEventQueue();
+    if (!queue) {
+        return;
+    }
+    auto event = InnerEvent::Get(cb, name);
+    if (!event) {
+        return;
+    }
+    event->MarkVsyncTask();
+    int64_t delayTime = queue->GetDelayTimeOfVsyncTask();
+    auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
+    handler->PostTask(task, "BarrierEevent", delayTime, priority);
+    if (!handler->SendEvent(event, delayTime, priority)) {
+        handler->RemoveTask("BarrierEevent");
+        queue->SetBarrierMode(false);
+    }
+    FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
+}
+
+std::shared_ptr<FileDescriptorListener> EventQueue::GetListenerByfd(int32_t fileDescriptor)
+{
+    std::lock_guard<std::mutex> lock(queueLock_);
+    if (!usable_.load()) {
+        HILOGW("EventQueue is unavailable.");
+        return nullptr;
+    }
+    auto it = listeners_.find(fileDescriptor);
+    if (it == listeners_.end()) {
+        HILOGW("Can not found listener, maybe it is removed");
+        return nullptr;
+    }
+    // Hold instance of listener.
+    return it->second;
+}
+
 void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events,
     const std::string &taskName, Priority priority) __attribute__((no_sanitize("cfi")))
 {
-    std::shared_ptr<FileDescriptorListener> listener;
-    {
-        std::lock_guard<std::mutex> lock(queueLock_);
-        if (!usable_.load()) {
-            HILOGW("EventQueue is unavailable.");
-            return;
-        }
-        auto it = listeners_.find(fileDescriptor);
-        if (it == listeners_.end()) {
-            HILOGW("Can not found listener, maybe it is removed");
-            return;
-        }
-        // Hold instance of listener.
-        listener = it->second;
-        if (!listener) {
-            return;
-        }
+    std::shared_ptr<FileDescriptorListener> listener = GetListenerByfd(fileDescriptor);
+    if (!listener) {
+        return;
     }
 
     auto handler = listener->GetOwner();
@@ -219,8 +240,14 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
         return;
     }
 
+    bool isVsyncTask = handler->GetEventRunner() && listener->IsVsyncListener();
     std::weak_ptr<FileDescriptorListener> wp = listener;
-    auto f = [fileDescriptor, events, wp]() {
+    auto f = [fileDescriptor, events, wp, isVsyncTask]() {
+        auto queue = EventRunner::Current()->GetEventQueue();
+        if (isVsyncTask) {
+            queue->HandleVsyncTaskNotify();
+            queue->SetBarrierMode(false);
+        }
         auto listener = wp.lock();
         if (!listener) {
             HILOGW("Listener is released");
@@ -244,10 +271,13 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
         }
     };
 
-    HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor,
-        taskName.c_str(), priority);
+    HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor, taskName.c_str(), priority);
     // Post a high priority task to handle file descriptor events.
-    handler->PostTask(f, taskName, 0, priority);
+    if (isVsyncTask) {
+        PostTaskForVsync(f, taskName, handler, priority);
+    } else {
+        handler->PostTask(f, taskName, 0, priority);
+    }
     if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
         FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_FLUSH_BEGIN, {});
     }
@@ -305,88 +335,38 @@ void EventQueue::RemoveInvalidFileDescriptor()
 
 void EventQueue::SetVsyncLazyMode(bool isLazy)
 {
-    if (!MONITOR_FLAG) {
+    if (!g_vsyncFirstEnabled) {
         return;
     }
-    std::lock_guard<std::mutex> lock(queueLock_);
-    if (!usable_.load()) {
-        HILOGW("%{public}s, EventQueue is unavailable!", __func__);
-        return;
-    }
-    if (isLazyMode_ == isLazy) {
-        return;
-    }
-
-    for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
-        auto listener = it->second;
-        if (!listener || !listener->GetIsDeamonWaiter() || !listener->IsVsyncListener()) {
-            continue;
-        }
-        listener->SetDelayTime(isLazy? UINT32_MAX : VSYNC_TASK_DELAYMS);
-        HILOGD("%{public}s successful! fd = %{public}d, isLazy = %{public}d",
-            __func__, it->first, isLazy);
-    }
-    isLazyMode_ = isLazy;
+    isLazyMode_.store(isLazy);
+    HILOGD("%{public}s(%{public}d)", __func__, isLazy);
 }
 
-void EventQueue::SetVsyncWaiter(bool isDaemon)
+void EventQueue::SetVsyncFirst(bool isFirst)
 {
-    HILOGI("%{public}s(%{public}d)", __func__, isDaemon);
-    if (!MONITOR_FLAG) {
-        HILOGW("%{public}s, daemonMonitor is unavailable!", __func__);
-        return;
+    HILOGI("%{public}s(%{public}d)", __func__, isFirst);
+    g_vsyncFirstEnabled = isFirst;
+    if (!isFirst) {
+        isLazyMode_.store(true);
     }
- 
-    std::lock_guard<std::mutex> lock(queueLock_);
-    if (!usable_.load()) {
-        HILOGW("%{public}s, EventQueue is unavailable.", __func__);
-        return;
-    }
-    if (isVsyncOnDaemon_ == isDaemon) {
-        HILOGW("%{public}s, EventQueue is already %{public}s!", __func__, isDaemon? "on daemon" : "not on daemon");
-        return;
-    }
- 
-    for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
-        auto listener = it->second;
-        if (!listener || !listener->GetIsDeamonWaiter() || !listener->IsVsyncListener()) {
-            continue;
-        }
- 
-        std::shared_ptr<FileDescriptorInfo> fdInfo = nullptr;
-        if (isDaemon) {
-            fdInfo = ioWaiter_->GetFileDescriptorMap(it->first);
+}
+
+void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock)
+{
+    bool need = needEpoll_;
+
+    WaitUntilLocked(when, lock, !need);
+
+    needEpoll_ = need ? false : needEpoll_;
+
+    if (!sumOfPendingVsync_ && !need) {
+        if (vsyncPeriod_ < MAX_CHECK_VSYNC_PERIOD_NS) {
+            vsyncCheckTime_ += vsyncPeriod_;
+            vsyncPeriod_ <<= 1;
         } else {
-            fdInfo = DeamonIoWaiter::GetInstance().GetFileDescriptorMap(it->first);
+            vsyncCheckTime_ = INT64_MAX;
         }
-        if (fdInfo == nullptr) {
-            HILOGW("%{public}s, fd = %{public}d, fileDescriptorInfo is unavailable.", __func__, it->first);
-            continue;
-        }
- 
-        bool ret;
-        if (isDaemon) {
-            ret = DeamonIoWaiter::GetInstance().AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT,
-                fdInfo->taskName_, fdInfo->listener_, vsyncPriority_);
-        } else {
-            ret = ioWaiter_->AddFileDescriptor(it->first, FILE_DESCRIPTOR_INPUT_EVENT, fdInfo->taskName_,
-                fdInfo->listener_, Priority::HIGH);
-        }
-        if (!ret) {
-            HILOGW("%{public}s, AddFileDescriptor failed! fd = %{public}d, name = %{public}s, ret = %{public}d",
-                __func__, it->first, fdInfo->taskName_.c_str(), ret);
-            continue;
-        }
- 
-        if (isDaemon) {
-            ioWaiter_->RemoveFileDescriptor(it->first);
-        } else {
-            DeamonIoWaiter::GetInstance().RemoveFileDescriptor(it->first);
-        }
-        HILOGI("%{public}s successful! fd = %{public}d, name = %{public}s, isDaemon = %{public}d",
-            __func__, it->first, fdInfo->taskName_.c_str(), isDaemon);
     }
-    isVsyncOnDaemon_ = isDaemon;
 }
 
 void EventQueue::PrepareBase()

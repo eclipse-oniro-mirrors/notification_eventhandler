@@ -108,6 +108,14 @@ struct ObserverTrace {
     }
 };
 
+#define NOW_NS std::chrono::duration_cast<std::chrono::nanoseconds>( \
+    InnerEvent::Clock::now().time_since_epoch()).count()
+#define CHECK_VSYNC_DELAY_NS        1000000
+#define MAX_INIT_VSYNC_PERIOD_NS    34000000
+#define MAX_CHECK_VSYNC_PERIOD_NS   69000000
+#define VSYNC_TASK_DELAYMS          50
+#define MS_TO_NS_RATIO              1000000
+
 class EventQueue {
 public:
     // Priority for the events
@@ -374,9 +382,9 @@ public:
     void SetVsyncLazyMode(bool isLazy);
 
     /**
-     * Set the waiter of AppVsync
+     * Set the first policy of AppVsync
      */
-    void SetVsyncWaiter(bool isDaemon);
+    void SetVsyncFirst(bool isFirst);
 
     /**
      * the vsync task is comming.
@@ -384,9 +392,8 @@ public:
     inline void DispatchVsyncTaskNotify()
     {
         ++sumOfPendingVsync_;
-        if (epollTimePoint_ < InnerEvent::Clock::now()) {
-            needEpoll_.store(true);
-        }
+        needEpoll_ = true;
+        vsyncCheckTime_ = INT64_MAX;
     }
 
     /**
@@ -411,6 +418,30 @@ public:
     inline bool IsBarrierMode()
     {
         return isBarrierMode_;
+    }
+
+    /**
+     * update the timestamp of epoll vsyncfd.
+     */
+    inline int64_t GetDelayTimeOfVsyncTask()
+    {
+        int64_t now = NOW_NS;
+        return isLazyMode_.load()? INT32_MAX : ((now > vsyncCheckTime_)?
+            VSYNC_TASK_DELAYMS - (now - vsyncCheckTime_ + CHECK_VSYNC_DELAY_NS) / MS_TO_NS_RATIO : VSYNC_TASK_DELAYMS);
+    }
+
+    /**
+     * update the timestamp of epoll vsyncfd.
+     */
+    inline void UpdateVsyncCheckTime(int64_t lastFrameTime, int64_t period)
+    {
+        //In order to epolling vsync fd successfully, we delay a time(CHECK_VSYNC_DELAY_NS).
+        if (__builtin_expect(period > 0, 1)) {
+            int64_t now = NOW_NS;
+            vsyncPeriod_ = (period > MAX_INIT_VSYNC_PERIOD_NS) ? MAX_INIT_VSYNC_PERIOD_NS : period;
+            vsyncCheckTime_ = (lastFrameTime > now) ? (now + CHECK_VSYNC_DELAY_NS + ((lastFrameTime - now) % period)) :
+                (now + period + CHECK_VSYNC_DELAY_NS - ((now - lastFrameTime) % period));
+        }
     }
 
 protected:
@@ -474,7 +505,13 @@ protected:
 
     void FinishBase();
 
-    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
+    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock, bool vsyncOnly = false);
+
+    /**
+     * Try epoll fds according to the vsync info.
+     */
+    void TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
+
     std::mutex queueLock_;
 
     std::atomic_bool usable_ {true};
@@ -496,13 +533,15 @@ protected:
     EventRunnerObserver observer_ = {.stages = static_cast<uint32_t>(EventRunnerStage::STAGE_INVAILD),
         .notifyCb = nullptr};
 
-    std::atomic_int8_t sumOfPendingVsync_ = 0;
-    std::atomic_bool needEpoll_ = true;
-    bool isLazyMode_ = true;
+    int8_t sumOfPendingVsync_ = 0;
+    bool needEpoll_ = false;
+    std::atomic_bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
-    bool isVsyncOnDaemon_ = true;
-    Priority vsyncPriority_ = Priority::VIP;
-    InnerEvent::TimePoint epollTimePoint_;
+    int64_t vsyncPeriod_ = INT64_MAX;
+    int64_t vsyncCheckTime_ = INT64_MAX;
+
+private:
+    std::shared_ptr<FileDescriptorListener> GetListenerByfd(int32_t FileDescriptor);
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

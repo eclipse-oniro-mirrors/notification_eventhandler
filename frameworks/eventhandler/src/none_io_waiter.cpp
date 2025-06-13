@@ -34,7 +34,7 @@ NoneIoWaiter::~NoneIoWaiter()
     HILOGD("enter");
 }
 
-bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
+bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly)
 {
     ++waitingCount_;
     if (nanoseconds < 0) {
