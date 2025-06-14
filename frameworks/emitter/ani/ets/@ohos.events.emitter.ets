@@ -13,10 +13,18 @@
  * limitations under the License.
  */
 
-import { Callback } from '@ohos.base';
+import { BusinessError, Callback} from '@ohos.base';
 
 namespace emitter {
   loadLibrary("eventEmitter.z");
+
+  const ERROR_OK = 0;
+  const ERROR_PARAM_INVALID = 401;
+
+  const successCallbackError: BusinessError = {code: ERROR_OK, data: undefined};
+  const errorParamInvalid: BusinessError = {code: ERROR_PARAM_INVALID, message: "Invalid parameter"};
+
+
   export interface EventData {
     data?: Record<string, Object>;
   }
@@ -76,36 +84,72 @@ namespace emitter {
   export native function EmitStringOptionsDataSync(eventId: string, options: Options, data: EventData): void;
   export native function EmitStringOptionsGenericSync<T>(eventId: string, options: Options, data: GenericEventData<T>): void;
   export native function EmitStringOptionsSync(eventId:string, options: Options): void;
-  
+
+  function isInvalidEventData(eventData?: EventData): BusinessError
+  {
+    let error: BusinessError = successCallbackError;
+    if (!eventData) {
+        return errorParamInvalid;
+    }
+    if (eventData?.data !== undefined) {
+      let mydata: Record<String, Object> = eventData?.data as Record<String, Object>;
+      if (Object.keys(mydata).length === 0) {
+        return errorParamInvalid;
+      }
+    }
+    return error;
+  }
+
   export function on(event: InnerEvent, callback: Callback<EventData>): void {
+    if (event == null || callback == null) {
+      throw errorParamInvalid;
+    }
     if (event.eventId) {
       emitter.OnOrOnceSync(event.eventId, false, callback, "eventData");
     }
   }
 
   export function once(event: InnerEvent, callback: Callback<EventData>): void {
+    if (event == null || callback == null) {
+      throw errorParamInvalid;
+    }
     if (event.eventId) {
       emitter.OnOrOnceSync(event.eventId, true, callback, "eventData");
     }
   }
 
   export function on(eventId: string, callback: Callback<EventData>): void {
-      emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
+    if (eventId === '' || callback == null) {
+      throw errorParamInvalid;
+    }
+    emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
   }
 
   export function once(eventId: string, callback: Callback<EventData>): void {
-      emitter.OnOrOnceStringSync(eventId, true, callback, "eventData");
+    if (eventId === '' || callback == null) {
+      throw errorParamInvalid;
+    }
+    emitter.OnOrOnceStringSync(eventId, true, callback, "eventData");
   }
 
   export function off(eventId: string): void {
+    if (eventId === '') {
+      throw errorParamInvalid;
+    }
     emitter.OffStringIdSync(eventId);
   }
 
   export function off(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '' || callback == null) {
+      throw errorParamInvalid;
+    }
     emitter.OffStringSync(eventId, callback);
   }
 
   export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+    if (eventId === '' || callback == null) {
+      throw errorParamInvalid;
+    }
     if (callback instanceof Callback<EventData>) {
       emitter.OffStringSync(eventId, callback as Callback<EventData>);
     } else {
@@ -118,10 +162,16 @@ namespace emitter {
   }
 
   export function off(eventId: number, callback: Callback<EventData>): void {
+    if (callback == null) {
+      throw errorParamInvalid;
+    }
     emitter.OffNumberCallbackSync(eventId, callback);
   }
 
   export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+    if (eventId === '' || callback == null) {
+      throw errorParamInvalid;
+    }
     if (callback instanceof Callback<EventData>) {
       emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>, "eventData");
     } else {
@@ -130,7 +180,14 @@ namespace emitter {
   }
 
   export function emit(eventId: string, options: Options, data?: EventData): void {
+    if (eventId === '' || options == null) {
+      throw errorParamInvalid;
+    }
     if (data != undefined) {
+      let error: BusinessError = isInvalidEventData(data);
+      if (error.code !== ERROR_OK) {
+        throw error;
+      }
       emitter.EmitStringOptionsDataSync(eventId, options, data as EventData);
     } else {
       emitter.EmitStringOptionsSync(eventId, options);
@@ -138,6 +195,9 @@ namespace emitter {
   }
 
   export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+    if (eventId === '' || options == null) {
+      throw errorParamInvalid;
+    }
     if (data != undefined) {
       emitter.EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
     } else {
@@ -146,8 +206,15 @@ namespace emitter {
   }
 
   export function emit<T>(eventId: string, data?: EventData | GenericEventData<T>): void {
+    if (eventId === '' || data == null) {
+      throw errorParamInvalid;
+    }
     if (data != undefined) {
       if (data instanceof EventData) {
+        let error: BusinessError = isInvalidEventData(data);
+        if (error.code !== ERROR_OK) {
+          throw error;
+        }
         emitter.EmitStringDataSync(eventId, data as EventData);
       } else {
         emitter.EmitStringGenericSync(eventId, data as GenericEventData<T>);
@@ -158,7 +225,14 @@ namespace emitter {
   }
 
   export function emit(event: InnerEvent, data?: EventData): void {
+    if (event === null) {
+      throw errorParamInvalid;
+    }
     if (data != undefined) {
+      let error: BusinessError = isInvalidEventData(data);
+      if (error.code !== ERROR_OK) {
+        throw error;
+      }
       emitter.EmitInnerEventDataSync(event, data);
     } else {
       emitter.EmitInnerEventSync(event);
@@ -166,7 +240,14 @@ namespace emitter {
   }
 
   export function emit(eventId: string, data?: EventData): void {
+    if (eventId === '') {
+      throw errorParamInvalid;
+    }
     if (data != undefined) {
+      let error: BusinessError = isInvalidEventData(data);
+      if (error.code !== ERROR_OK) {
+        throw error;
+      }
       emitter.EmitStringDataSync(eventId , data);
     } else {
       emitter.EmitStringSync(eventId);
@@ -178,6 +259,9 @@ namespace emitter {
     if (typeof eventId === "number") {
       count = emitter.getListenerCountSync(eventId as number);
     } else {
+      if (eventId === '') {
+        throw errorParamInvalid;
+      }
       count = emitter.getListenerCountStringSync(eventId as string);
     }
     return count;
