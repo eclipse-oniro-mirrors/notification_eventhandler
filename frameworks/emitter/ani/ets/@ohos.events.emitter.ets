@@ -20,10 +20,7 @@ namespace emitter {
 
   const ERROR_OK = 0;
   const ERROR_PARAM_INVALID = 401;
-
-  const successCallbackError: BusinessError = {code: ERROR_OK, data: undefined};
   const errorParamInvalid: BusinessError = {code: ERROR_PARAM_INVALID, message: "Invalid parameter"};
-
 
   export interface EventData {
     data?: Record<string, Object>;
