@@ -82,7 +82,7 @@ ohos_shared_library("libeventhandler") {
   subsystem_name = "notification"
   innerapi_tags = [
     "platformsdk",
-    "chipsetsdk_indirect",
+    "chipsetsdk_sp_indirect",
     "sasdk",
   ]
   part_name = "eventhandler"
