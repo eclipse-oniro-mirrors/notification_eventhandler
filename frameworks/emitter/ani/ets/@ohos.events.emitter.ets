@@ -217,7 +217,7 @@ namespace emitter {
   }
 
   export function getListenerCount(eventId: number | string): number {
-    let count : number = 1;
+    let count : number = 0;
     if (typeof eventId === "number") {
       count = emitter.getListenerCountSync(eventId as number);
     } else {

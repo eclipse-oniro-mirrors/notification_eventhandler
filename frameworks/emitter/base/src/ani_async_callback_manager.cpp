@@ -38,6 +38,9 @@ void AniAsyncCallbackInfo::ProcessEvent([[maybe_unused]] const InnerEvent::Point
     auto serializeData = event->GetSharedObject<SerializeData>();
     auto t = std::thread(ThreadFunction, vm, callback, dataType, serializeData);
     t.join();
+    if (once) {
+        isDeleted = true;
+    }
 }
 
 ani_status AniAsyncCallbackInfo::GetCallbackArgs(
