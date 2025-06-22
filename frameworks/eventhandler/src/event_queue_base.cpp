@@ -322,7 +322,7 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
         return;
     }
 #ifdef NOTIFICATIONG_SMART_GC
-    bool result = hasVipTask();
+    bool result = HasVipTask();
 #endif
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
@@ -349,7 +349,7 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             return;
         }
 #ifdef NOTIFICATIONG_SMART_GC
-        bool result = hasVipTask();
+        bool result = HasVipTask();
 #endif
         for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
             auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
@@ -799,6 +799,7 @@ void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer 
     historyEvents_[historyEventIndex_].triggerTime = InnerEvent::Clock::now();
     historyEvents_[historyEventIndex_].priority = event->GetEventPriority();
     historyEvents_[historyEventIndex_].completeTime = InnerEvent::TimePoint::max();
+    historyEvents_[historyEventIndex_].callerInfo_ = (event->GetCaller()).ToString();
     currentRunningEvent_.triggerTime_ = InnerEvent::Clock::now();
 
     if (event->HasTask()) {
@@ -841,6 +842,7 @@ std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
     } else {
         DumpCurrentRunningEventId(historyEvent.innerEventId, content);
     }
+    content.append(", caller = " + historyEvent.callerInfo_);
     content.append(" }" + LINE_SEPARATOR);
 
     return content;
@@ -999,7 +1001,7 @@ void EventQueueBase::NotifyObserverVipDoneBase()
     }
 }
 
-bool EventQueueBase::hasVipTask()
+bool EventQueueBase::HasVipTask()
 {
     if (!subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue.empty()) {
         return true;
@@ -1013,6 +1015,11 @@ inline uint64_t EventQueueBase::GetQueueFirstEventHandleTime(int32_t priority)
         return UINT64_MAX;
     }
     return subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
+}
+
+void EventQueueBase::SetUsable(bool usable)
+{
+    usable_.store(usable);
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

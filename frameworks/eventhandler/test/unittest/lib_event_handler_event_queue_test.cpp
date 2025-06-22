@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <string>
 #include <thread>
 
 #include <fcntl.h>
@@ -2817,10 +2818,48 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasVipTask_001, TestSize.Level1)
     auto event1 = InnerEvent::Get(f, "task");
     event1->SetEventPriority(static_cast<int32_t>(EventQueue::Priority::VIP));
     queue.NotifyObserverVipDone(event1);
-    bool result = queue.hasVipTask();
+    bool result = queue.HasVipTask();
     EXPECT_EQ(false, result);
     auto event2 = InnerEvent::Get(f, "task");
     queue.Insert(event2, EventQueue::Priority::VIP, EventInsertType::AT_END);
-    bool result1 = queue.hasVipTask();
+    bool result1 = queue.HasVipTask();
     EXPECT_EQ(true, result1);
+}
+
+/*
+ * @tc.name: SetUsableTest
+ * @tc.desc: SetUsableTest_001 test, change status of ffrt queue
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_001, TestSize.Level1)
+{
+    EventQueueFFRT queue;
+    queue.SetUsable(false);
+    const std::string handlerId = "handlerId";
+    queue.RemoveOrphanByHandlerId(handlerId);
+    queue.RemoveAll();
+    auto runner = EventRunner::Create("Runner");
+    auto handler = std::make_shared<EventHandler>(runner);
+    uint32_t eventId = 0;
+    int64_t param = 0;
+    queue.HasInnerEvent(handler, param);
+    bool result = queue.HasInnerEvent(handler, eventId);
+    EXPECT_EQ(false, result);
+}
+
+/*
+ * @tc.name: SetUsableTest
+ * @tc.desc: SetUsableTest_002 test, change status of base queue
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_002, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.SetUsable(false);
+    queue.RemoveOrphan();
+    queue.RemoveAll();
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "event");
+    auto result = queue.Insert(event);
+    EXPECT_EQ(false, result);
 }

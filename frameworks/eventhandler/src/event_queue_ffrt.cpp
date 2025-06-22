@@ -599,5 +599,10 @@ void EventQueueFFRT::Finish()
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);
     FinishBase();
 }
+
+void EventQueueFFRT::SetUsable(bool usable)
+{
+    usable_.store(usable);
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS

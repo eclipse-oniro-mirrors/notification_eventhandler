@@ -202,6 +202,13 @@ public:
      * @return Return UINT64_MAX as invalid value.
      */
     inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
+
+    /**
+     * set queue usable status.
+     *
+     * @param usable current usable.
+     */
+    void SetUsable(bool usable);
 private:
     LOCAL_API bool InsertEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW, bool syncWait = false,
         EventInsertType insertType = EventInsertType::AT_END);
