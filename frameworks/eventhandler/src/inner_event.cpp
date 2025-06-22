@@ -237,7 +237,7 @@ std::string InnerEvent::DumpTimeToString(const std::chrono::system_clock::time_p
     struct tm curTime = {0};
     localtime_r(&tt, &curTime);
     char sysTime[DATETIME_STRING_LENGTH];
-    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y-%m-%d %I:%M:%S.", &curTime);
+    std::strftime(sysTime, sizeof(char) * DATETIME_STRING_LENGTH, "%Y-%m-%d %H:%M:%S.", &curTime);
     return std::string(sysTime) + msString;
 }
 

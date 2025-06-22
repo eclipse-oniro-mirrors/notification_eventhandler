@@ -261,7 +261,7 @@ public:
     /**
      * current queue has vip task
      */
-    bool hasVipTask();
+    bool HasVipTask();
 
     /**
      * Obtain the first event of the specified priority queue.
@@ -271,6 +271,13 @@ public:
      * or return UINT64_MAX as invalid value.
      */
     inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
+
+    /**
+     * set queue usable status.
+     *
+     * @param usable current usable.
+     */
+    void SetUsable(bool usable);
 private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
@@ -285,6 +292,7 @@ private:
         InnerEvent::TimePoint triggerTime;
         InnerEvent::TimePoint completeTime;
         int32_t priority = -1;
+        std::string callerInfo_;
     };
 
     /*
