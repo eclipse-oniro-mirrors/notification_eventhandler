@@ -113,7 +113,7 @@ bool EpollIoWaiter::Init()
     return false;
 }
 
-bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds)
+bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly)
 {
     if (epollFd_ < 0) {
         HILOGE("MUST initialized before waiting");
@@ -166,10 +166,9 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
             if ((epollEvents[i].events & (EPOLLERR)) != 0) {
                 events |= FILE_DESCRIPTOR_EXCEPTION_EVENT;
             }
-            auto fileDescriptorInfo = GetFileDescriptorMap(epollEvents[i].data.fd);
-            if (callback_ && fileDescriptorInfo != nullptr) {
-                callback_(epollEvents[i].data.fd, events, fileDescriptorInfo->taskName_,
-                    fileDescriptorInfo->priority_);
+            auto fdInfo = GetFileDescriptorMap(epollEvents[i].data.fd);
+            if (callback_ && fdInfo != nullptr && (!vsyncOnly || fdInfo->listener_->IsVsyncListener())) {
+                callback_(epollEvents[i].data.fd, events, fdInfo->taskName_, fdInfo->priority_);
             }
         }
     }

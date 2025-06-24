@@ -148,31 +148,6 @@ void DeamonIoWaiter::StopEpollIoWaiter()
     running_.store(false);
 }
 
-static void PostTaskForVsync(const std::shared_ptr<FileDescriptorInfo> &fileDescriptorInfo,
-    const std::shared_ptr<EventHandler> &handler, const InnerEvent::Callback &cb,
-    uint32_t delayTime)
-{
-    auto runner = handler->GetEventRunner();
-    if (!runner) {
-        return;
-    }
-    auto event = InnerEvent::Get(cb, fileDescriptorInfo->taskName_);
-    if (!event) {
-        return;
-    }
-
-    event->MarkVsyncTask();
-    if (runner == EventRunner::GetMainEventRunner()) {
-        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
-    }
-    auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
-    handler->PostTask(task, "BarrierEvent", delayTime, fileDescriptorInfo->priority_);
-    if (!handler->SendEvent(event, delayTime, fileDescriptorInfo->priority_)) {
-        handler->RemoveTask("BarrierEvent");
-        runner->GetEventQueue()->SetBarrierMode(false);
-    }
-}
-
 void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
     __attribute__((no_sanitize("cfi")))
 {
@@ -184,15 +159,8 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
             return;
         }
 
-        auto listener = fileDescriptorInfo->listener_;
-        bool isVsyncTask = handler->GetEventRunner() && listener->IsVsyncListener();
         std::weak_ptr<FileDescriptorListener> wp = fileDescriptorInfo->listener_;
-        auto f = [fileDescriptor, events, wp, isVsyncTask]() {
-            if (isVsyncTask) {
-                auto queue = EventRunner::Current()->GetEventQueue();
-                queue->HandleVsyncTaskNotify();
-                queue->SetBarrierMode(false);
-            }
+        auto f = [fileDescriptor, events, wp]() {
             auto listener = wp.lock();
             if (!listener) {
                 HILOGW("Listener is released");
@@ -216,15 +184,10 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
             }
         };
 
-        HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d delay %{public}dms.", fileDescriptor,
-            fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_, listener->GetDelayTime());
+        HILOGD("Post fd %{public}d, task %{public}s, priority %{public}d.", fileDescriptor,
+            fileDescriptorInfo->taskName_.c_str(), fileDescriptorInfo->priority_);
         // Post a high priority task to handle file descriptor events.
-        if (isVsyncTask) {
-            PostTaskForVsync(fileDescriptorInfo, handler, f, listener->GetDelayTime());
-        } else {
-            handler->PostTask(f, fileDescriptorInfo->taskName_, listener->GetDelayTime(),
-                fileDescriptorInfo->priority_);
-        }
+        handler->PostTask(f, fileDescriptorInfo->taskName_, 0, fileDescriptorInfo->priority_);
     }
 }
 

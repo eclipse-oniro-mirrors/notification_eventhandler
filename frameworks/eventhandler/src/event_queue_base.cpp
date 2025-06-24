@@ -216,6 +216,7 @@ void EventQueueBase::RemoveOrphan()
         if (ret && p->IsVsyncTask()) {
             HandleVsyncTaskNotify();
             SetBarrierMode(false);
+            needEpoll_ = false;
         }
         return ret;
     };
@@ -416,7 +417,7 @@ bool EventQueueBase::HasInnerEvent(const HasFilter &filter)
 
 InnerEvent::Pointer EventQueueBase::PickFirstVsyncEventLocked()
 {
-    auto &events = subEventQueues_[static_cast<uint32_t>(vsyncPriority_)].queue;
+    auto &events = subEventQueues_[static_cast<uint32_t>(Priority::VIP)].queue;
     auto removeFilter = [](const InnerEvent::Pointer &p) {
         return !p->GetTaskName().compare("BarrierEvent");
     };
@@ -464,7 +465,7 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     }
 
     if ((priorityIndex >= static_cast<uint32_t>(Priority::HIGH)) &&
-        sumOfPendingVsync_.load() && !needEpoll_.load()) {
+        sumOfPendingVsync_ && !needEpoll_) {
         auto event = PickFirstVsyncEventLocked();
         if (event) {
             return event;
@@ -527,7 +528,7 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEventLocked(InnerEvent::TimePoint 
     }
 
     // Update wake up time.
-    nextExpiredTime = sumOfPendingVsync_.load()? InnerEvent::Clock::now() : wakeUpTime_;
+    nextExpiredTime = sumOfPendingVsync_? InnerEvent::Clock::now() : wakeUpTime_;
     currentRunningEvent_ = CurrentRunningEvent();
     return InnerEvent::Pointer(nullptr, nullptr);
 }
@@ -536,21 +537,24 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
 {
     std::unique_lock<std::mutex> lock(queueLock_);
     while (!finished_) {
-        if (isBarrierMode_ && !needEpoll_.load()) {
+        InnerEvent::TimePoint nextWakeUpTime = InnerEvent::TimePoint::max();
+        InnerEvent::Pointer event = GetExpiredEventLocked(nextWakeUpTime);
+        if (event) {
+            auto now = InnerEvent::Clock::now();
+            if (!isLazyMode_.load() && !sumOfPendingVsync_ && (needEpoll_ || vsyncCheckTime_ <
+                std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count())) {
+                TryEpollFd(now, lock);
+            }
+            return event;
+        } else if (__builtin_expect(sumOfPendingVsync_, 0)) {
             auto event = PickFirstVsyncEventLocked();
             if (event) {
                 return event;
             }
         }
-        InnerEvent::TimePoint nextWakeUpTime = InnerEvent::TimePoint::max();
-        InnerEvent::Pointer event = GetExpiredEventLocked(nextWakeUpTime);
-        if (event) {
-            return event;
-        }
         TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_BEFORE_WAITING);
         WaitUntilLocked(nextWakeUpTime, lock);
-        epollTimePoint_ = InnerEvent::Clock::now();
-        needEpoll_.store(false);
+        needEpoll_ = false;
         TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_AFTER_WAITING);
     }
 

@@ -111,22 +111,6 @@ public:
     }
 
     /**
-     * Set the delay time for handling the event.
-     */
-    inline void SetDelayTime(uint32_t delayms)
-    {
-        delayTime_ = delayms;
-    }
-
-    /**
-     * Get the delay time for handling the event.
-     */
-    inline uint32_t GetDelayTime()
-    {
-        return delayTime_;
-    }
-
-    /**
      * Set the event type for the fd listener.
      */
     inline void SetType(enum ListenerType type)
@@ -157,7 +141,6 @@ private:
     std::weak_ptr<EventHandler> owner_;
     bool isDeamonWaiter_{false};
     enum ListenerType type_ = LTYPE_UNKNOW;
-    uint32_t delayTime_ = 0;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
