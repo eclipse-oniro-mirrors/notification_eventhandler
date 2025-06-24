@@ -31,7 +31,7 @@ bool GetStringArrayOrUndefined(ani_env *env, ani_object param, const char *name,
 bool GetStdString(ani_env *env, ani_string str, std::string &res);
 
 ani_string GetAniString(ani_env *env, const std::string &str);
-ani_array_ref GetAniArrayString(ani_env *env, const std::vector<std::string> &values);
+ani_array GetAniArrayString(ani_env *env, const std::vector<std::string> &values);
 bool GetRefPropertyByName(ani_env *env, ani_object param, const char *name, ani_ref &ref);
 
 ani_object createDouble(ani_env *env, ani_double value);
