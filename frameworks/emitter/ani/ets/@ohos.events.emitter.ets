@@ -17,6 +17,7 @@ import { Callback } from '@ohos.base';
 
 namespace emitter {
   loadLibrary("eventEmitter.z");
+
   export interface EventData {
     data?: Record<string, Object>;
   }
@@ -76,7 +77,7 @@ namespace emitter {
   export native function EmitStringOptionsDataSync(eventId: string, options: Options, data: EventData): void;
   export native function EmitStringOptionsGenericSync<T>(eventId: string, options: Options, data: GenericEventData<T>): void;
   export native function EmitStringOptionsSync(eventId:string, options: Options): void;
-  
+
   export function on(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
       emitter.OnOrOnceSync(event.eventId, false, callback, "eventData");
@@ -90,22 +91,37 @@ namespace emitter {
   }
 
   export function on(eventId: string, callback: Callback<EventData>): void {
-      emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
+    if (eventId === '') {
+      return;
+    }
+    emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
   }
 
   export function once(eventId: string, callback: Callback<EventData>): void {
-      emitter.OnOrOnceStringSync(eventId, true, callback, "eventData");
+    if (eventId === '') {
+      return;
+    }
+    emitter.OnOrOnceStringSync(eventId, true, callback, "eventData");
   }
 
   export function off(eventId: string): void {
+    if (eventId === '') {
+      return;
+    }
     emitter.OffStringIdSync(eventId);
   }
 
   export function off(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '') {
+      return;
+    }
     emitter.OffStringSync(eventId, callback);
   }
 
   export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+    if (eventId === '') {
+      return;
+    }
     if (callback instanceof Callback<EventData>) {
       emitter.OffStringSync(eventId, callback as Callback<EventData>);
     } else {
@@ -122,6 +138,9 @@ namespace emitter {
   }
 
   export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+    if (eventId === '') {
+      return;
+    }
     if (callback instanceof Callback<EventData>) {
       emitter.OnOrOnceStringSync(eventId, false, callback as Callback<EventData>, "eventData");
     } else {
@@ -130,6 +149,9 @@ namespace emitter {
   }
 
   export function emit(eventId: string, options: Options, data?: EventData): void {
+    if (eventId === '') {
+      return;
+    }
     if (data != undefined) {
       emitter.EmitStringOptionsDataSync(eventId, options, data as EventData);
     } else {
@@ -138,6 +160,9 @@ namespace emitter {
   }
 
   export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+    if (eventId === '') {
+      return;
+    }
     if (data != undefined) {
       emitter.EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
     } else {
@@ -146,6 +171,9 @@ namespace emitter {
   }
 
   export function emit<T>(eventId: string, data?: EventData | GenericEventData<T>): void {
+    if (eventId === '') {
+      return;
+    }
     if (data != undefined) {
       if (data instanceof EventData) {
         emitter.EmitStringDataSync(eventId, data as EventData);
@@ -166,6 +194,9 @@ namespace emitter {
   }
 
   export function emit(eventId: string, data?: EventData): void {
+    if (eventId === '') {
+      return;
+    }
     if (data != undefined) {
       emitter.EmitStringDataSync(eventId , data);
     } else {
@@ -174,10 +205,13 @@ namespace emitter {
   }
 
   export function getListenerCount(eventId: number | string): number {
-    let count : number = 1;
+    let count : number = 0;
     if (typeof eventId === "number") {
       count = emitter.getListenerCountSync(eventId as number);
     } else {
+      if (eventId === '') {
+        return count;
+      }
       count = emitter.getListenerCountStringSync(eventId as string);
     }
     return count;

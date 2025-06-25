@@ -31,7 +31,7 @@ class RecordWriter {
       this.buffer.append('undefined');
     } else if (obj instanceof String) {
       this.buffer.append(JSON.stringify(obj as String));
-    } else if (this.writeValueType(obj)) {
+    } else if (this.writeValueType(obj as int)) {
       // nothing to do
     } else if (obj instanceof Array) {
       this.writeArray(obj as Object as Array<valueType>);
@@ -40,7 +40,7 @@ class RecordWriter {
     } else {
       const objType = Type.of(obj);
       if (objType instanceof ArrayType) {
-        this.writeBuildArray(obj, Value.of(obj) as ArrayValue);
+        this.writeBuildArray(obj as int, Value.of(obj) as ArrayValue);
       } else {
         this.buffer.append('null');
       }
@@ -82,7 +82,7 @@ class RecordWriter {
 
   private writeArray(arr: Array<valueType>): void {
     this.buffer.append('[');
-    const length = arr.length as int;
+    const length = arr.length.toInt();
     this.checkReferencesCycle(arr);
     this.store.add(arr);
     for (let idx = 0; idx < length; idx++) {
@@ -101,7 +101,7 @@ class RecordWriter {
 
   private writeBuildArray(arr: Object, arrayValue: ArrayValue): void {
     this.buffer.append('[');
-    const length = arrayValue.getLength() as int;
+    const length = arrayValue.getLength().toInt();
     this.checkReferencesCycle(arr);
     this.store.add(arr);
     for (let idx = 0; idx < length; idx++) {
