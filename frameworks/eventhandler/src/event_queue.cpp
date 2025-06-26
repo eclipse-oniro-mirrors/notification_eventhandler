@@ -202,9 +202,9 @@ static void PostTaskForVsync(const InnerEvent::Callback &cb, const std::string &
     event->MarkVsyncTask();
     int64_t delayTime = queue->GetDelayTimeOfVsyncTask();
     auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
-    handler->PostTask(task, "BarrierEevent", delayTime, priority);
+    handler->PostTask(task, "BarrierEvent", delayTime, priority);
     if (!handler->SendEvent(event, delayTime, priority)) {
-        handler->RemoveTask("BarrierEevent");
+        handler->RemoveTask("BarrierEvent");
         queue->SetBarrierMode(false);
     }
     FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
@@ -243,8 +243,8 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     bool isVsyncTask = handler->GetEventRunner() && listener->IsVsyncListener();
     std::weak_ptr<FileDescriptorListener> wp = listener;
     auto f = [fileDescriptor, events, wp, isVsyncTask]() {
-        auto queue = EventRunner::Current()->GetEventQueue();
         if (isVsyncTask) {
+            auto queue = EventRunner::Current()->GetEventQueue();
             queue->HandleVsyncTaskNotify();
             queue->SetBarrierMode(false);
         }
