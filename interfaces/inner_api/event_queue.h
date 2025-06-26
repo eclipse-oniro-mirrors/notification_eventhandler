@@ -421,7 +421,7 @@ public:
     }
 
     /**
-     * update the timestamp of epoll vsyncfd.
+     * get the delay time of vsync task.
      */
     inline int64_t GetDelayTimeOfVsyncTask()
     {
