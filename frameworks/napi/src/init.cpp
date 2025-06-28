@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,29 +12,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "events_emitter.h"
 
-#ifndef BASE_EVENTHANDLER_FRAMEWORKS_NAPI_EMITTER_H
-#define BASE_EVENTHANDLER_FRAMEWORKS_NAPI_EMITTER_H
-
-#include "event_queue.h"
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
-
 namespace OHOS {
 namespace AppExecFwk {
-using Priority = EventQueue::Priority;
-
-napi_value JS_Off(napi_env env, napi_callback_info cbinfo);
-napi_value JS_Emit(napi_env env, napi_callback_info cbinfo);
-void ProcessEvent(const InnerEvent::Pointer& event);
-
-static inline napi_valuetype GetNapiType(napi_env env, napi_value param)
+EXTERN_C_START
+static napi_value Init(napi_env env, napi_value exports)
 {
-    napi_valuetype type;
-    napi_typeof(env, param, &type);
-    return type;
+    EmitterInit(env, exports);
+    return exports;
 }
-} // namespace AppExecFwk
-} // namespace OHOS
+EXTERN_C_END
 
-#endif  // BASE_EVENTHANDLER_FRAMEWORKS_NAPI_EMITTER_H
+static napi_module _module = {
+    .nm_version = 1,
+    .nm_flags = 0,
+    .nm_filename = nullptr,
+    .nm_register_func = Init,
+    .nm_modname = "events.emitter",
+    .nm_priv = ((void *)0),
+    .reserved = {0}
+};
+
+extern "C" __attribute__((constructor)) void RegisterModule(void)
+{
+    napi_module_register(&_module);
+}
+}  // namespace AppExecFwk
+}  // namespace OHOS

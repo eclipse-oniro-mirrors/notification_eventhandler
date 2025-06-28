@@ -17,7 +17,8 @@
 
 #include "event_logger.h"
 #include "aync_callback_manager.h"
-#include "eventhandler_emitter.h"
+#include "interops.h"
+#include "napi_agent.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -55,8 +56,15 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
         return nullptr;
     }
     ani_vm* vm = nullptr;
-    env->GetVM(&vm);
+    auto status = env->GetVM(&vm);
+    if (vm == nullptr) {
+        HILOGE("Get vm failed. status: %{public}d", status);
+        return nullptr;
+    }
     std::shared_ptr<SerializeData> serializeData(serializeDataPtr, [vm](SerializeData* data) {
+        if (data == nullptr) {
+            return;
+        }
         if (std::holds_alternative<ani_ref>(data->peerData)) {
             ani_env *env;
             ani_status status = ANI_OK;
@@ -94,7 +102,7 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
         HILOGE("eventId not find");
         return;
     }
-    InnerEvent::EventId id = (uint32_t)eventId;
+    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(id)) {
         HILOGI("Emit has no callback");
         return;
@@ -113,6 +121,9 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
         }
     }
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
+    if (serializeData == nullptr) {
+        return;
+    }
     if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
         return;
     }
@@ -123,7 +134,8 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
         }
     }
     auto event = InnerEvent::Get(id, serializeData);
-    EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);
+    event->SetIsEnhanced(true);
+    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
 void EventsEmitter::EmitWithEventIdString(
@@ -135,13 +147,15 @@ void EventsEmitter::EmitWithEventIdString(
         return;
     }
     Priority priority = Priority::LOW;
-    if (enumItem !=nullptr) {
+    if (enumItem != nullptr) {
         ani_int res;
         env->EnumItem_GetValue_Int(enumItem, &res);
         priority = static_cast<Priority>(res);
     }
-
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
+    if (serializeData == nullptr) {
+        return;
+    }
     if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
         return;
     }
@@ -152,8 +166,8 @@ void EventsEmitter::EmitWithEventIdString(
         }
     }
     auto event = InnerEvent::Get(id, serializeData);
-
-    EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);
+    event->SetIsEnhanced(true);
+    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
 ani_double EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
@@ -163,7 +177,7 @@ ani_double EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
 
 static void OnOrOnceSync(ani_env *env, ani_double eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    InnerEvent::EventId id = (uint32_t)eventId;
+    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
@@ -201,19 +215,19 @@ static void OffGenericEventSync(ani_env *env, ani_string eventId, ani_ref callba
 
 static void OffNumberSync(ani_env *env, ani_double eventId)
 {
-    InnerEvent::EventId id = (uint32_t)eventId;
+    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OffEmitterInstances(id);
 }
 
 static void OffNumberCallbackSync(ani_env *env, ani_double eventId, ani_ref callback)
 {
-    InnerEvent::EventId id = (uint32_t)eventId;
+    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
 static ani_double getListenerCountNumber(ani_env *env, ani_double eventId)
 {
-    InnerEvent::EventId id = (uint32_t)eventId;
+    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     return EventsEmitter::GetListenerCount(id);
 }
 
@@ -248,13 +262,14 @@ static void EmitInnerEventDataSync(ani_env *env, ani_object InnerEvent, ani_obje
     EventsEmitter::EmitWithEventId(env, InnerEvent, EventData);
 }
 
-static ani_status getPriority(ani_env *env, ani_object options, ani_enum_item &priority)
+static ani_status GetPriority(ani_env *env, ani_object options, ani_enum_item &priority)
 {
     ani_ref obj;
     ani_boolean isUndefined = true;
-    ani_status status = ANI_ERROR;
-    if ((status = env->Object_GetPropertyByName_Ref(options, "priority", &obj)) == ANI_OK) {
-        if ((status = env->Reference_IsUndefined(obj, &isUndefined)) == ANI_OK) {
+    ani_status status = env->Object_GetPropertyByName_Ref(options, "priority", &obj);
+    if (status == ANI_OK) {
+        status = env->Reference_IsUndefined(obj, &isUndefined);
+        if (status == ANI_OK) {
             if (!isUndefined) {
                 priority = reinterpret_cast<ani_enum_item>(obj);
             }
@@ -266,7 +281,7 @@ static ani_status getPriority(ani_env *env, ani_object options, ani_enum_item &p
 static void EmitStringOptionsSync(ani_env *env, ani_string eventId, ani_object options)
 {
     ani_enum_item priority = nullptr;
-    getPriority(env, options, priority);
+    GetPriority(env, options, priority);
     EventsEmitter::EmitWithEventIdString(env, eventId, nullptr, priority);
 }
 
@@ -274,7 +289,7 @@ static void EmitStringOptionsGenericSync(ani_env *env,
     ani_string eventId, ani_object options, ani_object GenericEventData)
 {
     ani_enum_item priority = nullptr;
-    getPriority(env, options, priority);
+    GetPriority(env, options, priority);
     EventsEmitter::EmitWithEventIdString(env, eventId, GenericEventData, priority);
 }
 
@@ -282,7 +297,7 @@ static void EmitStringOptionsDataSync(ani_env *env,
     ani_string eventId, ani_object options, ani_object EventData)
 {
     ani_enum_item priority = nullptr;
-    getPriority(env, options, priority);
+    GetPriority(env, options, priority);
     EventsEmitter::EmitWithEventIdString(env, eventId, EventData, priority);
 }
 
@@ -322,7 +337,7 @@ ani_status init(ani_env *env, ani_namespace kitNs)
             "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/EventData;:V",
             reinterpret_cast<void *>(EmitStringOptionsDataSync)},
     };
-
+    AgentInit();
     return env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
 }
 

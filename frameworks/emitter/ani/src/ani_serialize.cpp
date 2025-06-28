@@ -25,64 +25,74 @@ DEFINE_EH_HILOG_LABEL("EventsEmitter");
 
 bool AniSerialize::PeerSerialize(ani_env* env, ani_object argv, std::shared_ptr<SerializeData> serializeData)
 {
+    if (argv == nullptr) {
+        // emit with no data
+        return true;
+    }
     ani_ref record = nullptr;
     if (GetRefPropertyByName(env, argv, "data", record)) {
-        if (record != nullptr) {
-            ani_ref peerData = nullptr;
-            if (env->GlobalReference_Create(record, &peerData) != ANI_OK) {
-                HILOGI("Json stringify failed");
-                return false;
-            }
-            serializeData->peerData = peerData;
-        } else {
+        if (record == nullptr) {
             return false;
         }
+        ani_ref peerData = nullptr;
+        if (env->GlobalReference_Create(record, &peerData) != ANI_OK) {
+            HILOGI("Json stringify failed");
+            return false;
+        }
+        serializeData->peerData = peerData;
+        return true;
     }
-    return true;
+    return false;
 }
 
 bool AniSerialize::CrossSerialize(ani_env* env, ani_object argv, std::shared_ptr<SerializeData> serializeData)
 {
+    if (argv == nullptr) {
+        // emit with no data
+        return true;
+    }
     ani_ref record = nullptr;
     if (GetRefPropertyByName(env, argv, "data", record)) {
-        if (record != nullptr) {
-            ani_status status = ANI_OK;
-            ani_namespace ns {};
-            status = env->FindNamespace("L@ohos/util/json/json;", &ns);
-            if (status != ANI_OK) {
-                HILOGI("Failed to find namespace");
-                return false;
-            }
-            ani_function fnStringify {};
-            status = env->Namespace_FindFunction(ns, "stringify", nullptr, &fnStringify);
-            if (status != ANI_OK) {
-                HILOGI("Failed to find stringify");
-                return false;
-            }
-            ani_ref ref {};
-            ani_value args[] = {{.r = record}, {.r = nullptr}, {.r = nullptr}};
-            status = env->Function_Call_Ref_A(fnStringify, &ref, args);
-            if (status != ANI_OK) {
-                HILOGI("Failed to call stringify");
-                return false;
-            }
-            ani_size sz {};
-            ani_string str = static_cast<ani_string>(ref);
-            if (env->String_GetUTF8Size(str, &sz) != ANI_OK) {
-                HILOGI("Failed to get string size");
-                return false;
-            }
-            serializeData->crossData.resize(sz + 1);
-            status = env->String_GetUTF8SubString(
-                str, 0, sz, serializeData->crossData.data(), serializeData->crossData.size(), &sz);
-            if (status != ANI_OK) {
-                HILOGI("Failed to convert ani string to c++ string");
-                return false;
-            }
-            serializeData->crossData.resize(sz);
+        if (record == nullptr) {
+            return false;
         }
+        ani_status status = ANI_OK;
+        ani_namespace ns {};
+        status = env->FindNamespace("L@ohos/util/json/json;", &ns);
+        if (status != ANI_OK) {
+            HILOGI("Failed to find namespace");
+            return false;
+        }
+        ani_function fnStringify {};
+        status = env->Namespace_FindFunction(ns, "stringify", nullptr, &fnStringify);
+        if (status != ANI_OK) {
+            HILOGI("Failed to find stringify");
+            return false;
+        }
+        ani_ref ref {};
+        ani_value args[] = {{.r = record}, {.r = nullptr}, {.r = nullptr}};
+        status = env->Function_Call_Ref_A(fnStringify, &ref, args);
+        if (status != ANI_OK) {
+            HILOGI("Failed to call stringify");
+            return false;
+        }
+        ani_size sz {};
+        ani_string str = static_cast<ani_string>(ref);
+        if (env->String_GetUTF8Size(str, &sz) != ANI_OK) {
+            HILOGI("Failed to get string size");
+            return false;
+        }
+        serializeData->crossData.resize(sz + 1);
+        status = env->String_GetUTF8SubString(
+            str, 0, sz, serializeData->crossData.data(), serializeData->crossData.size(), &sz);
+        if (status != ANI_OK) {
+            HILOGI("Failed to convert ani string to c++ string");
+            return false;
+        }
+        serializeData->crossData.resize(sz);
+        return true;
     }
-    return true;
+    return false;
 }
 
 } // namespace AppExecFwk
