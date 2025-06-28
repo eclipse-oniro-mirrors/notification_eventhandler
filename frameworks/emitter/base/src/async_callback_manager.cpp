@@ -18,6 +18,9 @@
 
 namespace OHOS {
 namespace AppExecFwk {
+namespace {
+DEFINE_EH_HILOG_LABEL("EventsEmitter");
+}
 AsyncCallbackManager& AsyncCallbackManager::GetInstance()
 {
     static AsyncCallbackManager instance;
@@ -40,14 +43,16 @@ uint32_t AsyncCallbackManager::GetListenerCountByEventId(const InnerEvent::Event
 
 bool AsyncCallbackManager::IsExistValidCallback(const InnerEvent::EventId &eventId)
 {
-    return napiAsyncCallbackManager_.NapiIsExistValidCallback(eventId) ||
+    auto ret = napiAsyncCallbackManager_.NapiIsExistValidCallback(eventId) ||
         aniAsyncCallbackManager_.AniIsExistValidCallback(eventId);
-}
-
-napi_value AsyncCallbackManager::InsertCallbackInfo(
-    napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv, bool once)
-{
-    return napiAsyncCallbackManager_.NapiInsertCallbackInfo(env, eventIdValue, argv, once);
+    if (!ret) {
+        if (eventId.index() == OHOS::AppExecFwk::TYPE_U32_INDEX) {
+            HILOGE("Event id: %{public}u has no callback", std::get<uint32_t>(eventId));
+        } else {
+            HILOGE("Event id: %{public}s has no callback", std::get<std::string>(eventId).c_str());
+        }
+    }
+    return ret;
 }
 
 void AsyncCallbackManager::InsertCallbackInfo(

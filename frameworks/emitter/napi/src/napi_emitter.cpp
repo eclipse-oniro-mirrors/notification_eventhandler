@@ -20,8 +20,9 @@
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "aync_callback_manager.h"
-#include "eventhandler_emitter.h"
 #include "napi_serialize.h"
+#include "interops.h"
+#include "napi_agent.h"
 
 using namespace std;
 namespace OHOS {
@@ -29,77 +30,8 @@ namespace AppExecFwk {
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
 constexpr static uint32_t ARGC_ONE = 1u;
-}
-
-bool GetEventIdWithObjectOrString(
-    napi_env env, napi_value argv, napi_valuetype eventValueType, InnerEvent::EventId &eventId)
-{
-    if (eventValueType == napi_string) {
-        auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
-        size_t valueStrLength = 0;
-        napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
-        std::string id(valueCStr.get(), valueStrLength);
-        if (id.empty()) {
-            HILOGE("Event id is empty for argument 1.");
-            return false;
-        }
-        eventId = id;
-        HILOGD("Event id value:%{public}s", id.c_str());
-    } else {
-        bool hasEventId = false;
-        napi_has_named_property(env, argv, "eventId", &hasEventId);
-        if (!hasEventId) {
-            HILOGE("Argument 1 does not have event id.");
-            return false;
-        }
-
-        napi_value eventIdValue = nullptr;
-        napi_get_named_property(env, argv, "eventId", &eventIdValue);
-        uint32_t id = 0u;
-        napi_get_value_uint32(env, eventIdValue, &id);
-        eventId = id;
-        HILOGD("Event id value:%{public}u", id);
-    }
-    return true;
-}
-
-napi_value OnOrOnce(napi_env env, napi_callback_info cbinfo, bool once)
-{
-    size_t argc = ARGC_NUM;
-    napi_value argv[ARGC_NUM] = {0};
-    NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
-    if (argc < ARGC_NUM) {
-        HILOGE("requires 2 parameter");
-        return nullptr;
-    }
-    napi_valuetype eventValueType = GetNapiType(env, argv[0]);
-    if (eventValueType != napi_object && eventValueType != napi_string) {
-        HILOGE("type mismatch for parameter 1");
-        return nullptr;
-    }
-    if (GetNapiType(env, argv[1]) != napi_function) {
-        HILOGE("type mismatch for parameter 2");
-        return nullptr;
-    }
-    InnerEvent::EventId eventIdValue = 0u;
-    bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, eventIdValue);
-    if (!ret) {
-        return nullptr;
-    }
-    AsyncCallbackManager::GetInstance().InsertCallbackInfo(env, eventIdValue, argv[1], once);
-    return nullptr;
-}
-
-napi_value JS_On(napi_env env, napi_callback_info cbinfo)
-{
-    HILOGD("JS_On enter");
-    return OnOrOnce(env, cbinfo, false);
-}
-
-napi_value JS_Once(napi_env env, napi_callback_info cbinfo)
-{
-    HILOGD("JS_Once enter");
-    return OnOrOnce(env, cbinfo, true);
+static const int32_t ARGC_NUM = 2;
+static const int32_t NAPI_VALUE_STRING_LEN = 10240;
 }
 
 bool GetEventIdWithNumberOrString(
@@ -196,7 +128,8 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
         }
     }
     auto event = InnerEvent::Get(eventId, serializeData);
-    EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);
+    event->SetIsEnhanced(true);
+    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
     return true;
 }
 
@@ -204,8 +137,12 @@ void EmitWithDefaultData(InnerEvent::EventId eventId, Priority priority)
 {
     auto serializeData = make_shared<SerializeData>();
     serializeData->envType = EnvType::NAPI;
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
+        serializeData->isCrossRuntime = true;
+    }
     auto event = InnerEvent::Get(eventId, serializeData);
-    EventHandlerEmitter::GetInstance()->SendEvent(event, 0, priority);
+    event->SetIsEnhanced(true);
+    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
 napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
@@ -381,10 +318,10 @@ napi_value CreateEnumEventPriority(napi_env env, napi_value exports)
     napi_value low = nullptr;
     napi_value idle = nullptr;
 
-    napi_create_uint32(env, (uint32_t)Priority::IMMEDIATE, &immediate);
-    napi_create_uint32(env, (uint32_t)Priority::HIGH, &high);
-    napi_create_uint32(env, (uint32_t)Priority::LOW, &low);
-    napi_create_uint32(env, (uint32_t)Priority::IDLE, &idle);
+    napi_create_uint32(env, static_cast<uint32_t>(Priority::IMMEDIATE), &immediate);
+    napi_create_uint32(env, static_cast<uint32_t>(Priority::HIGH), &high);
+    napi_create_uint32(env, static_cast<uint32_t>(Priority::LOW), &low);
+    napi_create_uint32(env, static_cast<uint32_t>(Priority::IDLE), &idle);
 
     napi_property_descriptor desc[] = {
         DECLARE_NAPI_STATIC_PROPERTY("IMMEDIATE", immediate),
@@ -401,21 +338,21 @@ napi_value CreateEnumEventPriority(napi_env env, napi_value exports)
     return exports;
 }
 
-napi_value EmitterInit(napi_env env, napi_value exports)
+void ProcessEvent(const InnerEvent::Pointer& event)
 {
-    HILOGD("EmitterInit enter");
-    napi_property_descriptor desc[] = {
-        DECLARE_NAPI_FUNCTION("on", JS_On),
-        DECLARE_NAPI_FUNCTION("once", JS_Once),
-        DECLARE_NAPI_FUNCTION("off", JS_Off),
-        DECLARE_NAPI_FUNCTION("emit", JS_Emit),
-        DECLARE_NAPI_FUNCTION("getListenerCount", JS_GetListenerCount),
-    };
-    NAPI_CALL(env, napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc));
-
-    CreateEnumEventPriority(env, exports);
-    return exports;
+    AsyncCallbackManager::GetInstance().DoCallback(event);
 }
 
+void AgentInit()
+{
+    EmitterEnhancedApi api = {
+        .JS_Off = &JS_Off,
+        .JS_Emit = &JS_Emit,
+        .JS_GetListenerCount = &JS_GetListenerCount,
+        .ProcessEvent = &ProcessEvent
+    };
+
+    GetEmitterEnhancedApiRegister().Register(api);
+}
 } // namespace AppExecFwk
 } // namespace OHOS
