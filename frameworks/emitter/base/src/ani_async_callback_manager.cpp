@@ -160,7 +160,6 @@ bool AniAsyncCallbackManager::AniIsExistValidCallback(const InnerEvent::EventId 
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
     auto subscribe = aniAsyncCallbackContainer_.find(eventId);
     if (subscribe == aniAsyncCallbackContainer_.end()) {
-        HILOGI("JS_Emit has no callback");
         return false;
     }
     if (subscribe->second.size() != 0) {
@@ -198,7 +197,11 @@ void AniAsyncCallbackManager::AniInsertCallbackInfo(
     std::shared_ptr<AniAsyncCallbackInfo> callbackInfo(callbackInfoPtr, [](AniAsyncCallbackInfo* callbackInfo) {
         AniReleaseCallbackInfo(callbackInfo);
     });
-    env->GetVM(&callbackInfo->vm);
+    auto status = env->GetVM(&callbackInfo->vm);
+    if (callbackInfo->vm == nullptr) {
+        HILOGE("Get vm failed. status: %{public}d", status);
+        return;
+    }
     callbackInfo->once = once;
     callbackInfo->eventId = eventId;
     callbackInfo->callback = globalRefCallback;

@@ -53,17 +53,6 @@ public:
      * Insert callback.
      *
      * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
-     * @param argv Event's callback.
-     * @param once Whether subscribe once. if true, subscribe once.
-     */
-    napi_value InsertCallbackInfo(
-        napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv, bool once);
-
-    /**
-     * Insert callback.
-     *
-     * @param env A pointer to the environment structure.
      * @param eventId Event id.
      * @param once Whether subscribe once. if true, subscribe once.
      * @param callback Event's callback.

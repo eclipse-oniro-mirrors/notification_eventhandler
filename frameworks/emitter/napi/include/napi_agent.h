@@ -12,33 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "napi_emitter.h"
 
-#include "napi/native_api.h"
-#include "napi/native_node_api.h"
+#ifndef BASE_EVENTHANDLER_FRAMEWORKS_NAPI_AGENT_H
+#define BASE_EVENTHANDLER_FRAMEWORKS_NAPI_AGENT_H
+
 namespace OHOS {
 namespace AppExecFwk {
-EXTERN_C_START
-static napi_value Init(napi_env env, napi_value exports)
-{
-    EmitterInit(env, exports);
-    return exports;
-}
-EXTERN_C_END
+void AgentInit();
+} // namespace AppExecFwk
+} // namespace OHOS
 
-static napi_module _module = {
-    .nm_version = 1,
-    .nm_flags = 0,
-    .nm_filename = nullptr,
-    .nm_register_func = Init,
-    .nm_modname = "events.emitter",
-    .nm_priv = ((void *)0),
-    .reserved = {0}
-};
-
-extern "C" __attribute__((constructor)) void RegisterModule(void)
-{
-    napi_module_register(&_module);
-}
-}  // namespace AppExecFwk
-}  // namespace OHOS
+#endif  // BASE_EVENTHANDLER_FRAMEWORKS_NAPI_AGENT_H
