@@ -96,6 +96,13 @@ namespace emitter {
     }
   }
 
+  export function on(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '' || callback == null) {
+      return;
+    }
+    emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
+  }
+
   export function once(eventId: string, callback: Callback<EventData>): void {
     if (eventId === '' || callback == null) {
       return;
@@ -108,6 +115,13 @@ namespace emitter {
       return;
     }
     OffStringIdSync(eventId);
+  }
+
+  export function off(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '' || callback == null) {
+      return;
+    }
+    emitter.OffStringSync(eventId, callback);
   }
 
   export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
