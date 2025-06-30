@@ -26,18 +26,16 @@ DEFINE_EH_HILOG_LABEL("EventsEmitter");
 constexpr const char* CLASSNAME_DOUBLE = "Lstd/core/Double;";
 constexpr const char* CLASSNAME_BOOLEAN = "Lstd/core/Boolean;";
 
-bool GetIntByName(ani_env *env, ani_object param, const char *name, int &value)
+bool GetIntByName(ani_env *env, ani_object param, const char *name, int32_t &value)
 {
-    ani_int res;
-    ani_status status;
-
-    status = env->Object_GetFieldByName_Int(param, name, &res);
+    ani_int res = 0;
+    auto status = env->Object_GetFieldByName_Int(param, name, &res);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
-    value = static_cast<int>(res);
+    value = static_cast<int32_t>(res);
     return true;
 }
 
@@ -122,17 +120,13 @@ bool GetStringOrUndefined(ani_env *env, ani_object param, const char *name, std:
 bool GetFixedStringArrayOrUndefined(ani_env *env, ani_object param, const char *name, std::vector<std::string> &res)
 {
     ani_ref obj = nullptr;
-    ani_boolean isUndefined = true;
     ani_status status;
-    ani_size size = 0;
-    ani_size i;
-    ani_ref ref;
-    std::string str;
 
     if ((status = env->Object_GetFieldByName_Ref(param, name, &obj)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
+    ani_boolean isUndefined = true;
     if ((status = env->Reference_IsUndefined(obj, &isUndefined)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
@@ -142,24 +136,26 @@ bool GetFixedStringArrayOrUndefined(ani_env *env, ani_object param, const char *
         return false;
     }
 
+    ani_size size = 0;
     if ((status = env->Array_GetLength(reinterpret_cast<ani_array>(obj), &size)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
-    for (i = 0; i < size; i++) {
-        if ((status = env->Array_Get_Ref(reinterpret_cast<ani_array_ref>(obj), i, &ref)) != ANI_OK) {
-            HILOGI("status : %{public}d, index: %{public}zu", status, i);
+    ani_ref ref = nullptr;
+    for (ani_size index = 0; index < size; index++) {
+        if ((status = env->Array_Get_Ref(reinterpret_cast<ani_array_ref>(obj), index, &ref)) != ANI_OK) {
+            HILOGI("status : %{public}d, index: %{public}zu", status, index);
             return false;
         }
 
-        str = "";
-        if (!GetStdString(env, reinterpret_cast<ani_string>(ref), str)) {
-            HILOGI("GetStdString failed, index: %{public}zu", i);
+        std::string strItem = "";
+        if (!GetStdString(env, reinterpret_cast<ani_string>(ref), strItem)) {
+            HILOGI("GetStdString failed, index: %{public}zu", index);
             return false;
         }
 
-        res.push_back(str);
+        res.push_back(strItem);
     }
 
     return true;
@@ -169,28 +165,27 @@ bool SetFieldFixedArrayString(ani_env *env, ani_class cls, ani_object object, co
     const std::vector<std::string> &values)
 {
     ani_field field = nullptr;
-    ani_array_ref array = nullptr;
-    ani_class stringCls = nullptr;
-    ani_string string = nullptr;
-    ani_ref undefinedRef = nullptr;
     ani_status status = env->Class_FindField(cls, fieldName.c_str(), &field);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
+    ani_class stringCls = nullptr;
     status = env->FindClass("Lstd/core/String;", &stringCls);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
+    ani_ref undefinedRef = nullptr;
     status = env->GetUndefined(&undefinedRef);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
+    ani_array_ref array = nullptr;
     status = env->Array_New_Ref(stringCls, values.size(), undefinedRef, &array);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
@@ -198,13 +193,13 @@ bool SetFieldFixedArrayString(ani_env *env, ani_class cls, ani_object object, co
     }
 
     for (size_t i = 0; i < values.size(); ++i) {
-        string = nullptr;
-        status = env->String_NewUTF8(values[i].c_str(), values[i].size(), &string);
+        ani_string strItem = nullptr;
+        status = env->String_NewUTF8(values[i].c_str(), values[i].size(), &strItem);
         if (status != ANI_OK) {
             HILOGI("status : %{public}d", status);
             return false;
         }
-        status = env->Array_Set_Ref(array, i, string);
+        status = env->Array_Set_Ref(array, i, strItem);
         if (status != ANI_OK) {
             HILOGI("status : %{public}d", status);
             return false;
@@ -222,9 +217,8 @@ bool GetStringArrayOrUndefined(ani_env *env, ani_object param, const char *name,
 {
     ani_ref arrayObj = nullptr;
     ani_boolean isUndefined = true;
-    ani_status status;
+    ani_status status = ANI_OK;
     ani_double length;
-    std::string str;
 
     if ((status = env->Object_GetFieldByName_Ref(param, name, &arrayObj)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
@@ -245,18 +239,18 @@ bool GetStringArrayOrUndefined(ani_env *env, ani_object param, const char *name,
         return false;
     }
 
-    for (int i = 0; i < static_cast<int>(length); i++) {
+    for (int32_t index = 0; index < static_cast<int32_t>(length); index++) {
         ani_ref stringEntryRef;
         status = env->Object_CallMethodByName_Ref(reinterpret_cast<ani_object>(arrayObj),
-            "$_get", "I:Lstd/core/Object;", &stringEntryRef, (ani_int)i);
+            "$_get", "I:Lstd/core/Object;", &stringEntryRef, static_cast<ani_int>(index));
         if (status != ANI_OK) {
-            HILOGI("status : %{public}d, index: %{public}d", status, i);
+            HILOGI("status : %{public}d, index: %{public}d", status, index);
             return false;
         }
 
-        str = "";
+        std::string str = "";
         if (!GetStdString(env, reinterpret_cast<ani_string>(stringEntryRef), str)) {
-            HILOGI("GetStdString failed, index: %{public}d", i);
+            HILOGI("GetStdString failed, index: %{public}d", index);
             return false;
         }
 
@@ -274,7 +268,6 @@ bool SetFieldArrayString(ani_env *env, ani_class cls, ani_object object, const s
     ani_class arrayCls = nullptr;
     ani_method arrayCtor;
     ani_object arrayObj;
-    ani_string string = nullptr;
 
     ani_status status = env->Class_FindField(cls, fieldName.c_str(), &field);
     if (status != ANI_OK) {
@@ -301,14 +294,14 @@ bool SetFieldArrayString(ani_env *env, ani_class cls, ani_object object, const s
     }
 
     for (size_t i = 0; i < values.size(); i++) {
-        string = nullptr;
-        status = env->String_NewUTF8(values[i].c_str(), values[i].size(), &string);
+        ani_string strItem = nullptr;
+        status = env->String_NewUTF8(values[i].c_str(), values[i].size(), &strItem);
         if (status != ANI_OK) {
             HILOGI("status : %{public}d", status);
             return false;
         }
 
-        status = env->Object_CallMethodByName_Void(arrayObj, "$_set", "ILstd/core/Object;:V", i, string);
+        status = env->Object_CallMethodByName_Void(arrayObj, "$_set", "ILstd/core/Object;:V", i, strItem);
         if (status != ANI_OK) {
             HILOGI("status : %{public}d", status);
             return false;
@@ -328,7 +321,7 @@ bool GetStdString(ani_env *env, ani_string str, std::string &res)
     ani_size sz {};
     ani_status status = ANI_ERROR;
     if ((status = env->String_GetUTF8Size(str, &sz)) != ANI_OK) {
-        HILOGI("status : %{public}d", status);
+        HILOGW("status : %{public}d", status);
         return false;
     }
     res.resize(sz + 1);
@@ -445,7 +438,6 @@ bool SetFieldString(ani_env *env, ani_class cls, ani_object object,
     const std::string &fieldName, const std::string &value)
 {
     ani_field field = nullptr;
-    ani_string string = nullptr;
     ani_status status = env->Class_FindField(cls, fieldName.c_str(), &field);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
@@ -465,12 +457,13 @@ bool SetFieldString(ani_env *env, ani_class cls, ani_object object,
         return true;
     }
 
-    if ((status = env->String_NewUTF8(value.c_str(), value.size(), &string)) != ANI_OK) {
+    ani_string strItem = nullptr;
+    if ((status = env->String_NewUTF8(value.c_str(), value.size(), &strItem)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
-    if ((status = env->Object_SetField_Ref(object, field, string)) != ANI_OK) {
+    if ((status = env->Object_SetField_Ref(object, field, strItem)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
@@ -485,12 +478,8 @@ bool SetFieldDouble(ani_env *env, ani_class cls, ani_object object, const std::s
         HILOGI("status : %{public}d", status);
         return false;
     }
-    ani_object obj = createDouble(env, value);
-    if (obj == nullptr) {
-        HILOGI("createDouble failed");
-        return false;
-    }
-    status = env->Object_SetField_Ref(object, field, reinterpret_cast<ani_ref>(obj));
+
+    status = env->Object_SetField_Double(object, field, value);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
@@ -514,19 +503,17 @@ bool SetFieldBoolean(ani_env *env, ani_class cls, ani_object object, const std::
     return true;
 }
 
-bool SetFieldInt(ani_env *env, ani_class cls, ani_object object, const std::string &fieldName, int value)
+bool SetFieldInt(ani_env *env, ani_class cls, ani_object object, const std::string &fieldName, int32_t value)
 {
     ani_field field = nullptr;
     ani_status status = env->Class_FindField(cls, fieldName.c_str(), &field);
     if (status != ANI_OK) {
-        HILOGI("status : %{public}d", status);
-        HILOGI("status : %{public}s", fieldName.c_str());
+        HILOGI("status : %{public}d, field name: %{public}s", status, fieldName.c_str());
         return false;
     }
     status = env->Object_SetField_Int(object, field, value);
     if (status != ANI_OK) {
-        HILOGI("status : %{public}d", status);
-        HILOGI("status : %{public}s", fieldName.c_str());
+        HILOGI("status : %{public}d, field name: %{public}s", status, fieldName.c_str());
         return false;
     }
     return true;

@@ -26,29 +26,26 @@
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
 #include "serialize.h"
+#include "interops.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 
-struct NapiAsyncCallbackInfo : public std::enable_shared_from_this<NapiAsyncCallbackInfo> {
-    std::atomic<napi_env> env;
-    napi_ref callback = 0;
-    napi_threadsafe_function tsfn = nullptr;
-    std::atomic<bool> once = false;
-    std::atomic<bool> isDeleted = false;
-    InnerEvent::EventId eventId;
-
-    ~NapiAsyncCallbackInfo();
-    void ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event);
-};
-
-struct EventDataWorker {
+struct NapiEventDataWorker {
     std::shared_ptr<SerializeData> serializeData;
-    std::shared_ptr<NapiAsyncCallbackInfo> callbackInfo;
+    std::shared_ptr<AsyncCallbackInfo> callbackInfo;
+    int type;
 };
 
 class NapiAsyncCallbackManager {
+using AsyncCallbackInfoContainer =
+    std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>>;
 public:
+    NapiAsyncCallbackManager(
+        std::mutex& containerMutex = GetAsyncCallbackInfoContainerMutex(),
+        AsyncCallbackInfoContainer& callbackInfoContainer = GetAsyncCallbackInfoContainer()
+    ) : napiAsyncCallbackContainerMutex_(containerMutex), napiAsyncCallbackContainer_(callbackInfoContainer) {}
+
     /**
      * Delete all callback info of given event id.
      *
@@ -73,17 +70,6 @@ public:
     bool NapiIsExistValidCallback(const InnerEvent::EventId &eventId);
 
     /**
-     * Insert callback.
-     *
-     * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
-     * @param argv Event's callback.
-     * @param once Whether subscribe once. if true, subscribe once.
-     */
-    napi_value NapiInsertCallbackInfo(
-        napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv, bool once);
-
-    /**
      * Delete callback of given event id and callback object.
      *
      * @param env A pointer to the environment structure.
@@ -100,17 +86,11 @@ public:
     void NapiDoCallback(const InnerEvent::Pointer& event);
 
 private:
-    std::unordered_set<std::shared_ptr<NapiAsyncCallbackInfo>> NapiGetAsyncCallbackInfo(
+    std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> NapiGetAsyncCallbackInfo(
         const InnerEvent::EventId &eventId);
-    static void NapiReleaseCallbackInfo(NapiAsyncCallbackInfo* callbackInfo);
-    static void NapiThreadFinished(napi_env env, void* data, [[maybe_unused]] void* context);
-    static void NapiThreadSafeCallback(napi_env env, napi_value jsCallback, void* context, void* data);
-    static void NapiProcessCallback(const EventDataWorker* eventDataInner);
-
 private:
-    std::mutex napiAsyncCallbackContainerMutex_;
-    std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<NapiAsyncCallbackInfo>>>
-        napiAsyncCallbackContainer_;
+    std::mutex& napiAsyncCallbackContainerMutex_;
+    AsyncCallbackInfoContainer& napiAsyncCallbackContainer_;
 };
 
 } // namespace AppExecFwk

@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Copyright (c) 2021-2024 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,7 +13,12 @@
 
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
-import("../../../eventhandler.gni")
+import("../../eventhandler.gni")
+
+config("public_emitter_config") {
+  include_dirs = [ "include" ]
+}
+
 if (is_arkui_x) {
   import("//plugins/events/eventhandler.gni")
   ohos_source_set("emitter") {
@@ -40,28 +45,54 @@ if (is_arkui_x) {
     }
     branch_protector_ret = "pac_ret"
 
-    include_dirs = [ "include" ]
-
     sources = [
       "src/init.cpp",
-      "src/napi_emitter.cpp",
-      "src/napi_serialize.cpp",
     ]
 
-    deps = [
-      "${frameworks_path}/emitter/base:emitter_base",
-      "${frameworks_path}/eventhandler:libeventhandler",
-    ]
+    deps = [ "${frameworks_path}/napi:emitter_interops" ]
 
     external_deps = [
-      "c_utils:utils",
-      "hilog:libhilog",
       "napi:ace_napi",
-      "runtime_core:ani",
     ]
 
     relative_install_dir = "module/events"
     subsystem_name = "notification"
     part_name = "eventhandler"
   }
+}
+
+ohos_shared_library("emitter_interops") {
+  sanitize = {
+    integer_overflow = true
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+  branch_protector_ret = "pac_ret"
+  version_script = "libemitter.map"
+
+  include_dirs = [
+    "include",
+    "${inner_api_path}",
+  ]
+
+  public_configs = [ ":public_emitter_config" ]
+
+  sources = [
+    "src/events_emitter.cpp",
+    "src/interops.cpp"
+  ]
+
+  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "napi:ace_napi",
+  ]
+
+  subsystem_name = "notification"
+  part_name = "eventhandler"
 }
