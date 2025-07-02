@@ -103,6 +103,11 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
         return false;
     }
 
+    if (!eventRunner_) {
+        HILOGE("MUST Set event runner before sending events");
+        return false;
+    }
+
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
     event->SetSendTime(now);
     event->SetSenderKernelThreadId(getproctid());
@@ -118,15 +123,16 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto traceId = event->GetOrCreateTraceId();
     // if traceId is valid, out put trace information
-    if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
-        HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
+    bool isAllowHiTrace = AllowHiTraceOutPut(traceId, event->HasWaiter());
+    if (isAllowHiTrace) {
+        HiTracePointerOutPut(traceId, event, "SendEvent", HiTraceTracepointType::HITRACE_TP_CS);
     }
     HILOGD("Current event id is %{public}s .", (event->GetEventUniqueId()).c_str());
-    if (!eventRunner_) {
-        HILOGE("MUST Set event runner before sending events");
-        return false;
+    bool ret = eventRunner_->GetEventQueue()->Insert(event, priority);
+    if (isAllowHiTrace) {
+        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *traceId, "SendEvent over");
     }
-    return eventRunner_->GetEventQueue()->Insert(event, priority);
+    return ret;
 }
 
 bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
@@ -152,12 +158,16 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
     event->SetEventUniqueId();
     event->SetOwner(shared_from_this());
     auto traceId = event->GetOrCreateTraceId();
-    if (AllowHiTraceOutPut(traceId, event->HasWaiter())) {
-        HiTracePointerOutPut(traceId, event, "Send", HiTraceTracepointType::HITRACE_TP_CS);
+    bool isAllowHiTrace = AllowHiTraceOutPut(traceId, event->HasWaiter());
+    if (isAllowHiTrace) {
+        HiTracePointerOutPut(traceId, event, "PostTaskAtFront", HiTraceTracepointType::HITRACE_TP_CS);
     }
     HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
-    eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
-    return true;
+    bool ret = eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
+    if (isAllowHiTrace) {
+        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *traceId, "PostTaskAtFront over");
+    }
+    return ret;
 }
 
 bool EventHandler::SendTimingEvent(InnerEvent::Pointer &event, int64_t taskTime, Priority priority)
@@ -194,9 +204,6 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return true;
     }
 
-    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
-    auto spanId = event->GetOrCreateTraceId();
-
     if (eventRunner_->threadMode_ == ThreadMode::FFRT) {
         event->SetSendTime(InnerEvent::Clock::now());
         event->SetEventUniqueId();
@@ -223,9 +230,6 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
         return true;
     }
 
-    // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
-    auto spanId = event->GetOrCreateTraceId();
-
     // Create waiter, used to block.
     auto waiter = event->CreateWaiter();
     // Send this event as normal one.
@@ -236,9 +240,6 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
     // Wait until event is processed(recycled).
     waiter->Wait();
 #endif
-    if ((spanId) && (spanId->IsValid())) {
-        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *spanId, "event is processed");
-    }
 
     return result;
 }
