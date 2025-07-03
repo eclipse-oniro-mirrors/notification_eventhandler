@@ -148,6 +148,18 @@ void DeamonIoWaiter::StopEpollIoWaiter()
     running_.store(false);
 }
 
+static void PostTaskForVsync(const std::shared_ptr<EventHandler> &handler)
+{
+    auto runner = handler->GetEventRunner();
+    if (!runner) {
+        return;
+    }
+ 
+    if (runner == EventRunner::GetMainEventRunner()) {
+        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
+    }
+}
+
 void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events)
     __attribute__((no_sanitize("cfi")))
 {
@@ -156,6 +168,11 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
         auto handler = fileDescriptorInfo->listener_->GetOwner();
         if (!handler) {
             HILOGW("Owner of listener is released %{public}d.", fileDescriptor);
+            return;
+        }
+
+        if (fileDescriptorInfo->taskName_ == "vSyncTask") {
+            PostTaskForVsync(handler);
             return;
         }
 

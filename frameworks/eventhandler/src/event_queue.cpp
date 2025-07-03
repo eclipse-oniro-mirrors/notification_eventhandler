@@ -121,6 +121,9 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
             listener, priority);
     }
     if (ioWaiter_) {
+        if (taskName == "vSyncTask") {
+            DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
+        }
         return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
     }
     return false;
@@ -207,7 +210,6 @@ static void PostTaskForVsync(const InnerEvent::Callback &cb, const std::string &
         handler->RemoveTask("BarrierEvent");
         queue->SetBarrierMode(false);
     }
-    FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
 }
 
 std::shared_ptr<FileDescriptorListener> EventQueue::GetListenerByfd(int32_t fileDescriptor)
@@ -277,9 +279,6 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
         PostTaskForVsync(f, taskName, handler, priority);
     } else {
         handler->PostTask(f, taskName, 0, priority);
-    }
-    if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
-        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_FLUSH_BEGIN, {});
     }
 }
 
