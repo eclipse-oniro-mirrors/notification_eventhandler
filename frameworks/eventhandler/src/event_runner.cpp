@@ -637,7 +637,6 @@ std::shared_ptr<EventRunner> EventRunner::Current()
     if (ffrt_this_task_get_id()) {
         auto handler = ffrt_get_current_queue_eventhandler();
         if (handler == nullptr) {
-            HILOGW("Current handler is null.");
             return nullptr;
         }
         auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
@@ -777,7 +776,6 @@ std::shared_ptr<EventQueue> EventRunner::GetCurrentEventQueue()
     if (ffrt_this_task_get_id()) {
         auto handler = ffrt_get_current_queue_eventhandler();
         if (handler == nullptr) {
-            HILOGW("Current handler is null.");
             return nullptr;
         }
         auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
@@ -820,7 +818,6 @@ bool EventRunner::IsCurrentRunnerThread()
     if (ffrt_this_task_get_id()) {
         auto handler = ffrt_get_current_queue_eventhandler();
         if (handler == nullptr) {
-            HILOGW("Current handler is null.");
             return false;
         }
         auto sharedHandler =  *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
