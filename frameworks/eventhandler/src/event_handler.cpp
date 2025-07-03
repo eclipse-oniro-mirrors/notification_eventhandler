@@ -54,7 +54,6 @@ std::shared_ptr<EventHandler> EventHandler::Current()
     if (ffrt_this_task_get_id()) {
         auto handler = ffrt_get_current_queue_eventhandler();
         if (handler == nullptr) {
-            HILOGW("Current handler is null.");
             return nullptr;
         }
         return *(reinterpret_cast<std::shared_ptr<EventHandler>*>(handler));
