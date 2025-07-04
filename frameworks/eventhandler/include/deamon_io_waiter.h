@@ -61,6 +61,7 @@ public:
     LOCAL_API void EraseFileDescriptorMap(int32_t fileDescriptor);
     LOCAL_API std::shared_ptr<FileDescriptorInfo> GetFileDescriptorMap(int32_t fileDescriptor);
     LOCAL_API void HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t events);
+    LOCAL_API void VsyncReport(const std::shared_ptr<EventHandler> &handler);
 private:
     LOCAL_API void EpollWaitFor();
     LOCAL_API void DrainAwakenPipe() const;
