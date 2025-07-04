@@ -121,7 +121,8 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
             listener, priority);
     }
     if (ioWaiter_) {
-        if (taskName == "vSyncTask") {
+        auto handler = listener->GetOwner();
+        if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
             DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
         }
         return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);

@@ -148,7 +148,7 @@ void DeamonIoWaiter::StopEpollIoWaiter()
     running_.store(false);
 }
 
-static void PostTaskForVsync(const std::shared_ptr<EventHandler> &handler)
+void DeamonIoWaiter::VsyncReport(const std::shared_ptr<EventHandler> &handler)
 {
     auto runner = handler->GetEventRunner();
     if (!runner) {
@@ -172,7 +172,7 @@ void DeamonIoWaiter::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t 
         }
 
         if (fileDescriptorInfo->taskName_ == "vSyncTask") {
-            PostTaskForVsync(handler);
+            VsyncReport(handler);
             return;
         }
 

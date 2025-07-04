@@ -155,6 +155,34 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, AddFileDescriptor003, TestSize.Level1
     EXPECT_EQ(result, false);
 }
 
+HWTEST_F(LibEventHandlerEpollIoWaiterTest, VsyncReport001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. get event with event id and param, then get event id and param from event.
+     * @tc.expected: step1. the event id and param is the same as we set.
+     */
+ 
+    DeamonIoWaiter::GetInstance().Init();
+    auto runner1 = EventRunner::Create(false);
+    auto handler1 = std::make_shared<EventHandler>(runner1);
+    DeamonIoWaiter::GetInstance().VsyncReport(handler1);
+    EXPECT_NE(handler1->GetEventRunner(), nullptr);
+    usleep(500);
+ 
+    auto runner2 = EventRunner::Create(true);
+    auto handler2 = std::make_shared<EventHandler>(runner2);
+    handler2->eventRunner_ = nullptr;
+    DeamonIoWaiter::GetInstance().VsyncReport(handler2);
+    EXPECT_EQ(handler2->GetEventRunner(), nullptr);
+    usleep(500);
+ 
+    auto runner3 = EventRunner::Create(true);
+    auto handler3 = std::make_shared<EventHandler>(runner3);
+    DeamonIoWaiter::GetInstance().VsyncReport(handler3);
+    EXPECT_NE(handler3->GetEventRunner(), nullptr);
+    usleep(500);
+}
+
 HWTEST_F(LibEventHandlerEpollIoWaiterTest, PostTaskForVsync001, TestSize.Level1)
 {
     /**
@@ -184,6 +212,19 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, PostTaskForVsync001, TestSize.Level1)
     events = FILE_DESCRIPTOR_INPUT_EVENT | FILE_DESCRIPTOR_OUTPUT_EVENT|
         FILE_DESCRIPTOR_SHUTDOWN_EVENT | FILE_DESCRIPTOR_EXCEPTION_EVENT;
     DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor, events);
+    usleep(500);
+
+    int32_t fileDescriptor2 = 2;
+    uint32_t events2 = 2;
+    auto runner2 = EventRunner::Create(true);
+    auto handler2 = std::make_shared<EventHandler>(runner2);
+    auto listener2 = std::make_shared<IoFileDescriptorListener>();
+    handler2->AddFileDescriptorListener(fileDescriptor2, events2,
+        listener2, "vSyncTask", EventQueue::Priority::VIP);
+    bool result2 = DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor2,
+        events2, "vSyncTask", listener2, EventQueue::Priority::VIP);
+    EXPECT_EQ(result2, false);
+    DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor2, events2);
     usleep(500);
 }
 
