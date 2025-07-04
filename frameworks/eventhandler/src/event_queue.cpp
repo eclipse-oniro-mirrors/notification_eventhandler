@@ -281,9 +281,6 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     } else {
         handler->PostTask(f, taskName, 0, priority);
     }
-    if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
-        FrameReport::GetInstance().ReportSchedEvent(FrameSchedEvent::UI_EVENT_HANDLE_BEGIN, {});
-    }
 }
 
 void EventQueue::RemoveListenerByOwner(const std::shared_ptr<EventHandler> &owner)

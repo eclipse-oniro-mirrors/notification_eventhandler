@@ -38,9 +38,11 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
     "init:libbegetutil",
   ]
 
-  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
+  cflags_cc = [ 
+    "-DFFRT_USAGE_ENABLE",
+    "-Dprivate=public",
+  ]
 
-  cflags_cc = [ "-DFFRT_USAGE_ENABLE" ]
   if (has_hichecker_native_part) {
     external_deps += [ "hichecker:libhichecker" ]
   }
