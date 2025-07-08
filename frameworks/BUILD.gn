@@ -24,3 +24,15 @@ group("napi_packages") {
 group("eventhandler_native_target") {
   deps = [ "native:eventhandler_native" ]
 }
+
+group("emitter_packages") {
+  if (support_jsapi) {
+    deps = [
+      "emitter:eventEmitter",
+      "emitter:event_emitter_abc_etc",
+      "emitter:event_json_abc_etc",
+      "napi:emitter",
+      "napi:emitter_interops"
+    ]
+  }
+}
