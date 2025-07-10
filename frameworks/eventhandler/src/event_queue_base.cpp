@@ -62,6 +62,7 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
     while (it != events.begin()) {
         auto prevIt = std::prev(it);
         if ((*prevIt) == nullptr) {
+            it = prevIt;
             continue;
         }
         if ((*prevIt)->GetHandleTime() <= eventTime) {
