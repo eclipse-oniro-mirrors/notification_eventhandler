@@ -87,63 +87,11 @@ namespace emitter {
     }
   }
 
-  export function once(event: InnerEvent, callback: Callback<EventData>): void {
-    if (event == null || callback == null) {
-      return;
-    }
-    if (event.eventId) {
-      OnOrOnceSync(event.eventId, true, callback, "eventData");
-    }
-  }
-
   export function on(eventId: string, callback: Callback<EventData>): void {
     if (eventId === '' || callback == null) {
       return;
     }
     emitter.OnOrOnceStringSync(eventId, false, callback, "eventData");
-  }
-
-  export function once(eventId: string, callback: Callback<EventData>): void {
-    if (eventId === '' || callback == null) {
-      return;
-    }
-    OnOrOnceStringSync(eventId, true, callback, "eventData");
-  }
-
-  export function off(eventId: string): void {
-    if (eventId === '') {
-      return;
-    }
-    OffStringIdSync(eventId);
-  }
-
-  export function off(eventId: string, callback: Callback<EventData>): void {
-    if (eventId === '' || callback == null) {
-      return;
-    }
-    emitter.OffStringSync(eventId, callback);
-  }
-
-  export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
-    if (eventId === '' || callback == null) {
-      return;
-    }
-    if (callback instanceof Callback<EventData>) {
-      OffStringSync(eventId, callback as Callback<EventData>);
-    } else {
-      OffGenericEventSync(eventId, callback as Callback<GenericEventData<T>>);
-    }
-  }
-
-  export function off(eventId: number): void {
-    OffNumberSync(eventId);
-  }
-
-  export function off(eventId: number, callback: Callback<EventData>): void {
-    if (callback == null) {
-      return;
-    }
-    OffNumberCallbackSync(eventId, callback);
   }
 
   export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
@@ -157,25 +105,60 @@ namespace emitter {
     }
   }
 
-  export function emit(eventId: string, options: Options, data?: EventData): void {
-    if (eventId === '' || options == null) {
+  export function once(event: InnerEvent, callback: Callback<EventData>): void {
+    if (event == null || callback == null) {
       return;
     }
-    if (data != undefined) {
-      EmitStringOptionsDataSync(eventId, options, data as EventData);
-    } else {
-      EmitStringOptionsSync(eventId, options);
+    if (event.eventId) {
+      OnOrOnceSync(event.eventId, true, callback, "eventData");
     }
   }
 
-  export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
-    if (eventId === '' || options == null) {
+  export function once(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '' || callback == null) {
       return;
     }
-    if (data != undefined) {
-      EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
+    OnOrOnceStringSync(eventId, true, callback, "eventData");
+  }
+
+  export function off(eventId: number): void {
+    OffNumberSync(eventId);
+  }
+
+  export function off(eventId: string): void {
+    if (eventId === '') {
+      return;
+    }
+    OffStringIdSync(eventId);
+  }
+
+  export function off(eventId: number, callback: Callback<EventData>): void {
+    OffNumberCallbackSync(eventId, callback);
+  }
+
+  export function off(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '') {
+      return;
+    }
+    emitter.OffStringSync(eventId, callback);
+  }
+
+  export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+    if (eventId === '') {
+      return;
+    }
+    if (callback instanceof Callback<EventData>) {
+      OffStringSync(eventId, callback as Callback<EventData>);
     } else {
-      EmitStringOptionsSync(eventId, options);
+      OffGenericEventSync(eventId, callback as Callback<GenericEventData<T>>);
+    }
+  }
+
+  export function emit(event: InnerEvent, data?: EventData): void {
+    if (data != undefined) {
+      EmitInnerEventDataSync(event, data);
+    } else {
+      EmitInnerEventSync(event);
     }
   }
 
@@ -201,14 +184,25 @@ namespace emitter {
     }
   }
 
-  export function emit(event: InnerEvent, data?: EventData): void {
-    if (event == null) {
+  export function emit(eventId: string, options: Options, data?: EventData): void {
+    if (eventId === '' || options == null) {
       return;
     }
     if (data != undefined) {
-      EmitInnerEventDataSync(event, data);
+      EmitStringOptionsDataSync(eventId, options, data as EventData);
     } else {
-      EmitInnerEventSync(event);
+      EmitStringOptionsSync(eventId, options);
+    }
+  }
+
+  export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+    if (eventId === '' || options == null) {
+      return;
+    }
+    if (data != undefined) {
+      EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
+    } else {
+      EmitStringOptionsSync(eventId, options);
     }
   }
 
