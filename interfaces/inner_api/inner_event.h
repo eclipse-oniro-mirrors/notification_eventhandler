@@ -779,6 +779,22 @@ public:
         return isBarrier_;
     }
 
+    /**
+     * Mark the event sent by enhanced api.
+     */
+    inline void SetIsEnhanced(const bool isEnhanced)
+    {
+        isEnhanced_ = isEnhanced;
+    }
+
+    /**
+     * Check the event whether sent by enhanced api.
+     */
+    inline bool IsEnhanced()
+    {
+        return isEnhanced_;
+    }
+
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -928,6 +944,8 @@ private:
     std::string ownerId_;
 
     int64_t delayTime_ = 0;
+
+    bool isEnhanced_ = false;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
