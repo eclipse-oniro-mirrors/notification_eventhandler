@@ -58,7 +58,7 @@ bool AniSerialize::CrossSerialize(ani_env* env, ani_object argv, std::shared_ptr
         }
         ani_status status = ANI_OK;
         ani_namespace ns {};
-        status = env->FindNamespace("L@ohos/util/json/json;", &ns);
+        status = env->FindNamespace("@ohos.util.json.json", &ns);
         if (status != ANI_OK) {
             HILOGI("Failed to find namespace");
             return false;

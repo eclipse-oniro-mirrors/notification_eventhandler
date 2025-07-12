@@ -25,7 +25,7 @@ static ani_ref JsonParse(ani_env *env, std::string jsonStr)
 {
     ani_status status = ANI_ERROR;
     ani_class cls = nullptr;
-    if ((status = env->FindClass("L@ohos/events/json/RecordSerializeTool;", &cls)) != ANI_OK) {
+    if ((status = env->FindClass("@ohos.events.json.RecordSerializeTool", &cls)) != ANI_OK) {
         HILOGI("FindClass RecordSerializeTool failed, status : %{public}d", status);
         return nullptr;
     }

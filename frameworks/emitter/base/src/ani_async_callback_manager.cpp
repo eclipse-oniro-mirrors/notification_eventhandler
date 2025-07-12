@@ -62,9 +62,9 @@ ani_status AniAsyncCallbackInfo::GetCallbackArgs(
     ani_status status = ANI_OK;
     ani_class cls;
     if (dataType == EVENT_DATA) {
-        status = env->FindClass("L@ohos/events/emitter/emitter/EventDataInner;", &cls);
+        status = env->FindClass("@ohos.events.emitter.emitter.EventDataInner", &cls);
     } else if (dataType == GENERIC_EVENT_DATA) {
-        status = env->FindClass("L@ohos/events/emitter/emitter/GenericEventDataInner;", &cls);
+        status = env->FindClass("@ohos.events.emitter.emitter.GenericEventDataInner", &cls);
     } else {
         return status;
     }
@@ -73,7 +73,7 @@ ani_status AniAsyncCallbackInfo::GetCallbackArgs(
         return status;
     }
     ani_method ctor;
-    status = env->Class_FindMethod(cls, "<ctor>", ":V", &ctor);
+    status = env->Class_FindMethod(cls, "<ctor>", ":", &ctor);
     if (status != ANI_OK) {
         HILOGE("threadFunciton Class_FindMethod error%{public}d", status);
         return status;

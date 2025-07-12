@@ -23,8 +23,8 @@ namespace AppExecFwk {
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
 }
-constexpr const char* CLASSNAME_DOUBLE = "Lstd/core/Double;";
-constexpr const char* CLASSNAME_BOOLEAN = "Lstd/core/Boolean;";
+constexpr const char* CLASSNAME_DOUBLE = "std.core.Double";
+constexpr const char* CLASSNAME_BOOLEAN = "std.core.Boolean";
 
 bool GetIntByName(ani_env *env, ani_object param, const char *name, int32_t &value)
 {
@@ -235,7 +235,7 @@ bool GetStringArrayOrUndefined(ani_env *env, ani_object param, const char *name,
     for (int32_t index = 0; index < static_cast<int32_t>(length); index++) {
         ani_ref stringEntryRef;
         status = env->Object_CallMethodByName_Ref(reinterpret_cast<ani_object>(arrayObj),
-            "$_get", "I:Lstd/core/Object;", &stringEntryRef, static_cast<ani_int>(index));
+            "$_get", "i:C{std.core.Object}", &stringEntryRef, static_cast<ani_int>(index));
         if (status != ANI_OK) {
             HILOGI("status : %{public}d, index: %{public}d", status, index);
             return false;
@@ -268,13 +268,13 @@ bool SetFieldArrayString(ani_env *env, ani_class cls, ani_object object, const s
         return false;
     }
 
-    status = env->FindClass("Lescompat/Array;", &arrayCls);
+    status = env->FindClass("escompat.Array", &arrayCls);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
     }
 
-    status = env->Class_FindMethod(arrayCls, "<ctor>", "I:V", &arrayCtor);
+    status = env->Class_FindMethod(arrayCls, "<ctor>", "i:", &arrayCtor);
     if (status != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return false;
@@ -294,7 +294,7 @@ bool SetFieldArrayString(ani_env *env, ani_class cls, ani_object object, const s
             return false;
         }
 
-        status = env->Object_CallMethodByName_Void(arrayObj, "$_set", "ILstd/core/Object;:V", i, strItem);
+        status = env->Object_CallMethodByName_Void(arrayObj, "$_set", "iC{std.core.Object}:", i, strItem);
         if (status != ANI_OK) {
             HILOGI("status : %{public}d", status);
             return false;
@@ -394,7 +394,7 @@ ani_object createDouble(ani_env *env, ani_double value)
         return nullptr;
     }
     ani_method personInfoCtor;
-    if ((status = env->Class_FindMethod(persion_cls, "<ctor>", "D:V", &personInfoCtor)) != ANI_OK) {
+    if ((status = env->Class_FindMethod(persion_cls, "<ctor>", "d:", &personInfoCtor)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return nullptr;
     }
@@ -415,7 +415,7 @@ ani_object createBoolean(ani_env *env, ani_boolean value)
         return nullptr;
     }
     ani_method personInfoCtor;
-    if ((status = env->Class_FindMethod(persion_cls, "<ctor>", "Z:V", &personInfoCtor)) != ANI_OK) {
+    if ((status = env->Class_FindMethod(persion_cls, "<ctor>", "z:", &personInfoCtor)) != ANI_OK) {
         HILOGI("status : %{public}d", status);
         return nullptr;
     }
