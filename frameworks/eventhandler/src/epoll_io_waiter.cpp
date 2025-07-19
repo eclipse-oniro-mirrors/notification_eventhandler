@@ -258,7 +258,7 @@ void EpollIoWaiter::RemoveFileDescriptor(int32_t fileDescriptor)
     if (EpollCtrl(epollFd_, EPOLL_CTL_DEL, fileDescriptor, 0) < 0) {
         char errmsg[MAX_ERRORMSG_LEN] = {0};
         GetLastErr(errmsg, MAX_ERRORMSG_LEN);
-        HILOGE("Failed to remove file descriptor from epoll, %{public}s", errmsg);
+        HILOGD("Failed to remove file descriptor from epoll, %{public}s", errmsg);
         return;
     }
     EraseFileDescriptorMap(fileDescriptor);
