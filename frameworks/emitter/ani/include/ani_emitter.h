@@ -63,7 +63,7 @@ public:
      * @param eventId Event id.
      * @return Returns all listener counts of given event id.
      */
-    static ani_double GetListenerCount(InnerEvent::EventId eventId);
+    static ani_long GetListenerCount(InnerEvent::EventId eventId);
 
     /**
      * Emit an event of given event id.

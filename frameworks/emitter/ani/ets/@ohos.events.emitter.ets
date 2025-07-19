@@ -42,12 +42,12 @@ namespace emitter {
   }
 
   export interface InnerEvent {
-    eventId: number;
+    eventId: long;
     priority?: EventPriority;
   }
 
   class InnerEventInner implements InnerEvent {
-    public eventId: number = 0;
+    public eventId: long = 0;
     public priority?: EventPriority | undefined;
   }
 
@@ -62,13 +62,13 @@ namespace emitter {
   export native function OffStringIdSync(eventId: string): void;
   export native function OffStringSync(eventId: string, callback: Callback<EventData>): void;
   export native function OffGenericEventSync<T>(eventId: string, callback: Callback<GenericEventData<T>>): void;
-  export native function OffNumberSync(eventId: number): void;
-  export native function OffNumberCallbackSync(eventId: number, callback: Callback<EventData>): void;
+  export native function OffNumberSync(eventId: long): void;
+  export native function OffNumberCallbackSync(eventId: long, callback: Callback<EventData>): void;
   export native function OnOrOnceStringSync(eventId: string, once: boolean, callback: Callback<EventData>, dataType: string): void;
   export native function OnOrOnceGenericEventSync<T>(eventId: string, once : boolean, callback: Callback<GenericEventData<T>>, dataType: string): void;
-  export native function OnOrOnceSync(eventId: number, once: boolean, callback: Callback<EventData>, dataType: string): void;
-  export native function getListenerCountSync(eventId: number): number;
-  export native function getListenerCountStringSync(eventId: string): number;
+  export native function OnOrOnceSync(eventId: long, once: boolean, callback: Callback<EventData>, dataType: string): void;
+  export native function getListenerCountSync(eventId: long): long;
+  export native function getListenerCountStringSync(eventId: string): long;
   export native function EmitInnerEventSync(eventId: InnerEvent): void;
   export native function EmitInnerEventDataSync(eventId: InnerEvent, data: EventData): void;
   export native function EmitStringSync(eventId: string): void;
@@ -114,7 +114,7 @@ namespace emitter {
     OnOrOnceStringSync(eventId, true, callback, "eventData");
   }
 
-  export function off(eventId: number): void {
+  export function off(eventId: long): void {
     OffNumberSync(eventId);
   }
 
@@ -125,7 +125,7 @@ namespace emitter {
     OffStringIdSync(eventId);
   }
 
-  export function off(eventId: number, callback: Callback<EventData>): void {
+  export function off(eventId: long, callback: Callback<EventData>): void {
     OffNumberCallbackSync(eventId, callback);
   }
 
@@ -192,10 +192,10 @@ namespace emitter {
     }
   }
 
-  export function getListenerCount(eventId: number | string): number {
-    let count : number = 0;
+  export function getListenerCount(eventId: long | string): long {
+    let count : long = 0;
     if (typeof eventId === "number") {
-      count = getListenerCountSync(eventId as number);
+      count = getListenerCountSync(eventId as long);
     } else {
       if (eventId === '') {
         return count;
