@@ -521,6 +521,7 @@ namespace {
         if (subscribe->second.size() != 0) {
             return true;
         }
+        EH_LOGE_LIMIT("Invalid callback");
         return false;
     }
 
@@ -542,7 +543,6 @@ namespace {
         HILOGD("Event id value:%{public}u", id);
 
         if (!IsExistValidCallback(env, eventId)) {
-            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
@@ -581,7 +581,6 @@ namespace {
         HILOGD("Event id value:%{public}s", id.c_str());
 
         if (!IsExistValidCallback(env, eventId)) {
-            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 

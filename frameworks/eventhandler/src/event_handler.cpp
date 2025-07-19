@@ -70,7 +70,7 @@ EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRu
     static std::atomic<uint64_t> handlerCount = 1;
     handlerId_ = std::to_string(handlerCount.load()) + "_" + std::to_string(GetTimeStamp());
     handlerCount.fetch_add(1);
-    EH_LOGI_LIMIT("Create eventHandler %{public}s", handlerId_.c_str());
+    HILOGD("Create eventHandler %{public}s", handlerId_.c_str());
 }
 
 EventHandler::~EventHandler()
@@ -361,7 +361,7 @@ void EventHandler::SetEventRunner(const std::shared_ptr<EventRunner> &runner)
     }
 
     if (eventRunner_) {
-        HILOGW("It is not recommended to change the event runner dynamically");
+        HILOGD("It is not recommended to change the event runner dynamically");
 
         // Remove all events and listeners from old event runner.
         RemoveAllEvents();

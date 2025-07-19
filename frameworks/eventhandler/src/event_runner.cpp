@@ -545,7 +545,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread)
 {
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
-        EH_LOGI_LIMIT("EventRunner created");
+        HILOGD("EventRunner created");
         return Create(std::string(), Mode::DEFAULT, ThreadMode::NEW_THREAD);
     }
 
@@ -568,7 +568,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode th
 {
     HILOGD("inNewThread is %{public}d %{public}d", inNewThread, threadMode);
     if (inNewThread) {
-        EH_LOGI_LIMIT("EventRunner created");
+        HILOGD("EventRunner created");
         return Create(std::string(), Mode::DEFAULT, threadMode);
     }
 
