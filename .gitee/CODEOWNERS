@@ -1,0 +1,4 @@
+[FWK NOTIFICATION]
+frameworks/ @fwk_notification
+interfaces/ @fwk_notification
+test/ @fwk_notification
