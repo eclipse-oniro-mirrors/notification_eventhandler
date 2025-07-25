@@ -24,6 +24,7 @@
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
+#include "interops.h"
 
 using namespace std;
 namespace OHOS {
@@ -31,9 +32,39 @@ namespace AppExecFwk {
 namespace {
     DEFINE_EH_HILOG_LABEL("EventsEmitter");
     constexpr static uint32_t ARGC_ONE = 1u;
+    bool StringToNapiValue(napi_env env, napi_value* napiValue, std::string strValue)
+    {
+        if (strValue.length() > 0) {
+            napi_value globalValue;
+            napi_get_global(env, &globalValue);
+            napi_value jsonValue;
+            napi_get_named_property(env, globalValue, "JSON", &jsonValue);
+            napi_value parseValue;
+            napi_get_named_property(env, jsonValue, "parse", &parseValue);
+            napi_value paramsNApi;
+            napi_create_string_utf8(env, strValue.c_str(), NAPI_AUTO_LENGTH, &paramsNApi);
+            napi_value funcArgv[1] = { paramsNApi };
+            auto status = napi_call_function(env, jsonValue, parseValue, 1, funcArgv, napiValue);
+            if (status != napi_ok) {
+                HILOGE("StringToNapiValue Stringify Failed");
+                return false;
+            }
+        }
+        return true;
+    }
 }
     static std::mutex g_emitterInsMutex;
-    static map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
+    static std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
+    AsyncCallbackInfoContainer& GetAsyncCallbackInfoContainer()
+    {
+        return emitterInstances;
+    }
+
+    std::mutex& GetAsyncCallbackInfoContainerMutex()
+    {
+        return g_emitterInsMutex;
+    }
+
     std::shared_ptr<EventHandlerInstance> eventHandler;
     AsyncCallbackInfo::~AsyncCallbackInfo()
     {
@@ -64,11 +95,18 @@ namespace {
 
         std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
         napi_value resultData = nullptr;
-        if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
-            if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
-                resultData == nullptr) {
-                HILOGE("Deserialize fail.");
+        if (eventDataInner->isCrossRuntime) {
+            bool ret = StringToNapiValue(callbackInner->env, &resultData, eventDataInner->crossRuntimeData);
+            if (!ret) {
                 return;
+            }
+        } else {
+            if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
+                if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
+                    resultData == nullptr) {
+                    HILOGE("Deserialize fail.");
+                    return;
+                }
             }
         }
         napi_value event = nullptr;
@@ -143,6 +181,11 @@ namespace {
 
     void EventHandlerInstance::ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event)
     {
+        if (event->IsEnhanced() && GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->ProcessEvent != nullptr) {
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->ProcessEvent(event);
+            return;
+        }
         InnerEvent::EventId eventId = event->GetInnerEventIdEx();
         OutPutEventIdLog(eventId);
         auto callbackInfos = GetAsyncCallbackInfo(eventId);
@@ -433,6 +476,10 @@ namespace {
 
     napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off(env, cbinfo);
+        }
         HILOGD("JS_Off enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
@@ -521,7 +568,6 @@ namespace {
         if (subscribe->second.size() != 0) {
             return true;
         }
-        EH_LOGE_LIMIT("Invalid callback");
         return false;
     }
 
@@ -543,6 +589,7 @@ namespace {
         HILOGD("Event id value:%{public}u", id);
 
         if (!IsExistValidCallback(env, eventId)) {
+            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
@@ -581,6 +628,7 @@ namespace {
         HILOGD("Event id value:%{public}s", id.c_str());
 
         if (!IsExistValidCallback(env, eventId)) {
+            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
@@ -619,6 +667,10 @@ namespace {
 
     napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
     {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit(env, cbinfo);
+        }
         HILOGD("JS_Emit enter");
         size_t argc = ARGC_NUM + ARGC_ONE;
         napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
@@ -697,6 +749,10 @@ namespace {
 
     napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_GetListenerCount != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_GetListenerCount(env, cbinfo);
+        }
         HILOGD("JS_GetListenerCount enter");
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};

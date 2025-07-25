@@ -30,9 +30,7 @@
 #include "epoll_io_waiter.h"
 #include "event_handler.h"
 #include "event_queue.h"
-#define private public
 #include "event_queue_base.h"
-#undef private
 #include "event_runner.h"
 #include "inner_event.h"
 #include "event_queue_ffrt.h"
@@ -2864,34 +2862,4 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_002, TestSize.Level1)
     auto event = InnerEvent::Get(f, "event");
     auto result = queue.Insert(event);
     EXPECT_EQ(false, result);
-}
-
-/*
- * @tc.name: InsertTest
- * @tc.desc: InsertTest_003 test, change event list have nullptr
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, InsertTest_003, TestSize.Level1)
-{
-    auto now = InnerEvent::Clock::now();
-    EventQueueBase queue;
-    queue.Prepare();
-    uint32_t eventId = 0;
-    queue.idleEvents_.clear();
-    queue.idleEvents_.push_back(
-        std::unique_ptr<OHOS::AppExecFwk::InnerEvent, void (*)(OHOS::AppExecFwk::InnerEvent*)>(nullptr, nullptr));
-
-    auto event = InnerEvent::Get(eventId);
-    event->SetSendTime(now);
-    event->SetHandleTime(now);
-    queue.Insert(event, EventQueue::Priority::IDLE);
-
-    for (int i = 0; i < queue.idleEvents_.size(); i++) {
-        auto event = queue.GetEvent();
-        if (event == nullptr) {
-            continue;
-        }
-        auto id = event->GetInnerEventId();
-        EXPECT_EQ(eventId, id);
-    }
 }

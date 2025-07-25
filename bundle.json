@@ -43,9 +43,9 @@
                 ],
                 "fwk_group": [
                     "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler",
+                    "//base/notification/eventhandler/frameworks:emitter_packages",
                     "//base/notification/eventhandler/frameworks:eventhandler_native_target",
-                    "//base/notification/eventhandler/frameworks:napi_packages",
-                    "//base/notification/eventhandler/frameworks/ani:ani_event_emitter_packages"
+                    "//base/notification/eventhandler/frameworks:napi_packages"
                 ],
                 "service_group": [
 
