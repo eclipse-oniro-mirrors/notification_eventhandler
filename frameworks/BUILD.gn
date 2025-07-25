@@ -14,13 +14,21 @@
 group("napi_packages") {
   deps = []
   if (support_jsapi) {
-    deps += [
-      "cj:cj_emitter_ffi",
-      "napi:emitter",
-    ]
+    deps += [ "cj:cj_emitter_ffi" ]
   }
 }
 
+group("emitter_packages") {
+  if (support_jsapi) {
+    deps = [
+      "emitter:eventEmitter",
+      "emitter:event_emitter_abc_etc",
+      "emitter:event_json_abc_etc",
+      "napi:emitter",
+      "napi:emitter_interops",
+    ]
+  }
+}
 group("eventhandler_native_target") {
   deps = [ "native:eventhandler_native" ]
 }
