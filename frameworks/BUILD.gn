@@ -14,7 +14,9 @@
 group("napi_packages") {
   deps = []
   if (support_jsapi) {
-    deps += [ "cj:cj_emitter_ffi" ]
+    deps += [
+      "cj:cj_emitter_ffi",
+    ]
   }
 }
 
