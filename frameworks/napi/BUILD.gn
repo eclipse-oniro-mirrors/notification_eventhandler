@@ -31,6 +31,7 @@ if (is_arkui_x) {
     sources = [
       "src/events_emitter.cpp",
       "src/init.cpp",
+      "src/interops.cpp",
     ]
   }
 } else {
@@ -52,6 +53,7 @@ if (is_arkui_x) {
     deps = [ "${frameworks_path}/napi:emitter_interops" ]
 
     external_deps = [
+      "c_utils:utils",
       "napi:ace_napi",
     ]
 
@@ -59,40 +61,40 @@ if (is_arkui_x) {
     subsystem_name = "notification"
     part_name = "eventhandler"
   }
-}
 
-ohos_shared_library("emitter_interops") {
-  sanitize = {
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
+  ohos_shared_library("emitter_interops") {
+    sanitize = {
+      integer_overflow = true
+      ubsan = true
+      boundary_sanitize = true
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+    branch_protector_ret = "pac_ret"
+    version_script = "libemitter.map"
+
+    include_dirs = [
+      "include",
+      "${inner_api_path}",
+    ]
+
+    public_configs = [ ":public_emitter_config" ]
+
+    sources = [
+      "src/events_emitter.cpp",
+      "src/interops.cpp"
+    ]
+
+    deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
+
+    external_deps = [
+      "c_utils:utils",
+      "hilog:libhilog",
+      "napi:ace_napi",
+    ]
+
+    subsystem_name = "notification"
+    part_name = "eventhandler"
   }
-  branch_protector_ret = "pac_ret"
-  version_script = "libemitter.map"
-
-  include_dirs = [
-    "include",
-    "${inner_api_path}",
-  ]
-
-  public_configs = [ ":public_emitter_config" ]
-
-  sources = [
-    "src/events_emitter.cpp",
-    "src/interops.cpp"
-  ]
-
-  deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "napi:ace_napi",
-  ]
-
-  subsystem_name = "notification"
-  part_name = "eventhandler"
 }
