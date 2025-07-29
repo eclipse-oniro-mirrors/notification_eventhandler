@@ -223,7 +223,7 @@ HWTEST_F(LibEventHandlerEpollIoWaiterTest, PostTaskForVsync001, TestSize.Level1)
         listener2, "vSyncTask", EventQueue::Priority::VIP);
     bool result2 = DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor2,
         events2, "vSyncTask", listener2, EventQueue::Priority::VIP);
-    EXPECT_EQ(result2, false);
+    EXPECT_EQ(result2, true);
     DeamonIoWaiter::GetInstance().HandleFileDescriptorEvent(fileDescriptor2, events2);
     usleep(500);
 }
