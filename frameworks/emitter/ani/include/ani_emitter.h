@@ -86,6 +86,8 @@ public:
 
 private:
     static std::shared_ptr<SerializeData> GetSharedSerializeData(ani_env *env);
+    static void ReleaseAniData(ani_env *env, SerializeData* data);
+    static void ReleaseNapiData(SerializeData* data);
 };
 
 } // namespace AppExecFwk

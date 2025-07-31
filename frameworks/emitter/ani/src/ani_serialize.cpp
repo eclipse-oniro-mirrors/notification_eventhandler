@@ -14,13 +14,25 @@
  */
 
 #include "ani_serialize.h"
-#include "sts_events_json_common.h"
 #include "event_logger.h"
-
+#include "interop_js/hybridgref_ani.h"
+#include "interop_js/hybridgref_napi.h"
+#include "interop_js/arkts_interop_js_api.h"
+#include "napi/native_node_hybrid_api.h"
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
+
+bool GetRefPropertyByName(ani_env *env, ani_object param, const char *name, ani_ref &ref)
+{
+    ani_status status = ANI_ERROR;
+    if ((status = env->Object_GetPropertyByName_Ref(param, name, &ref)) != ANI_OK) {
+        HILOGI("Object_GetFieldByName_Ref failed, status : %{public}d", status);
+        return false;
+    }
+    return true;
+}
 }
 
 bool AniSerialize::PeerSerialize(ani_env* env, ani_object argv, std::shared_ptr<SerializeData> serializeData)
@@ -32,11 +44,12 @@ bool AniSerialize::PeerSerialize(ani_env* env, ani_object argv, std::shared_ptr<
     ani_ref record = nullptr;
     if (GetRefPropertyByName(env, argv, "data", record)) {
         if (record == nullptr) {
+            HILOGE("PeerSerialize failed to GetRefPropertyByName, record is nullptr");
             return false;
         }
         ani_ref peerData = nullptr;
         if (env->GlobalReference_Create(record, &peerData) != ANI_OK) {
-            HILOGI("Json stringify failed");
+            HILOGE("PeerSerialize failed to GlobalReference_Create");
             return false;
         }
         serializeData->peerData = peerData;
@@ -56,42 +69,41 @@ bool AniSerialize::CrossSerialize(ani_env* env, ani_object argv, std::shared_ptr
         if (record == nullptr) {
             return false;
         }
-        ani_status status = ANI_OK;
-        ani_namespace ns {};
-        status = env->FindNamespace("L@ohos/util/json/json;", &ns);
-        if (status != ANI_OK) {
-            HILOGI("Failed to find namespace");
+        hybridgref dynamicHybrigRef = nullptr;
+        if (!hybridgref_create_from_ani(env, reinterpret_cast<ani_ref>(record), &dynamicHybrigRef)) {
+            HILOGE("CrossSerialize failed to hybridgref_create_from_ani");
             return false;
         }
-        ani_function fnStringify {};
-        status = env->Namespace_FindFunction(ns, "stringify", nullptr, &fnStringify);
-        if (status != ANI_OK) {
-            HILOGI("Failed to find stringify");
+        napi_env napiEnv = {};
+        if (!arkts_napi_scope_open(env, &napiEnv)) {
+            HILOGE("CrossSerialize failed to arkts_napi_scope_open");
+            hybridgref_delete_from_ani(env, dynamicHybrigRef);
             return false;
         }
-        ani_ref ref {};
-        ani_value args[] = {{.r = record}, {.r = nullptr}, {.r = nullptr}};
-        status = env->Function_Call_Ref_A(fnStringify, &ref, args);
-        if (status != ANI_OK) {
-            HILOGI("Failed to call stringify");
+        napi_value napiData = nullptr;
+        if (!hybridgref_get_napi_value(napiEnv, dynamicHybrigRef, &napiData)) {
+            HILOGE("CrossSerialize failed to hybridgref_get_napi_value");
+            hybridgref_delete_from_ani(env, dynamicHybrigRef);
+            arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
             return false;
         }
-        ani_size sz {};
-        ani_string str = static_cast<ani_string>(ref);
-        if (env->String_GetUTF8Size(str, &sz) != ANI_OK) {
-            HILOGI("Failed to get string size");
+        napi_value undefined = nullptr;
+        napi_get_undefined(napiEnv, &undefined);
+        if (napi_serialize_hybrid(napiEnv, napiData, undefined, undefined, &serializeData->crossData) != napi_ok) {
+            HILOGE("CrossSerialize failed to napi_serialize_hybrid");
+            hybridgref_delete_from_ani(env, dynamicHybrigRef);
+            arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
             return false;
         }
-        serializeData->crossData.resize(sz + 1);
-        status = env->String_GetUTF8SubString(
-            str, 0, sz, serializeData->crossData.data(), serializeData->crossData.size(), &sz);
-        if (status != ANI_OK) {
-            HILOGI("Failed to convert ani string to c++ string");
+        bool isDeleteHybridgrefSucc = hybridgref_delete_from_ani(env, dynamicHybrigRef);
+        bool isCloseScopeSucc = arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
+        if (!isDeleteHybridgrefSucc || !isCloseScopeSucc) {
+            HILOGE("delete status: %{public}d, close status: %{public}d", isDeleteHybridgrefSucc, isCloseScopeSucc);
             return false;
         }
-        serializeData->crossData.resize(sz);
         return true;
     }
+    HILOGE("CrossSerialize failed to GetRefPropertyByName");
     return false;
 }
 

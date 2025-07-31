@@ -24,6 +24,7 @@
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
+#include "napi/native_node_hybrid_api.h"
 #include "interops.h"
 
 using namespace std;
@@ -32,26 +33,6 @@ namespace AppExecFwk {
 namespace {
     DEFINE_EH_HILOG_LABEL("EventsEmitter");
     constexpr static uint32_t ARGC_ONE = 1u;
-    bool StringToNapiValue(napi_env env, napi_value* napiValue, std::string strValue)
-    {
-        if (strValue.length() > 0) {
-            napi_value globalValue;
-            napi_get_global(env, &globalValue);
-            napi_value jsonValue;
-            napi_get_named_property(env, globalValue, "JSON", &jsonValue);
-            napi_value parseValue;
-            napi_get_named_property(env, jsonValue, "parse", &parseValue);
-            napi_value paramsNApi;
-            napi_create_string_utf8(env, strValue.c_str(), NAPI_AUTO_LENGTH, &paramsNApi);
-            napi_value funcArgv[1] = { paramsNApi };
-            auto status = napi_call_function(env, jsonValue, parseValue, 1, funcArgv, napiValue);
-            if (status != napi_ok) {
-                HILOGE("StringToNapiValue Stringify Failed");
-                return false;
-            }
-        }
-        return true;
-    }
 }
     static std::mutex g_emitterInsMutex;
     static std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
@@ -95,14 +76,15 @@ namespace {
 
         std::shared_ptr<AsyncCallbackInfo> callbackInner = eventDataInner->callbackInfo;
         napi_value resultData = nullptr;
-        if (eventDataInner->isCrossRuntime) {
-            bool ret = StringToNapiValue(callbackInner->env, &resultData, eventDataInner->crossRuntimeData);
-            if (!ret) {
-                return;
+        if (eventDataInner->IsEnhanced) {
+            if (GetEmitterEnhancedApiRegister().IsInit() &&
+                GetEmitterEnhancedApiRegister().GetEnhancedApi()->ProcessCallbackEnhanced != nullptr) {
+                GetEmitterEnhancedApiRegister().GetEnhancedApi()->ProcessCallbackEnhanced(eventDataInner);
             }
+            return;
         } else {
             if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
-                if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
+                if (napi_deserialize_hybrid(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                     resultData == nullptr) {
                     HILOGE("Deserialize fail.");
                     return;
@@ -542,10 +524,7 @@ namespace {
             napi_status serializeResult = napi_ok;
             napi_value undefined = nullptr;
             napi_get_undefined(env, &undefined);
-            bool defaultTransfer = false;
-            bool defaultCloneSendable = false;
-            serializeResult = napi_serialize_inner(env, data, undefined, undefined,
-                                                   defaultTransfer, defaultCloneSendable, &serializeData);
+            serializeResult = napi_serialize_hybrid(env, data, undefined, undefined, &serializeData);
             if (serializeResult != napi_ok || serializeData == nullptr) {
                 HILOGE("Serialize fail.");
                 return false;

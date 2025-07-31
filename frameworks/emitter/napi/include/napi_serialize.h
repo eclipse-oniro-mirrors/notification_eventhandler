@@ -34,16 +34,6 @@ public:
      * @return Returns true if serialize successfully.
      */
     static bool PeerSerialize(napi_env env, napi_value argv, std::shared_ptr<SerializeData> serializeData);
-
-    /**
-     * Serialize from napi to ani.
-     *
-     * @param env A pointer to the environment structure.
-     * @param argv Object to be serialized.
-     * @param serializeData Object to store serialized data.
-     * @return Returns true if serialize successfully.
-     */
-    static bool CrossSerialize(napi_env env, napi_value argv, std::shared_ptr<SerializeData> serializeData);
 };
 
 } // namespace AppExecFwk
