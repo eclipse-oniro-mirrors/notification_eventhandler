@@ -15,23 +15,25 @@
 
 import { Callback } from '@ohos.base';
 
+type RecordData = undefined | null | Object | Record<string, RecordData> | Array<RecordData>;
+
 namespace emitter {
   loadLibrary("eventEmitter.z");
 
   export interface EventData {
-    data?: Record<string, Object>;
+    data?: RecordData | ESObject;
   }
 
   class EventDataInner implements EventData {
-    public data?: Record<string,Object> | undefined;
+    public data?: RecordData | ESObject;
   }
 
   export interface GenericEventData<T> {
-    data?: T;
+    data?: T | undefined | ESObject;
   }
 
   class GenericEventDataInner<T> implements GenericEventData<T> {
-    public data?: T | undefined;
+    public data?: T | undefined | ESObject;
   }
 
   export enum EventPriority {

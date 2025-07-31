@@ -95,7 +95,7 @@ void AniAsyncCallbackInfo::ThreadFunction(
 {
     ani_env *env;
     ani_status status = ANI_OK;
-    ani_option interopEnabled {"--interop=disable", nullptr};
+    ani_option interopEnabled {"--interop=enable", nullptr};
     ani_options aniArgs {1, &interopEnabled};
     status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
     if (ANI_OK != status) {
@@ -263,7 +263,7 @@ void AniAsyncCallbackManager::AniReleaseCallbackInfo(AniAsyncCallbackInfo* callb
         ani_env *MyEnv;
         if (ANI_OK != callbackInfo->vm->GetEnv(ANI_VERSION_1, &MyEnv)) {
             ani_status status = ANI_OK;
-            ani_option interopEnabled {"--interop=disable", nullptr};
+            ani_option interopEnabled {"--interop=enable", nullptr};
             ani_options aniArgs {1, &interopEnabled};
             status = callbackInfo->vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &MyEnv);
             if (ANI_OK != status) {
