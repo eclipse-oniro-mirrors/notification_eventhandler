@@ -47,9 +47,9 @@ bool AsyncCallbackManager::IsExistValidCallback(const InnerEvent::EventId &event
         aniAsyncCallbackManager_.AniIsExistValidCallback(eventId);
     if (!ret) {
         if (eventId.index() == OHOS::AppExecFwk::TYPE_U32_INDEX) {
-            HILOGE("Event id: %{public}u has no callback", std::get<uint32_t>(eventId));
+            HILOGW("Event id: %{public}u has no callback", std::get<uint32_t>(eventId));
         } else {
-            HILOGE("Event id: %{public}s has no callback", std::get<std::string>(eventId).c_str());
+            HILOGW("Event id: %{public}s has no callback", std::get<std::string>(eventId).c_str());
         }
     }
     return ret;

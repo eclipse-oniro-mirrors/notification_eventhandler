@@ -36,7 +36,6 @@ ohos_shared_library("eventEmitter") {
   sources = [
     "${frameworks_path}/emitter/ani/src/ani_emitter.cpp",
     "${frameworks_path}/emitter/ani/src/ani_serialize.cpp",
-    "${frameworks_path}/emitter/ani/src/sts_events_json_common.cpp",
     "${frameworks_path}/emitter/base/src/ani_async_callback_manager.cpp",
     "${frameworks_path}/emitter/base/src/ani_deserialize.cpp",
     "${frameworks_path}/emitter/base/src/async_callback_manager.cpp",
@@ -55,6 +54,7 @@ ohos_shared_library("eventEmitter") {
     "hilog:libhilog",
     "napi:ace_napi",
     "runtime_core:ani",
+    "runtime_core:ani_helpers",
   ]
 
   subsystem_name = "notification"
@@ -74,19 +74,4 @@ ohos_prebuilt_etc("event_emitter_abc_etc") {
   subsystem_name = "notification"
   part_name = "eventhandler"
   deps = [ ":event_emitter_abc" ]
-}
-
-generate_static_abc("event_json_abc") {
-  base_url = "${frameworks_path}/emitter/ani/ets"
-  files = [ "${frameworks_path}/emitter/ani/ets/@ohos.events.json.ets" ]
-  is_boot_abc = "True"
-  device_dst_file = "/system/framework/event_json_abc.abc"
-}
-
-ohos_prebuilt_etc("event_json_abc_etc") {
-  source = "$target_out_dir/event_json_abc.abc"
-  module_install_dir = "framework"
-  subsystem_name = "notification"
-  part_name = "eventhandler"
-  deps = [ ":event_json_abc" ]
 }
