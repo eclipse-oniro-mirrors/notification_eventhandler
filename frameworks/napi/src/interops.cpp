@@ -28,6 +28,7 @@ void EmitterEnhancedApiRegister::Register(const EmitterEnhancedApi& api)
     enhancedApi_->JS_Emit = api.JS_Emit;
     enhancedApi_->JS_GetListenerCount = api.JS_GetListenerCount;
     enhancedApi_->ProcessEvent = api.ProcessEvent;
+    enhancedApi_->ProcessCallbackEnhanced = api.ProcessCallbackEnhanced;
     isInit_.store(true, std::memory_order_release);
 }
 

@@ -23,6 +23,9 @@
 #include "napi_serialize.h"
 #include "interops.h"
 #include "napi_agent.h"
+#include <ani.h>
+#include "napi/native_node_hybrid_api.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 using namespace std;
 namespace OHOS {
@@ -123,9 +126,6 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
     }
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
-        if (!NapiSerialize::CrossSerialize(env, argv, serializeData)) {
-            return false;
-        }
     }
     auto event = InnerEvent::Get(eventId, serializeData);
     event->SetIsEnhanced(true);
@@ -343,13 +343,53 @@ void ProcessEvent(const InnerEvent::Pointer& event)
     AsyncCallbackManager::GetInstance().DoCallback(event);
 }
 
+void ProcessCallbackEnhanced(const EventDataWorker* eventDataInner)
+{
+    auto callbackInner = eventDataInner->callbackInfo;
+    bool isMainThread = true;
+    napi_value resultData = nullptr;
+    if (eventDataInner->isCrossRuntime) {
+        ani_env *aniEnv = nullptr;
+        if (GetGlobalAniVm()->GetEnv(ANI_VERSION_1, &aniEnv) != ANI_OK) {
+            isMainThread = false;
+            ani_option interopEnabled {"--interop=enable", nullptr};
+            ani_options aniArgs {1, &interopEnabled};
+            if (GetGlobalAniVm()->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &aniEnv) != ANI_OK) {
+                HILOGE("ProcessCallbackEnhanced failed to GetEnv");
+                return;
+            }
+        }
+    }
+    if (napi_deserialize_hybrid(callbackInner->env, eventDataInner->enhancedData, &resultData) != napi_ok) {
+        if (!isMainThread) {
+            GetGlobalAniVm()->DetachCurrentThread();
+        }
+        HILOGE("ProcessCallback failed to napi_deserialize_hybrid");
+        return;
+    }
+    napi_value event = nullptr;
+    napi_create_object(callbackInner->env, &event);
+    napi_set_named_property(callbackInner->env, event, "data", resultData);
+    napi_value callback = nullptr;
+    napi_value returnVal = nullptr;
+    napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
+    napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
+    if (callbackInner->once) {
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(callbackInner->env, callbackInner->eventId, callback);
+    }
+    if (!isMainThread) {
+        GetGlobalAniVm()->DetachCurrentThread();
+    }
+}
+
 void AgentInit()
 {
     EmitterEnhancedApi api = {
         .JS_Off = &JS_Off,
         .JS_Emit = &JS_Emit,
         .JS_GetListenerCount = &JS_GetListenerCount,
-        .ProcessEvent = &ProcessEvent
+        .ProcessEvent = &ProcessEvent,
+        .ProcessCallbackEnhanced = &ProcessCallbackEnhanced
     };
 
     GetEmitterEnhancedApiRegister().Register(api);

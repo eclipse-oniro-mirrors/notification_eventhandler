@@ -19,12 +19,20 @@
 #include "aync_callback_manager.h"
 #include "interops.h"
 #include "napi_agent.h"
+#include "interop_js/hybridgref_ani.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
+ani_vm* g_AniVm = nullptr;
+}
+
+ani_vm* GetGlobalAniVm()
+{
+    return g_AniVm;
 }
 std::string EventsEmitter::GetStdString(ani_env *env, ani_string str)
 {
@@ -48,6 +56,26 @@ void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
     AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(eventIdValue);
 }
 
+void EventsEmitter::ReleaseAniData(ani_env *env, SerializeData* data)
+{
+    if (data == nullptr) {
+        return;
+    }
+    if (std::holds_alternative<ani_ref>(data->peerData)) {
+        env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
+    }
+}
+
+void EventsEmitter::ReleaseNapiData(SerializeData* data)
+{
+    if (data == nullptr || data->env == nullptr) {
+        return;
+    }
+    if (napi_delete_serialization_data(data->env, data->crossData) != napi_ok) {
+        HILOGW("ReleaseNapiData failed to napi_delete_serialization_data");
+    }
+}
+
 std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *env)
 {
     auto serializeDataPtr = new (std::nothrow) SerializeData();
@@ -65,28 +93,27 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
         if (data == nullptr) {
             return;
         }
-        if (std::holds_alternative<ani_ref>(data->peerData)) {
-            ani_env *env;
-            ani_status status = ANI_OK;
-            status = vm->GetEnv(ANI_VERSION_1, &env);
-            if (status == ANI_OK) {
-                status = env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
-                delete data;
-                data = nullptr;
-                return;
-            }
-            ani_option interopEnabled {"--interop=disable", nullptr};
-            ani_options aniArgs {1, &interopEnabled};
-            status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
-            if (status != ANI_OK) {
-                HILOGE("attach thread failed");
-                delete data;
-                data = nullptr;
-                return;
-            }
-            status = env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
-            vm->DetachCurrentThread();
+        ani_env *env;
+        ani_status status = vm->GetEnv(ANI_VERSION_1, &env);
+        if (status == ANI_OK) {
+            ReleaseAniData(env, data);
+            ReleaseNapiData(data);
+            delete data;
+            data = nullptr;
+            return;
         }
+        ani_option interopEnabled {"--interop=disable", nullptr};
+        ani_options aniArgs {1, &interopEnabled};
+        status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
+        if (status != ANI_OK) {
+            HILOGE("attach thread failed");
+            delete data;
+            data = nullptr;
+            return;
+        }
+        ReleaseAniData(env, data);
+        ReleaseNapiData(data);
+        vm->DetachCurrentThread();
         delete data;
         data = nullptr;
     });
@@ -345,6 +372,7 @@ extern "C" {
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
     HILOGD("ANI_Constructor begin");
+    g_AniVm = vm;
     ani_status status = ANI_ERROR;
     ani_env *env;
     if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
