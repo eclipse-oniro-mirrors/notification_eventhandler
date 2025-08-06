@@ -341,7 +341,7 @@ void EventHandler::RemoveFileDescriptorListener(int32_t fileDescriptor)
 {
     HILOGD("enter");
     if (fileDescriptor < 0) {
-        HILOGE("fd %{public}d: Invalid parameter", fileDescriptor);
+        HILOGD("fd %{public}d: Invalid parameter", fileDescriptor);
         return;
     }
 

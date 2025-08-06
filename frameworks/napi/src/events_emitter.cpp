@@ -201,7 +201,7 @@ namespace {
             if (pData != nullptr && (*pData) != nullptr && deleteEnv != nullptr) {
                 napi_delete_serialization_data(deleteEnv, *pData);
             } else {
-                HILOGW("EventData delete release failed.");
+                HILOGD("EventData delete release failed.");
             }
         });
         for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
@@ -386,18 +386,18 @@ namespace {
         napi_value argv[ARGC_NUM] = {0};
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
         if (argc < ARGC_NUM) {
-            HILOGE("requires 2 parameter");
+            HILOGD("requires 2 parameter");
             return nullptr;
         }
 
         napi_valuetype eventValueType = GetNapiType(env, argv[0]);
         if (eventValueType != napi_object && eventValueType != napi_string) {
-            HILOGE("type mismatch for parameter 1");
+            HILOGD("type mismatch for parameter 1");
             return nullptr;
         }
 
         if (GetNapiType(env, argv[1]) != napi_function) {
-            HILOGE("type mismatch for parameter 2");
+            HILOGD("OnOrOnce type mismatch for parameter 2");
             return nullptr;
         }
 
@@ -507,7 +507,7 @@ namespace {
             napi_valuetype eventHandleType;
             napi_typeof(env, argv[1], &eventHandleType);
             if (eventHandleType != napi_function) {
-                HILOGE("type mismatch for parameter 2");
+                HILOGD("JS_Off type mismatch for parameter 2");
                 return nullptr;
             }
             DeleteCallbackInfo(env, eventId, argv[1]);
@@ -530,7 +530,7 @@ namespace {
         napi_valuetype dataType;
         napi_typeof(env, argv, &dataType);
         if (dataType != napi_object) {
-            HILOGE("type mismatch for parameter 2");
+            HILOGD("EmitWithEventData type mismatch for parameter 2");
             return false;
         }
         bool hasData = false;
@@ -568,6 +568,7 @@ namespace {
         if (subscribe->second.size() != 0) {
             return true;
         }
+        EH_LOGE_LIMIT("Invalid callback");
         return false;
     }
 
@@ -589,7 +590,6 @@ namespace {
         HILOGD("Event id value:%{public}u", id);
 
         if (!IsExistValidCallback(env, eventId)) {
-            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
@@ -628,7 +628,6 @@ namespace {
         HILOGD("Event id value:%{public}s", id.c_str());
 
         if (!IsExistValidCallback(env, eventId)) {
-            EH_LOGE_LIMIT("Invalid callback");
             return nullptr;
         }
 
