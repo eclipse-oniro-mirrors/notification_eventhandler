@@ -80,13 +80,7 @@ do {                                                                            
     auto duration = now - last;                                                         \
     if (duration.count() >= (intervals)) {                                              \
         last = now;                                                                     \
-        uint32_t supressedCnt = supressed;                                              \
         supressed = 0;                                                                  \
-        if (supressedCnt != 0) {                                                        \
-            ((void)HILOG_IMPL((type), (level), EH_LOG_DOMAIN, EH_LOG_LABEL,    \
-            "[(%{public}s:%{public}d)]log suppressed cnt %{public}u",         \
-            __FUNCTION__, __LINE__, supressedCnt));                       \
-        }                                                                               \
         (canPrint) = true;                                                              \
     } else {                                                                            \
         supressed++;                                                                    \

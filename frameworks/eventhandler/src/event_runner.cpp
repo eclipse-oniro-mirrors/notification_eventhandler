@@ -692,13 +692,13 @@ ErrCode EventRunner::Run()
 {
     HILOGD("enter");
     if (deposit_ && runningMode_ == Mode::DEFAULT) {
-        HILOGE("Do not call, if event runner is deposited");
+        HILOGD("Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
     }
 
     // Avoid more than one thread to start this runner.
     if (running_.exchange(true)) {
-        HILOGW("Already running");
+        HILOGD("Already running");
         return EVENT_HANDLER_ERR_RUNNER_ALREADY;
     }
 
@@ -719,14 +719,14 @@ ErrCode EventRunner::Stop()
 {
     HILOGD("enter");
     if (deposit_) {
-        EH_LOGE_LIMIT("Stop: Do not call, if event runner is deposited");
+        HILOGD("Stop: Do not call, if event runner is deposited");
         return EVENT_HANDLER_ERR_RUNNER_NO_PERMIT;
     }
 
     if (running_.load()) {
         innerRunner_->Stop();
     } else {
-        HILOGW("Stop: Already stopped");
+        HILOGD("Stop: Already stopped");
     }
 
     return ERR_OK;

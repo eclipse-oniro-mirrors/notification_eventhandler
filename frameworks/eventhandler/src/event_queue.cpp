@@ -344,7 +344,7 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
 
 void EventQueue::SetVsyncFirst(bool isFirst)
 {
-    HILOGI("%{public}s(%{public}d)", __func__, isFirst);
+    HILOGD("%{public}s(%{public}d)", __func__, isFirst);
     g_vsyncFirstEnabled = isFirst;
     if (!isFirst) {
         isLazyMode_.store(true);
