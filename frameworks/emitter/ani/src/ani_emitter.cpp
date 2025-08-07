@@ -334,34 +334,35 @@ ani_status init(ani_env *env, ani_namespace kitNs)
         ani_native_function{"OnOrOnceSync", nullptr, reinterpret_cast<void *>(OnOrOnceSync)},
         ani_native_function{"OnOrOnceStringSync", nullptr, reinterpret_cast<void *>(OnOrOnceStringSync)},
         ani_native_function{"OnOrOnceGenericEventSync", nullptr, reinterpret_cast<void *>(OnOrOnceGenericEventSync)},
-        ani_native_function{"OffStringIdSync", "Lstd/core/String;:V", reinterpret_cast<void *>(OffStringIdSync)},
+        ani_native_function{"OffStringIdSync", "C{std.core.String}:", reinterpret_cast<void *>(OffStringIdSync)},
         ani_native_function{"OffStringSync", nullptr, reinterpret_cast<void *>(OffStringSync)},
         ani_native_function{"OffGenericEventSync", nullptr, reinterpret_cast<void *>(OffGenericEventSync)},
-        ani_native_function{"OffNumberSync", "J:V", reinterpret_cast<void *>(OffNumberSync)},
+        ani_native_function{"OffNumberSync", "l:", reinterpret_cast<void *>(OffNumberSync)},
         ani_native_function{"OffNumberCallbackSync", nullptr, reinterpret_cast<void *>(OffNumberCallbackSync)},
-        ani_native_function{"getListenerCountSync", "J:J", reinterpret_cast<void *>(getListenerCountNumber)},
+        ani_native_function{"getListenerCountSync", "l:l", reinterpret_cast<void *>(getListenerCountNumber)},
         ani_native_function{"getListenerCountStringSync",
-            "Lstd/core/String;:J", reinterpret_cast<void *>(getListenerCountString)},
-        ani_native_function{"EmitInnerEventSync", "L@ohos/events/emitter/emitter/InnerEvent;:V",
+            "C{std.core.String}:l", reinterpret_cast<void *>(getListenerCountString)},
+        ani_native_function{"EmitInnerEventSync", "C{@ohos.events.emitter.emitter.InnerEvent}:",
             reinterpret_cast<void *>(EmitInnerEventSync)},
         ani_native_function{"EmitInnerEventDataSync",
-            "L@ohos/events/emitter/emitter/InnerEvent;L@ohos/events/emitter/emitter/EventData;:V",
+            "C{@ohos.events.emitter.emitter.InnerEvent}C{@ohos.events.emitter.emitter.EventData}:",
             reinterpret_cast<void *>(EmitInnerEventDataSync)},
-        ani_native_function{"EmitStringSync", "Lstd/core/String;:V", reinterpret_cast<void *>(EmitStringSync)},
+        ani_native_function{"EmitStringSync", "C{std.core.String}:", reinterpret_cast<void *>(EmitStringSync)},
         ani_native_function{"EmitStringDataSync",
-            "Lstd/core/String;L@ohos/events/emitter/emitter/EventData;:V",
+            "C{std.core.String}C{@ohos.events.emitter.emitter.EventData}:",
             reinterpret_cast<void *>(EmitStringDataSync)},
         ani_native_function{"EmitStringGenericSync",
-            "Lstd/core/String;L@ohos/events/emitter/emitter/GenericEventData;:V",
+            "C{std.core.String}C{@ohos.events.emitter.emitter.GenericEventData}:",
             reinterpret_cast<void *>(EmitStringGenericSync)},
         ani_native_function{"EmitStringOptionsSync",
-            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;:V",
+            "C{std.core.String}C{@ohos.events.emitter.emitter.Options}:",
             reinterpret_cast<void *>(EmitStringOptionsSync)},
         ani_native_function{"EmitStringOptionsGenericSync",
-            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/GenericEventData;:V",
+            "C{std.core.String}C{@ohos.events.emitter.emitter.Options}"
+            "C{@ohos.events.emitter.emitter.GenericEventData}:",
             reinterpret_cast<void *>(EmitStringOptionsGenericSync)},
         ani_native_function{"EmitStringOptionsDataSync",
-            "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/EventData;:V",
+            "C{std.core.String}C{@ohos.events.emitter.emitter.Options}C{@ohos.events.emitter.emitter.EventData}:",
             reinterpret_cast<void *>(EmitStringOptionsDataSync)},
     };
     AgentInit();
@@ -381,7 +382,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     }
 
     ani_namespace kitNs;
-    status = env->FindNamespace("L@ohos/events/emitter/emitter;", &kitNs);
+    status = env->FindNamespace("@ohos.events.emitter.emitter", &kitNs);
     if (status != ANI_OK) {
         HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
         return status;
