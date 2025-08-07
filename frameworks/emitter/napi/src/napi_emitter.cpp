@@ -23,6 +23,7 @@
 #include "napi_serialize.h"
 #include "interops.h"
 #include "napi_agent.h"
+#include "napi/native_node_hybrid_api.h"
 
 using namespace std;
 namespace OHOS {
@@ -32,6 +33,26 @@ DEFINE_EH_HILOG_LABEL("EventsEmitter");
 constexpr static uint32_t ARGC_ONE = 1u;
 static const int32_t ARGC_NUM = 2;
 static const int32_t NAPI_VALUE_STRING_LEN = 10240;
+bool StringToNapiValue(napi_env env, napi_value* napiValue, std::string strValue)
+{
+    if (strValue.length() > 0) {
+        napi_value globalValue;
+        napi_get_global(env, &globalValue);
+        napi_value jsonValue;
+        napi_get_named_property(env, globalValue, "JSON", &jsonValue);
+        napi_value parseValue;
+        napi_get_named_property(env, jsonValue, "parse", &parseValue);
+        napi_value paramsNApi;
+        napi_create_string_utf8(env, strValue.c_str(), NAPI_AUTO_LENGTH, &paramsNApi);
+        napi_value funcArgv[1] = { paramsNApi };
+        auto status = napi_call_function(env, jsonValue, parseValue, 1, funcArgv, napiValue);
+        if (status != napi_ok) {
+            HILOGE("StringToNapiValue Stringify Failed");
+            return false;
+        }
+    }
+    return true;
+}
 }
 
 bool GetEventIdWithNumberOrString(
@@ -343,13 +364,46 @@ void ProcessEvent(const InnerEvent::Pointer& event)
     AsyncCallbackManager::GetInstance().DoCallback(event);
 }
 
+void ProcessCallbackEnhanced(const EventDataWorker* eventDataInner)
+{
+    auto callbackInner = eventDataInner->callbackInfo;
+    napi_value resultData = nullptr;
+    if (eventDataInner->isCrossRuntime) {
+        char* serializeDataCharPtr = reinterpret_cast<char*>(eventDataInner->enhancedData);
+        std::string serializeData(serializeDataCharPtr);
+        bool ret = StringToNapiValue(callbackInner->env, &resultData, serializeData);
+        if (!ret) {
+            return;
+        }
+    } else {
+        if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
+            if (napi_deserialize_hybrid(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
+                resultData == nullptr) {
+                HILOGE("Deserialize fail.");
+                return;
+            }
+        }
+    }
+    napi_value event = nullptr;
+    napi_create_object(callbackInner->env, &event);
+    napi_set_named_property(callbackInner->env, event, "data", resultData);
+    napi_value callback = nullptr;
+    napi_value returnVal = nullptr;
+    napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
+    napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
+    if (callbackInner->once) {
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(callbackInner->env, callbackInner->eventId, callback);
+    }
+}
+
 void AgentInit()
 {
     EmitterEnhancedApi api = {
         .JS_Off = &JS_Off,
         .JS_Emit = &JS_Emit,
         .JS_GetListenerCount = &JS_GetListenerCount,
-        .ProcessEvent = &ProcessEvent
+        .ProcessEvent = &ProcessEvent,
+        .ProcessCallbackEnhanced = &ProcessCallbackEnhanced
     };
 
     GetEmitterEnhancedApiRegister().Register(api);

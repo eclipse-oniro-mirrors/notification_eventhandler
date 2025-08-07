@@ -15,6 +15,7 @@
 
 #include "napi_serialize.h"
 #include "event_logger.h"
+#include "napi/native_node_hybrid_api.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -29,15 +30,11 @@ bool NapiSerialize::PeerSerialize(napi_env env, napi_value argv, std::shared_ptr
     if (hasData) {
         napi_value data = nullptr;
         napi_get_named_property(env, argv, "data", &data);
-        napi_status serializeResult = napi_ok;
         napi_value undefined = nullptr;
         napi_get_undefined(env, &undefined);
-        bool defaultTransfer = false;
-        bool defaultCloneSendable = false;
-        serializeResult = napi_serialize_inner(env, data, undefined, undefined,
-            defaultTransfer, defaultCloneSendable, &result);
+        napi_status serializeResult = napi_serialize_hybrid(env, data, undefined, undefined, &result);
         if (serializeResult != napi_ok || result == nullptr) {
-            HILOGE("Napi PeerSerialize fail");
+            HILOGE("PeerSerialize failed to napi_serialize_hybrid");
             return false;
         }
     }
