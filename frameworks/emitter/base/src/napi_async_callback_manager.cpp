@@ -132,18 +132,18 @@ void NapiAsyncCallbackManager::NapiDoCallback(const InnerEvent::Pointer& event)
             HILOGE("new object failed");
             return;
         }
+        eventDataWorker->IsEnhanced = true;
+        eventDataWorker->serializePtr = serializeData;
+        eventDataWorker->callbackInfo = *it;
         if (serializeData->envType == EnvType::NAPI) {
             auto napiValue = std::get<napi_value>(serializeData->peerData);
-
             auto* heapValue = new napi_value(napiValue);
             eventDataWorker->data = std::shared_ptr<napi_value>(heapValue, deleter);
-
             eventDataWorker->isCrossRuntime = false;
-            eventDataWorker->callbackInfo = *it;
         } else {
-            eventDataWorker->crossRuntimeData = serializeData->crossData;
+            eventDataWorker->enhancedData =
+                reinterpret_cast<void*>(const_cast<char*>(serializeData->crossData.c_str()));
             eventDataWorker->isCrossRuntime = true;
-            eventDataWorker->callbackInfo = *it;
         }
         napi_acquire_threadsafe_function((*it)->tsfn);
         napi_call_threadsafe_function((*it)->tsfn, eventDataWorker, napi_tsfn_nonblocking);

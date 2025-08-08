@@ -53,11 +53,23 @@ using AsyncCallbackInfoContainer =
 AsyncCallbackInfoContainer& GetAsyncCallbackInfoContainer();
 std::mutex& GetAsyncCallbackInfoContainerMutex();
 
+using EventData = std::shared_ptr<napi_value>;
+struct AsyncCallbackInfo;
+struct EventDataWorker {
+    EventData data{nullptr};
+    std::shared_ptr<AsyncCallbackInfo> callbackInfo{nullptr};
+    std::shared_ptr<void> serializePtr {nullptr};
+    bool isCrossRuntime{false};
+    void* enhancedData {nullptr};
+    bool IsEnhanced{false};
+};
+
 struct EmitterEnhancedApi {
     napi_value (*JS_Off)(napi_env env, napi_callback_info cbinfo) = nullptr;
     napi_value (*JS_Emit)(napi_env env, napi_callback_info cbinfo) = nullptr;
     napi_value (*JS_GetListenerCount)(napi_env env, napi_callback_info cbinfo) = nullptr;
     void (*ProcessEvent)(const InnerEvent::Pointer& event) = nullptr;
+    void (*ProcessCallbackEnhanced)(const EventDataWorker* eventDataInner) = nullptr;
 };
 
 class EmitterEnhancedApiRegister {
@@ -73,15 +85,6 @@ private:
 };
 
 EmitterEnhancedApiRegister& GetEmitterEnhancedApiRegister();
-
-using EventData = std::shared_ptr<napi_value>;
-struct AsyncCallbackInfo;
-struct EventDataWorker {
-    EventData data{nullptr};
-    std::shared_ptr<AsyncCallbackInfo> callbackInfo{nullptr};
-    std::string crossRuntimeData{};
-    bool isCrossRuntime{false};
-};
 }
 }
 #endif  // BASE_EVENTHANDLER_FRAMEWORKS_INTEROPS_H
