@@ -122,7 +122,7 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
     }
     if (ioWaiter_) {
         auto handler = listener->GetOwner();
-        if (taskName == "vSyncTask" && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
+        if (taskName == "vSyncTask" && handler && handler->GetEventRunner() == EventRunner::GetMainEventRunner()) {
             DeamonIoWaiter::GetInstance().AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
         }
         return ioWaiter_->AddFileDescriptor(fileDescriptor, events, taskName, listener, priority);
@@ -312,7 +312,7 @@ void EventQueue::RemoveListenerByFd(int32_t fileDescriptor)
     if (listeners_.erase(fileDescriptor) > 0) {
         std::shared_ptr<FileDescriptorInfo> fdInfo = DeamonIoWaiter::GetInstance().GetFileDescriptorMap(fileDescriptor);
         if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG) ||
-            (fdInfo != nullptr && fdInfo->taskName_ == "vSyncTask" &&
+            (fdInfo && fdInfo->taskName_ == "vSyncTask" && listener && listener->GetOwner() &&
             listener->GetOwner()->GetEventRunner() == EventRunner::GetMainEventRunner())) {
             DeamonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
         }
