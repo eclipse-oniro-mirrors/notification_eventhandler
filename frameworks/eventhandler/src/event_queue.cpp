@@ -310,7 +310,10 @@ void EventQueue::RemoveListenerByFd(int32_t fileDescriptor)
         listener = it->second;
     }
     if (listeners_.erase(fileDescriptor) > 0) {
-        if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG)) {
+        std::shared_ptr<FileDescriptorInfo> fdInfo = DeamonIoWaiter::GetInstance().GetFileDescriptorMap(fileDescriptor);
+        if (useDeamonIoWaiter_ || (listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG) ||
+            (fdInfo->taskName_ == "vSyncTask" &&
+            listener->GetOwner()->GetEventRunner() == EventRunner::GetMainEventRunner())) {
             DeamonIoWaiter::GetInstance().RemoveFileDescriptor(fileDescriptor);
         }
         if (ioWaiter_) {
