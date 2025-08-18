@@ -345,6 +345,8 @@ private:
     uint8_t historyEventIndex_ = 0;
 
     bool isExistVipTask_ {false};
+
+    std::mutex historyLock_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
