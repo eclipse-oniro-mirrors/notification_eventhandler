@@ -798,6 +798,7 @@ void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer 
         HILOGW("event is nullptr.");
         return;
     }
+    std::lock_guard<std::mutex> lock(historyLock_);
     historyEvents_[historyEventIndex_].senderKernelThreadId = event->GetSenderKernelThreadId();
     historyEvents_[historyEventIndex_].sendTime = event->GetSendTime();
     historyEvents_[historyEventIndex_].handleTime = event->GetHandleTime();
@@ -826,6 +827,7 @@ std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
 {
     std::string content;
     std::vector<std::string> prioritys = {"VIP", "Immediate", "High", "Low"};
+    std::lock_guard<std::mutex> lock(historyLock_);
     content.append("Event { ");
     content.append("send thread = " + std::to_string(historyEvent.senderKernelThreadId));
     content.append(", send time = " + InnerEvent::DumpTimeToString(historyEvent.sendTime));
