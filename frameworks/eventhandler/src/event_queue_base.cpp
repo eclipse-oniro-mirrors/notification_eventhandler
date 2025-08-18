@@ -729,6 +729,7 @@ void EventQueueBase::Dump(Dumper &dumper)
     dumper.Dump(dumper.GetTag() + " History event queue information:" + LINE_SEPARATOR);
     uint32_t dumpMaxSize = MAX_DUMP_SIZE;
     for (uint8_t i = 0; i < HISTORY_EVENT_NUM_POWER; i++) {
+        std::lock_guard<std::mutex> lock(historyLock_);
         if (historyEvents_[i].senderKernelThreadId == 0) {
             continue;
         }
@@ -818,6 +819,7 @@ void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer 
 
 void EventQueueBase::PushHistoryQueueAfterDistribute()
 {
+    std::lock_guard<std::mutex> lock(historyLock_);
     historyEvents_[historyEventIndex_].completeTime = InnerEvent::Clock::now();
     historyEventIndex_++;
     historyEventIndex_ = historyEventIndex_ & (HISTORY_EVENT_NUM_POWER - 1);
@@ -827,7 +829,6 @@ std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
 {
     std::string content;
     std::vector<std::string> prioritys = {"VIP", "Immediate", "High", "Low"};
-    std::lock_guard<std::mutex> lock(historyLock_);
     content.append("Event { ");
     content.append("send thread = " + std::to_string(historyEvent.senderKernelThreadId));
     content.append(", send time = " + InnerEvent::DumpTimeToString(historyEvent.sendTime));
