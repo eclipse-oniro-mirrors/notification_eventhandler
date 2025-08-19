@@ -63,6 +63,8 @@ DeamonIoWaiter::~DeamonIoWaiter()
         close(awakenFd_);
         awakenFd_ = -1;
     }
+    std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
+    fileDescriptorMap_.clear();
 }
 
 DeamonIoWaiter& DeamonIoWaiter::GetInstance()
