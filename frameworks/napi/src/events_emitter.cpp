@@ -24,7 +24,9 @@
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
+#ifndef CROSS_PLATFORM
 #include "napi/native_node_hybrid_api.h"
+#endif
 #include "interops.h"
 
 using namespace std;
@@ -84,11 +86,19 @@ namespace {
             return;
         } else {
             if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
+#ifdef CROSS_PLATFORM
+                if (napi_deserialize(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
+                    resultData == nullptr) {
+                    HILOGE("Deserialize fail.");
+                    return;
+                }
+#else
                 if (napi_deserialize_hybrid(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
                     resultData == nullptr) {
                     HILOGE("Deserialize fail.");
                     return;
                 }
+#endif
             }
         }
         napi_value event = nullptr;
@@ -523,7 +533,14 @@ namespace {
             napi_get_named_property(env, argv, "data", &data);
             napi_value undefined = nullptr;
             napi_get_undefined(env, &undefined);
+#ifdef CROSS_PLATFORM
+            bool defaultTransfer = false;
+            bool defaultCloneSendable = false;
+            napi_status serializeResult = napi_serialize_inner(env, data, undefined, undefined,
+                defaultTransfer, defaultCloneSendable, &serializeData);
+#else
             napi_status serializeResult = napi_serialize_hybrid(env, data, undefined, undefined, &serializeData);
+#endif
             if (serializeResult != napi_ok || serializeData == nullptr) {
                 HILOGE("Serialize fail.");
                 return false;
