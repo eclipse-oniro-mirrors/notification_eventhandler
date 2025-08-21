@@ -28,6 +28,7 @@ if (is_arkui_x) {
       "//third_party/libuv/include",
     ]
     include_dirs += emitter_include
+    defines = ["CROSS_PLATFORM"]
     sources = [
       "src/events_emitter.cpp",
       "src/init.cpp",
