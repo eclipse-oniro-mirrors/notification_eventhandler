@@ -220,14 +220,7 @@ HWTEST_F(LibEventHandlerTest, Ffrt008, TestSize.Level1)
         EXPECT_NE(nullptr, ffrt);
         (*ffrt)(nullptr, 1, 1, nullptr, nullptr);
         auto handler = std::make_shared<EventHandler>(nullptr);
-        ffrt_poller_cb cb = [](void* data, uint32_t param) {
-            if (!data) {
-                return;
-            }
-            if (param ==0) {
-                return;
-            }
-        };
+        ffrt_poller_cb cb = [](void* data, uint32_t param) { ; };
         (*ffrt)(&handler, 1, 1, &handler, cb);
     }
 }

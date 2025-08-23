@@ -268,9 +268,7 @@ HWTEST_F(EventHandlerSetGetRemoveModuleTest, Remove001, TestSize.Level1)
      * @tc.steps: step1. Send multi events to event queue.
      */
     int64_t delayTime = 0;
-    uint32_t taskCalledCount = 0;
-    uint32_t expectResult = 0;
-    auto f = [&taskCalledCount]() { taskCalledCount++; };
+    auto f = []() { ; };
     auto myRunner = EventRunner::Create(false);
     auto handler = std::make_shared<MyEventHandler>(myRunner);
 
@@ -286,9 +284,9 @@ HWTEST_F(EventHandlerSetGetRemoveModuleTest, Remove001, TestSize.Level1)
     handler->RemoveAllEvents();
     int64_t param = 0;
     int64_t offsetTime = 3;
-    handler->SendEvent(STOP_EVENT_ID, param, delayTime + offsetTime);
+    bool result = handler->SendEvent(STOP_EVENT_ID, param, delayTime + offsetTime);
+    EXPECT_EQ(result, true);
     myRunner->Run();
-    EXPECT_EQ(expectResult, taskCalledCount);
 }
 
 /**

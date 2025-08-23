@@ -249,7 +249,8 @@ static void ProcessEventTest(int flagParam)
     uint32_t innerEventId = 0;
     auto event = InnerEvent::Get(innerEventId, flagParam);
     g_mtx.lock();
-    handler->SendEvent(event);
+    bool result = handler->SendEvent(event);
+    EXPECT_EQ(result, true);
     int count = 0;
     while (!g_mtx.try_lock()) {
         if (count == 0) {
