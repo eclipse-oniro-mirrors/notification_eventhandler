@@ -182,7 +182,7 @@ namespace {
         OutPutEventIdLog(eventId);
         auto callbackInfos = GetAsyncCallbackInfo(eventId);
         if (callbackInfos.size() <= 0) {
-            HILOGW("ProcessEvent has no valid callback");
+            HILOGD("ProcessEvent has no valid callback");
             return;
         }
 
@@ -307,7 +307,7 @@ namespace {
             napi_get_value_string_utf8(env, argv, valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
             std::string id(valueCStr.get(), valueStrLength);
             if (id.empty()) {
-                HILOGE("Event id is empty for argument 1.");
+                HILOGD("Event id is empty for argument 1.");
                 return false;
             }
             eventId = id;
@@ -557,13 +557,13 @@ namespace {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto subscribe = emitterInstances.find(eventId);
         if (subscribe == emitterInstances.end()) {
-            EH_LOGW_LIMIT("JS_Emit has no callback");
+            HILOGD("JS_Emit has no callback");
             return false;
         }
         if (subscribe->second.size() != 0) {
             return true;
         }
-        EH_LOGE_LIMIT("Invalid callback");
+        HILOGD("Invalid callback");
         return false;
     }
 
