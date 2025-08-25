@@ -399,7 +399,7 @@ std::shared_ptr<FileDescriptorInfo> DeamonIoWaiter::GetFileDescriptorMap(int32_t
     std::lock_guard<std::mutex> lock(fileDescriptorMapLock);
     auto it = fileDescriptorMap_.find(fileDescriptor);
     if (it == fileDescriptorMap_.end()) {
-        HILOGW("DeamonIoWaiter get file descriptor failed %{public}d", fileDescriptor);
+        HILOGD("DeamonIoWaiter get file descriptor failed %{public}d", fileDescriptor);
         return nullptr;
     }
     return it->second;
