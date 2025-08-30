@@ -69,6 +69,7 @@ void EventsEmitter::ReleaseAniData(ani_env *env, SerializeData* data)
 void EventsEmitter::ReleaseNapiData(SerializeData* data)
 {
     if (data == nullptr || data->env == nullptr) {
+        HILOGE("ReleaseNapiData data or env is null");
         return;
     }
     if (napi_delete_serialization_data(data->env, data->crossData) != napi_ok) {
