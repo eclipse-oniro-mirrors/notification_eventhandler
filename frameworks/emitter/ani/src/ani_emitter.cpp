@@ -58,7 +58,8 @@ void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
 
 void EventsEmitter::ReleaseAniData(ani_env *env, SerializeData* data)
 {
-    if (data == nullptr) {
+    if (data == nullptr || env == nullptr) {
+        HILOGE("ReleaseAniData data or env is null");
         return;
     }
     if (std::holds_alternative<ani_ref>(data->peerData)) {
