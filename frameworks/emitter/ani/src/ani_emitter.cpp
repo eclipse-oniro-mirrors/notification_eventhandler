@@ -150,14 +150,17 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
     }
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
     if (serializeData == nullptr) {
+        HILOGE("GetSharedSerializeData serializeData is null");
         return;
     }
     if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
+        HILOGE("GetSharedSerializeData PeerSerialize failed");
         return;
     }
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(id, EnvType::ANI)) {
         serializeData->isCrossRuntime = true;
         if (!AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+            HILOGE("GetSharedSerializeData CrossSerialize failed");
             return;
         }
     }
