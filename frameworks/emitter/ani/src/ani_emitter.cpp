@@ -93,6 +93,7 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
     }
     std::shared_ptr<SerializeData> serializeData(serializeDataPtr, [vm](SerializeData* data) {
         if (data == nullptr) {
+            HILOGE("GetSharedSerializeData data is null");
             return;
         }
         ani_env *env;
