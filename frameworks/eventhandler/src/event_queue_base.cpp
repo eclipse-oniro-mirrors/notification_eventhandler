@@ -144,7 +144,7 @@ EventQueueBase::~EventQueueBase()
     usable_.store(false);
     ioWaiter_ = nullptr;
     ClearObserver();
-    EH_LOGD_LIMIT("EventQueueBase is unavailable hence");
+    HILOGD("EventQueueBase is unavailable hence");
 }
 
 static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)

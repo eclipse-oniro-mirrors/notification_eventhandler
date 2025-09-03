@@ -87,7 +87,7 @@ public:
             // Add thread id to list and notify to reclaim.
             std::lock_guard<std::mutex> lock(collectorLock_);
             if (destroying_) {
-                HILOGI("Thread collector is destroying");
+                HILOGD("Thread collector is destroying");
                 return;
             }
 
@@ -670,7 +670,7 @@ std::string EventRunner::GetRunnerThreadName() const
 
 EventRunner::~EventRunner()
 {
-    HILOGI("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
+    HILOGD("~EventRunner deposit_ is %{public}d %{public}s", deposit_, runnerId_.c_str());
     if (deposit_ && innerRunner_ != nullptr) {
         innerRunner_->Stop();
     }
