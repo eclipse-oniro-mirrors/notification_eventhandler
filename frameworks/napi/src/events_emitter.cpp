@@ -158,7 +158,7 @@ namespace {
         auto iter = emitterInstances.find(eventId);
         if (iter == emitterInstances.end()) {
             std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
-            HILOGW("ProcessEvent has no callback");
+            HILOGD("ProcessEvent has no callback");
             return result;
         }
         for (auto it = iter->second.begin(); it != iter->second.end();) {
@@ -491,7 +491,7 @@ namespace {
         InnerEvent::EventId eventId = 0u;
         bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
         if (!ret) {
-            HILOGE("Event id is empty for parameter 1.");
+            HILOGD("Event id is empty for parameter 1.");
             return nullptr;
         }
 
@@ -767,7 +767,7 @@ namespace {
         InnerEvent::EventId eventId = 0u;
         bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
         if (!ret) {
-            HILOGE("Event id is empty for parameter 1.");
+            HILOGD("Event id is empty for parameter 1.");
             return CreateJsUndefined(env);
         }
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);

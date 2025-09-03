@@ -98,7 +98,7 @@ napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     InnerEvent::EventId eventId = 0u;
     bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
     if (!ret) {
-        HILOGE("Event id is empty for parameter 1.");
+        HILOGD("Event id is empty for parameter 1.");
         return nullptr;
     }
 
@@ -311,7 +311,7 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     InnerEvent::EventId eventId = 0u;
     bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
     if (!ret) {
-        HILOGE("Event id is empty for parameter 1");
+        HILOGD("Event id is empty for parameter 1");
         return CreateJsUndefined(env);
     }
 
