@@ -96,6 +96,9 @@ void AniAsyncCallbackInfo::ThreadFunction(
     ani_env *env;
     ani_status status = ANI_OK;
     ani_option interopEnabled {"--interop=enable", nullptr};
+    if (serializeData->envType == EnvType::ANI) {
+        interopEnabled.option = "--interop=disable";
+    }
     ani_options aniArgs {1, &interopEnabled};
     status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
     if (ANI_OK != status) {
