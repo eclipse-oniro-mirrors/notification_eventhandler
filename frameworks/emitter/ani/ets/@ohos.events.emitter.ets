@@ -16,7 +16,7 @@
 import { Callback } from '@ohos.base';
 
 namespace emitter {
-  loadLibrary("eventEmitter.z");
+  loadLibraryWithPermissionCheck("eventEmitter.z", "@ohos.events.emitter");
 
   export interface EventData {
     data?: Record<string, Object>;
