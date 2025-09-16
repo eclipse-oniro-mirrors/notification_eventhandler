@@ -19,19 +19,19 @@ namespace emitter {
   loadLibrary("eventEmitter.z");
 
   export interface EventData {
-    data?: Record<string, RecordData> | ESObject;
+    data?: Record<string, RecordData> | ESValue;
   }
 
   class EventDataInner implements EventData {
-    public data?: Record<string, RecordData> | ESObject;
+    public data?: Record<string, RecordData> | ESValue;
   }
 
   export interface GenericEventData<T> {
-    data?: T | undefined | ESObject;
+    data?: T | undefined | ESValue;
   }
 
   class GenericEventDataInner<T> implements GenericEventData<T> {
-    public data?: T | undefined | ESObject;
+    public data?: T | undefined | ESValue;
   }
 
   export enum EventPriority {
