@@ -13,17 +13,17 @@
  * limitations under the License.
  */
 
-import { Callback } from '@ohos.base';
+import { Callback, RecordData } from '@ohos.base';
 
 namespace emitter {
   loadLibrary("eventEmitter.z");
 
   export interface EventData {
-    data?: Record<string, Object> | ESObject;
+    data?: Record<string, RecordData> | ESObject;
   }
 
   class EventDataInner implements EventData {
-    public data?: Record<string, Object> | ESObject;
+    public data?: Record<string, RecordData> | ESObject;
   }
 
   export interface GenericEventData<T> {
