@@ -11,9 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import("//build/config/components/ets_frontend/ets2abc_config.gni")
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
-import("//build/config/components/ets_frontend/ets2abc_config.gni")
 import("../../eventhandler.gni")
 
 ohos_shared_library("eventEmitter") {
