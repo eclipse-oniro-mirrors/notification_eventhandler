@@ -15,45 +15,15 @@
 
 #include "ani_deserialize.h"
 #include "event_logger.h"
+#include "napi/native_node_hybrid_api.h"
+#include "interop_js/hybridgref_ani.h"
+#include "interop_js/hybridgref_napi.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
-    DEFINE_EH_HILOG_LABEL("EventsEmitter");
-}
-static ani_ref JsonParse(ani_env *env, std::string jsonStr)
-{
-    ani_status status = ANI_ERROR;
-    ani_class cls = nullptr;
-    if ((status = env->FindClass("L@ohos/events/json/RecordSerializeTool;", &cls)) != ANI_OK) {
-        HILOGI("FindClass RecordSerializeTool failed, status : %{public}d", status);
-        return nullptr;
-    }
-    if (cls == nullptr) {
-        HILOGI("RecordSerializeTool class null");
-        return nullptr;
-    }
-    ani_static_method parseNoThrowMethod = nullptr;
-    status = env->Class_FindStaticMethod(cls, "parseNoThrow", nullptr, &parseNoThrowMethod);
-    if (status != ANI_OK) {
-        HILOGI("failed to get parseNoThrow method, status : %{public}d", status);
-        return nullptr;
-    }
-
-    ani_string aniString;
-    status = env->String_NewUTF8(jsonStr.c_str(), jsonStr.length(), &aniString);
-    if (status != ANI_OK) {
-        HILOGI("String_NewUTF8 wantParamsString failed, status : %{public}d", status);
-        return nullptr;
-    }
-
-    ani_ref aniResult = nullptr;
-    status = env->Class_CallStaticMethod_Ref(cls, parseNoThrowMethod, &aniResult, aniString);
-    if (status != ANI_OK) {
-        HILOGI("failed to call parseNoThrow method, status : %{public}d", status);
-        return nullptr;
-    }
-    return aniResult;
+DEFINE_EH_HILOG_LABEL("EventsEmitter");
 }
 
 bool AniDeserialize::PeerDeserialize(ani_env* env, ani_ref* peerData, std::shared_ptr<SerializeData> serializeData)
@@ -66,14 +36,39 @@ bool AniDeserialize::PeerDeserialize(ani_env* env, ani_ref* peerData, std::share
 
 bool AniDeserialize::CrossDeserialize(ani_env* env, ani_ref* crossData, std::shared_ptr<SerializeData> serializeData)
 {
-    if (serializeData->crossData.empty()) {
+    if (!std::get<napi_value>(serializeData->peerData)) {
         return true;
     }
-    *crossData = JsonParse(env, serializeData->crossData);
-    if (*crossData == nullptr) {
-        HILOGI("json parse failed");
+    napi_env napiEnv = {};
+    if (!arkts_napi_scope_open(env, &napiEnv)) {
+        HILOGE("CrossDeserialize failed to arkts_napi_scope_open");
         return false;
     }
+    hybridgref dynamicHybrigRef = nullptr;
+    napi_value deserializeNapiData = nullptr;
+    if (napi_deserialize_hybrid(napiEnv, std::get<napi_value>(serializeData->peerData),
+        &deserializeNapiData) != napi_ok) {
+        HILOGE("CrossDeserialize failed to napi_deserialize_hybrid");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
+        return false;
+    }
+    if (!hybridgref_create_from_napi(napiEnv, deserializeNapiData, &dynamicHybrigRef)) {
+        HILOGE("CrossDeserialize failed to hybridgref_create_from_napi");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
+        return false;
+    }
+    if (!hybridgref_get_esvalue(env, dynamicHybrigRef, reinterpret_cast<ani_object*>(crossData))) {
+        HILOGE("CrossDeserialize failed to hybridgref_create_from_napi");
+        arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr);
+        hybridgref_delete_from_napi(napiEnv, dynamicHybrigRef);
+        return false;
+    }
+    hybridgref_delete_from_napi(napiEnv, dynamicHybrigRef);
+    if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
+        HILOGE("CrossDeserialize failed to arkts_napi_scope_close_n");
+        return false;
+    }
+    crossData = reinterpret_cast<ani_ref*>(crossData);
     return true;
 }
 

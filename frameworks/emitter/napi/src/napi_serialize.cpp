@@ -32,41 +32,12 @@ bool NapiSerialize::PeerSerialize(napi_env env, napi_value argv, std::shared_ptr
         napi_get_named_property(env, argv, "data", &data);
         napi_value undefined = nullptr;
         napi_get_undefined(env, &undefined);
-        napi_status serializeResult = napi_serialize_hybrid(env, data, undefined, undefined, &result);
-        if (serializeResult != napi_ok || result == nullptr) {
+        if (napi_serialize_hybrid(env, data, undefined, undefined, &result) != napi_ok) {
             HILOGE("PeerSerialize failed to napi_serialize_hybrid");
             return false;
         }
     }
     serializeData->peerData = reinterpret_cast<napi_value>(result);
-    return true;
-}
-
-bool NapiSerialize::CrossSerialize(napi_env env, napi_value argv, std::shared_ptr<SerializeData> serializeData)
-{
-    bool hasData = false;
-    napi_has_named_property(env, argv, "data", &hasData);
-    if (hasData) {
-        napi_value data = nullptr;
-        napi_get_named_property(env, argv, "data", &data);
-        napi_value globalValue;
-        napi_get_global(env, &globalValue);
-        napi_value jsonValue;
-        napi_get_named_property(env, globalValue, "JSON", &jsonValue);
-        napi_value stringifyValue;
-        napi_get_named_property(env, jsonValue, "stringify", &stringifyValue);
-        napi_value funcArgv[1] = { data };
-        napi_value returnValue;
-        if (napi_call_function(env, jsonValue, stringifyValue, 1, funcArgv, &returnValue) != napi_ok) {
-            HILOGE("Napi CrossSerialize fail");
-            return false;
-        }
-        size_t len = 0;
-        napi_get_value_string_utf8(env, returnValue, nullptr, 0, &len);
-        std::unique_ptr<char[]> paramsChar = std::make_unique<char[]>(len + 1);
-        napi_get_value_string_utf8(env, returnValue, paramsChar.get(), len + 1, &len);
-        serializeData->crossData = paramsChar.get();
-    }
     return true;
 }
 } // namespace AppExecFwk

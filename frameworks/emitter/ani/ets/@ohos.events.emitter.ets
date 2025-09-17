@@ -19,19 +19,19 @@ namespace emitter {
   loadLibraryWithPermissionCheck("eventEmitter.z", "@ohos.events.emitter");
 
   export interface EventData {
-    data?: Record<string, Object>;
+    data?: Record<string, Object> | ESObject;
   }
 
   class EventDataInner implements EventData {
-    public data?: Record<string,Object> | undefined;
+    public data?: Record<string, Object> | ESObject;
   }
 
   export interface GenericEventData<T> {
-    data?: T;
+    data?: T | undefined | ESObject;
   }
 
   class GenericEventDataInner<T> implements GenericEventData<T> {
-    public data?: T | undefined;
+    public data?: T | undefined | ESObject;
   }
 
   export enum EventPriority {
@@ -42,12 +42,12 @@ namespace emitter {
   }
 
   export interface InnerEvent {
-    eventId: number;
+    eventId: long;
     priority?: EventPriority;
   }
 
   class InnerEventInner implements InnerEvent {
-    public eventId: number = 0;
+    public eventId: long = 0;
     public priority?: EventPriority | undefined;
   }
 
@@ -62,13 +62,13 @@ namespace emitter {
   export native function OffStringIdSync(eventId: string): void;
   export native function OffStringSync(eventId: string, callback: Callback<EventData>): void;
   export native function OffGenericEventSync<T>(eventId: string, callback: Callback<GenericEventData<T>>): void;
-  export native function OffNumberSync(eventId: number): void;
-  export native function OffNumberCallbackSync(eventId: number, callback: Callback<EventData>): void;
+  export native function OffNumberSync(eventId: long): void;
+  export native function OffNumberCallbackSync(eventId: long, callback: Callback<EventData>): void;
   export native function OnOrOnceStringSync(eventId: string, once: boolean, callback: Callback<EventData>, dataType: string): void;
   export native function OnOrOnceGenericEventSync<T>(eventId: string, once : boolean, callback: Callback<GenericEventData<T>>, dataType: string): void;
-  export native function OnOrOnceSync(eventId: number, once: boolean, callback: Callback<EventData>, dataType: string): void;
-  export native function getListenerCountSync(eventId: number): number;
-  export native function getListenerCountStringSync(eventId: string): number;
+  export native function OnOrOnceSync(eventId: long, once: boolean, callback: Callback<EventData>, dataType: string): void;
+  export native function getListenerCountSync(eventId: long): long;
+  export native function getListenerCountStringSync(eventId: string): long;
   export native function EmitInnerEventSync(eventId: InnerEvent): void;
   export native function EmitInnerEventDataSync(eventId: InnerEvent, data: EventData): void;
   export native function EmitStringSync(eventId: string): void;
@@ -78,88 +78,84 @@ namespace emitter {
   export native function EmitStringOptionsGenericSync<T>(eventId: string, options: Options, data: GenericEventData<T>): void;
   export native function EmitStringOptionsSync(eventId:string, options: Options): void;
 
-  export function on(event: InnerEvent, callback: Callback<EventData>): void {
+  export function onWithEventTypeInnerEventCallback(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
       OnOrOnceSync(event.eventId, false, callback, "eventData");
     }
   }
 
-  export function once(event: InnerEvent, callback: Callback<EventData>): void {
+  export function onWithEventIdTypeStringCallback(eventId: string, callback: Callback<EventData>): void {
+    if (eventId === '') {
+      return;
+    }
+    OnOrOnceStringSync(eventId, false, callback, "eventData");
+  }
+
+  export function onWithEventIdTypeStringCallbackTypeGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
+    if (eventId === '') {
+      return;
+    }
+    OnOrOnceGenericEventSync(eventId, false, callback, "genericEventData");
+  }
+
+  export function onceWithEventTypeInnerEventCallback(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
       OnOrOnceSync(event.eventId, true, callback, "eventData");
     }
   }
 
-  export function once(eventId: string, callback: Callback<EventData>): void {
+  export function onceWithEventIdTypeStringCallback(eventId: string, callback: Callback<EventData>): void {
     if (eventId === '') {
       return;
     }
     OnOrOnceStringSync(eventId, true, callback, "eventData");
   }
 
-  export function off(eventId: string): void {
+  export function onceWithEventIdTypeStringCallbackTypeGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
+    if (eventId === '') {
+      return;
+    }
+    OnOrOnceGenericEventSync(eventId, true, callback, "genericEventData");
+  }
+
+  export function offWithEventIdTypeLong(eventId: long): void {
+    OffNumberSync(eventId);
+  }
+
+  export function offWithEventIdTypeString(eventId: string): void {
     if (eventId === '') {
       return;
     }
     OffStringIdSync(eventId);
   }
 
-  export function off<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
-    if (eventId === '') {
-      return;
-    }
-    if (callback instanceof Callback<EventData>) {
-      OffStringSync(eventId, callback as Callback<EventData>);
-    } else {
-      OffGenericEventSync(eventId, callback as Callback<GenericEventData<T>>);
-    }
-  }
-
-  export function off(eventId: number): void {
-    OffNumberSync(eventId);
-  }
-
-  export function off(eventId: number, callback: Callback<EventData>): void {
-    if (callback == null) {
-      return;
-    }
+  export function offWithEventIdTypeLongCallback(eventId: long, callback: Callback<EventData>): void {
     OffNumberCallbackSync(eventId, callback);
   }
 
-  export function on<T>(eventId: string, callback: Callback<EventData> | Callback<GenericEventData<T>>): void {
+  export function offWithEventIdTypeStringCallback(eventId: string, callback: Callback<EventData>): void {
     if (eventId === '') {
       return;
     }
-    if (callback instanceof Callback<EventData>) {
-      OnOrOnceStringSync(eventId, false, callback as Callback<EventData>, "eventData");
-    } else {
-      OnOrOnceGenericEventSync(eventId, false, callback as Callback<GenericEventData<T>>, "genericEventData");
-    }
+    OffStringSync(eventId, callback);
   }
 
-  export function emit(eventId: string, options: Options, data?: EventData): void {
+  export function offWithEventIdTypeStringCallbackTypeGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
     if (eventId === '') {
       return;
     }
+    OffGenericEventSync(eventId, callback);
+  }
+
+  export function emitWithEventTypeInnerEventDataTypeEventData(event: InnerEvent, data?: EventData): void {
     if (data != undefined) {
-      EmitStringOptionsDataSync(eventId, options, data as EventData);
+      EmitInnerEventDataSync(event, data as EventData);
     } else {
-      EmitStringOptionsSync(eventId, options);
+      EmitInnerEventSync(event);
     }
   }
 
-  export function emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
-    if (eventId === '') {
-      return;
-    }
-    if (data != undefined) {
-      EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
-    } else {
-      EmitStringOptionsSync(eventId, options);
-    }
-  }
-
-  export function emit(eventId: string, data?: EventData): void {
+  export function emitWithEventIdTypeStringDataTypeEventData(eventId: string, data?: EventData): void {
     if (eventId === '') {
       return;
     }
@@ -170,7 +166,7 @@ namespace emitter {
     }
   }
 
-  export function emit<T>(eventId: string, data?: GenericEventData<T>): void {
+  export function emitWithEventIdTypeStringDataTypeGenericEventData<T>(eventId: string, data?: GenericEventData<T>): void {
     if (eventId === '') {
       return;
     }
@@ -181,28 +177,40 @@ namespace emitter {
     }
   }
 
-  export function emit(event: InnerEvent, data?: EventData): void {
-    if (event == null) {
+  export function emitWithEventIdTypeStringOptionsDataTypeEventData(eventId: string, options: Options, data?: EventData): void {
+    if (eventId === '') {
       return;
     }
     if (data != undefined) {
-      EmitInnerEventDataSync(event, data);
+      EmitStringOptionsDataSync(eventId, options, data as EventData);
     } else {
-      EmitInnerEventSync(event);
+      EmitStringOptionsSync(eventId, options);
     }
   }
 
-  export function getListenerCount(eventId: number | string): number {
-    let count : number = 0;
-    if (typeof eventId === "number") {
-      count = getListenerCountSync(eventId as number);
-    } else {
-      if (eventId === '') {
-        return count;
-      }
-      count = getListenerCountStringSync(eventId as string);
+  export function emitWithEventIdTypeStringOptionsDataTypeGenericEventData<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+    if (eventId === '') {
+      return;
     }
-    return count;
+    if (data != undefined) {
+      EmitStringOptionsGenericSync(eventId, options, data as GenericEventData<T>);
+    } else {
+      EmitStringOptionsSync(eventId, options);
+    }
   }
+
+  export function getListenerCountWithEventIdTypeLong(eventId: long): long {
+    return getListenerCountSync(eventId);
+  }
+
+  export function getListenerCountWithEventIdTypeString(eventId: string): long {
+    return getListenerCountStringSync(eventId);
+  }
+
+  overload on { onWithEventTypeInnerEventCallback, onWithEventIdTypeStringCallback, onWithEventIdTypeStringCallbackTypeGenericEventData };
+  overload once { onceWithEventTypeInnerEventCallback, onceWithEventIdTypeStringCallback, onceWithEventIdTypeStringCallbackTypeGenericEventData };
+  overload off { offWithEventIdTypeLong, offWithEventIdTypeString, offWithEventIdTypeLongCallback, offWithEventIdTypeStringCallback, offWithEventIdTypeStringCallbackTypeGenericEventData };
+  overload emit { emitWithEventTypeInnerEventDataTypeEventData, emitWithEventIdTypeStringDataTypeEventData, emitWithEventIdTypeStringDataTypeGenericEventData, emitWithEventIdTypeStringOptionsDataTypeEventData, emitWithEventIdTypeStringOptionsDataTypeGenericEventData };
+  overload getListenerCount { getListenerCountWithEventIdTypeLong, getListenerCountWithEventIdTypeString };
 }
 export default emitter;

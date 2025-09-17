@@ -33,7 +33,8 @@ enum EnvType {
 
 struct SerializeData {
     std::variant<napi_value, ani_ref> peerData {};
-    std::string crossData {};
+    void* crossData {nullptr};
+    napi_env env {nullptr};
     EnvType envType {EnvType::NAPI};
     bool isCrossRuntime {false};
 };
