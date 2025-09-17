@@ -19,19 +19,19 @@ namespace emitter {
   loadLibraryWithPermissionCheck("eventEmitter.z", "@ohos.events.emitter");
 
   export interface EventData {
-    data?: Record<string, Object> | ESObject;
+    data?: Record<string, Object> | ESValue;
   }
 
   class EventDataInner implements EventData {
-    public data?: Record<string, Object> | ESObject;
+    public data?: Record<string, Object> | ESValue;
   }
 
   export interface GenericEventData<T> {
-    data?: T | undefined | ESObject;
+    data?: T | undefined | ESValue;
   }
 
   class GenericEventDataInner<T> implements GenericEventData<T> {
-    public data?: T | undefined | ESObject;
+    public data?: T | undefined | ESValue;
   }
 
   export enum EventPriority {
