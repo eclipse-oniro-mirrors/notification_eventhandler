@@ -75,7 +75,7 @@ EventHandler::EventHandler(const std::shared_ptr<EventRunner> &runner) : eventRu
 
 EventHandler::~EventHandler()
 {
-    HILOGI("~EventHandler enter %{public}s", handlerId_.c_str());
+    HILOGD("~EventHandler enter %{public}s", handlerId_.c_str());
     if (eventRunner_) {
         HILOGD("eventRunner is alive");
         /*
