@@ -19,12 +19,20 @@
 #include "aync_callback_manager.h"
 #include "interops.h"
 #include "napi_agent.h"
+#include "interop_js/hybridgref_ani.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 namespace OHOS {
 namespace AppExecFwk {
 
 namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
+ani_vm* g_AniVm = nullptr;
+}
+
+ani_vm* GetGlobalAniVm()
+{
+    return g_AniVm;
 }
 std::string EventsEmitter::GetStdString(ani_env *env, ani_string str)
 {
@@ -48,6 +56,28 @@ void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
     AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(eventIdValue);
 }
 
+void EventsEmitter::ReleaseAniData(ani_env *env, SerializeData* data)
+{
+    if (data == nullptr || env == nullptr) {
+        HILOGE("ReleaseAniData data or env is null");
+        return;
+    }
+    if (std::holds_alternative<ani_ref>(data->peerData)) {
+        env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
+    }
+}
+
+void EventsEmitter::ReleaseNapiData(SerializeData* data)
+{
+    if (data == nullptr || data->env == nullptr) {
+        HILOGE("ReleaseNapiData data or env is null");
+        return;
+    }
+    if (napi_delete_serialization_data(data->env, data->crossData) != napi_ok) {
+        HILOGW("ReleaseNapiData failed to napi_delete_serialization_data");
+    }
+}
+
 std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *env)
 {
     auto serializeDataPtr = new (std::nothrow) SerializeData();
@@ -65,28 +95,27 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
         if (data == nullptr) {
             return;
         }
-        if (std::holds_alternative<ani_ref>(data->peerData)) {
-            ani_env *env;
-            ani_status status = ANI_OK;
-            status = vm->GetEnv(ANI_VERSION_1, &env);
-            if (status == ANI_OK) {
-                status = env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
-                delete data;
-                data = nullptr;
-                return;
-            }
-            ani_option interopEnabled {"--interop=disable", nullptr};
-            ani_options aniArgs {1, &interopEnabled};
-            status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
-            if (status != ANI_OK) {
-                HILOGE("attach thread failed");
-                delete data;
-                data = nullptr;
-                return;
-            }
-            status = env->GlobalReference_Delete(std::get<ani_ref>(data->peerData));
-            vm->DetachCurrentThread();
+        ani_env *env;
+        ani_status status = vm->GetEnv(ANI_VERSION_1, &env);
+        if (status == ANI_OK) {
+            ReleaseAniData(env, data);
+            ReleaseNapiData(data);
+            delete data;
+            data = nullptr;
+            return;
         }
+        ani_option interopEnabled {"--interop=disable", nullptr};
+        ani_options aniArgs {1, &interopEnabled};
+        status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
+        if (status != ANI_OK) {
+            HILOGE("attach thread failed");
+            delete data;
+            data = nullptr;
+            return;
+        }
+        ReleaseAniData(env, data);
+        ReleaseNapiData(data);
+        vm->DetachCurrentThread();
         delete data;
         data = nullptr;
     });
@@ -96,9 +125,9 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
 
 void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_object eventData)
 {
-    ani_double eventId = 0;
+    ani_long eventId = 0;
     ani_status status = ANI_ERROR;
-    if ((status = env->Object_GetPropertyByName_Double(InnerEvent, "eventId", &eventId)) != ANI_OK) {
+    if ((status = env->Object_GetPropertyByName_Long(InnerEvent, "eventId", &eventId)) != ANI_OK) {
         HILOGE("eventId not find");
         return;
     }
@@ -122,14 +151,17 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
     }
     auto serializeData = EventsEmitter::GetSharedSerializeData(env);
     if (serializeData == nullptr) {
+        HILOGE("GetSharedSerializeData serializeData is null");
         return;
     }
     if (!AniSerialize::PeerSerialize(env, eventData, serializeData)) {
+        HILOGE("GetSharedSerializeData PeerSerialize failed");
         return;
     }
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(id, EnvType::ANI)) {
         serializeData->isCrossRuntime = true;
         if (!AniSerialize::CrossSerialize(env, eventData, serializeData)) {
+            HILOGE("GetSharedSerializeData CrossSerialize failed");
             return;
         }
     }
@@ -170,12 +202,12 @@ void EventsEmitter::EmitWithEventIdString(
     EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
-ani_double EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
+ani_long EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
 {
-    return AsyncCallbackManager::GetInstance().GetListenerCountByEventId(eventId);
+    return static_cast<int64_t>(AsyncCallbackManager::GetInstance().GetListenerCountByEventId(eventId));
 }
 
-static void OnOrOnceSync(ani_env *env, ani_double eventId, ani_boolean once, ani_ref callback, ani_string dataType)
+static void OnOrOnceSync(ani_env *env, ani_long eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
     InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
@@ -213,25 +245,25 @@ static void OffGenericEventSync(ani_env *env, ani_string eventId, ani_ref callba
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
-static void OffNumberSync(ani_env *env, ani_double eventId)
+static void OffNumberSync(ani_env *env, ani_long eventId)
 {
     InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OffEmitterInstances(id);
 }
 
-static void OffNumberCallbackSync(ani_env *env, ani_double eventId, ani_ref callback)
+static void OffNumberCallbackSync(ani_env *env, ani_long eventId, ani_ref callback)
 {
     InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
-static ani_double getListenerCountNumber(ani_env *env, ani_double eventId)
+static ani_long getListenerCountNumber(ani_env *env, ani_long eventId)
 {
     InnerEvent::EventId id = static_cast<uint32_t>(eventId);
     return EventsEmitter::GetListenerCount(id);
 }
 
-static ani_double getListenerCountString(ani_env *env, ani_string eventId)
+static ani_long getListenerCountString(ani_env *env, ani_string eventId)
 {
     InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
     return EventsEmitter::GetListenerCount(id);
@@ -310,13 +342,13 @@ ani_status init(ani_env *env, ani_namespace kitNs)
         ani_native_function{"OffStringIdSync", nullptr, reinterpret_cast<void *>(OffStringIdSync)},
         ani_native_function{"OffStringSync", nullptr, reinterpret_cast<void *>(OffStringSync)},
         ani_native_function{"OffGenericEventSync", nullptr, reinterpret_cast<void *>(OffGenericEventSync)},
-        ani_native_function{"OffNumberSync", "D:V", reinterpret_cast<void *>(OffNumberSync)},
+        ani_native_function{"OffNumberSync", "J:V", reinterpret_cast<void *>(OffNumberSync)},
         ani_native_function{"OffNumberCallbackSync", nullptr, reinterpret_cast<void *>(OffNumberCallbackSync)},
-        ani_native_function{"getListenerCountSync", "D:D", reinterpret_cast<void *>(getListenerCountNumber)},
+        ani_native_function{"getListenerCountSync", "J:J", reinterpret_cast<void *>(getListenerCountNumber)},
         ani_native_function{"getListenerCountStringSync",
-                            "Lstd/core/String;:D", reinterpret_cast<void *>(getListenerCountString)},
+            "Lstd/core/String;:J", reinterpret_cast<void *>(getListenerCountString)},
         ani_native_function{"EmitInnerEventSync", "L@ohos/events/emitter/emitter/InnerEvent;:V",
-                            reinterpret_cast<void *>(EmitInnerEventSync)},
+            reinterpret_cast<void *>(EmitInnerEventSync)},
         ani_native_function{"EmitInnerEventDataSync",
             "L@ohos/events/emitter/emitter/InnerEvent;L@ohos/events/emitter/emitter/EventData;:V",
             reinterpret_cast<void *>(EmitInnerEventDataSync)},
@@ -345,25 +377,25 @@ extern "C" {
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
     HILOGD("ANI_Constructor begin");
+    g_AniVm = vm;
     ani_status status = ANI_ERROR;
     ani_env *env;
     if (ANI_OK != vm->GetEnv(ANI_VERSION_1, &env)) {
         HILOGE("Unsupported ANI_VERSION_1.");
-        return ANI_ERROR;
+        return status;
     }
 
     ani_namespace kitNs;
     status = env->FindNamespace("L@ohos/events/emitter/emitter;", &kitNs);
     if (status != ANI_OK) {
         HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
-        return ANI_INVALID_ARGS;
+        return status;
     }
     status = init(env, kitNs);
     if (status != ANI_OK) {
         HILOGE("Cannot bind native methods to L@ohos/events/emitter/emitter");
         return ANI_INVALID_TYPE;
     }
-
     *result = ANI_VERSION_1;
     return ANI_OK;
 }

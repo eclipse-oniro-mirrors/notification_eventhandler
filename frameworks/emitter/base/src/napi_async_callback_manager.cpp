@@ -117,11 +117,6 @@ void NapiAsyncCallbackManager::NapiDoCallback(const InnerEvent::Pointer& event)
 {
     auto napiCallbackInfos = NapiGetAsyncCallbackInfo(event->GetInnerEventIdEx());
     auto serializeData = event->GetSharedObject<SerializeData>();
-    auto deleter = [](napi_value* data) {
-        if (data != nullptr) {
-            delete data;
-        }
-    };
     for (auto it = napiCallbackInfos.begin(); it != napiCallbackInfos.end(); ++it) {
         if (*it == nullptr || (*it)->env == nullptr || (*it)->isDeleted) {
             HILOGE("napiCallbackInfo is unavailable");
@@ -132,17 +127,17 @@ void NapiAsyncCallbackManager::NapiDoCallback(const InnerEvent::Pointer& event)
             HILOGE("new object failed");
             return;
         }
+        eventDataWorker->callbackInfo = *it;
         eventDataWorker->IsEnhanced = true;
         eventDataWorker->serializePtr = serializeData;
-        eventDataWorker->callbackInfo = *it;
+        serializeData->env = (*it)->env;
         if (serializeData->envType == EnvType::NAPI) {
-            auto napiValue = std::get<napi_value>(serializeData->peerData);
-            auto* heapValue = new napi_value(napiValue);
-            eventDataWorker->data = std::shared_ptr<napi_value>(heapValue, deleter);
+            if (std::holds_alternative<napi_value>(serializeData->peerData)) {
+                eventDataWorker->enhancedData = std::get<napi_value>(serializeData->peerData);
+            }
             eventDataWorker->isCrossRuntime = false;
         } else {
-            eventDataWorker->enhancedData =
-                reinterpret_cast<void*>(const_cast<char*>(serializeData->crossData.c_str()));
+            eventDataWorker->enhancedData = serializeData->crossData;
             eventDataWorker->isCrossRuntime = true;
         }
         napi_acquire_threadsafe_function((*it)->tsfn);

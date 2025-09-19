@@ -23,7 +23,9 @@
 #include "napi_serialize.h"
 #include "interops.h"
 #include "napi_agent.h"
+#include <ani.h>
 #include "napi/native_node_hybrid_api.h"
+#include "interop_js/arkts_interop_js_api.h"
 
 using namespace std;
 namespace OHOS {
@@ -33,26 +35,6 @@ DEFINE_EH_HILOG_LABEL("EventsEmitter");
 constexpr static uint32_t ARGC_ONE = 1u;
 static const int32_t ARGC_NUM = 2;
 static const int32_t NAPI_VALUE_STRING_LEN = 10240;
-bool StringToNapiValue(napi_env env, napi_value* napiValue, std::string strValue)
-{
-    if (strValue.length() > 0) {
-        napi_value globalValue;
-        napi_get_global(env, &globalValue);
-        napi_value jsonValue;
-        napi_get_named_property(env, globalValue, "JSON", &jsonValue);
-        napi_value parseValue;
-        napi_get_named_property(env, jsonValue, "parse", &parseValue);
-        napi_value paramsNApi;
-        napi_create_string_utf8(env, strValue.c_str(), NAPI_AUTO_LENGTH, &paramsNApi);
-        napi_value funcArgv[1] = { paramsNApi };
-        auto status = napi_call_function(env, jsonValue, parseValue, 1, funcArgv, napiValue);
-        if (status != napi_ok) {
-            HILOGE("StringToNapiValue Stringify Failed");
-            return false;
-        }
-    }
-    return true;
-}
 }
 
 bool GetEventIdWithNumberOrString(
@@ -98,7 +80,7 @@ napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     InnerEvent::EventId eventId = 0u;
     bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
     if (!ret) {
-        HILOGD("Event id is empty for parameter 1.");
+        HILOGE("Event id is empty for parameter 1.");
         return nullptr;
     }
 
@@ -144,9 +126,6 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
     }
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
-        if (!NapiSerialize::CrossSerialize(env, argv, serializeData)) {
-            return false;
-        }
     }
     auto event = InnerEvent::Get(eventId, serializeData);
     event->SetIsEnhanced(true);
@@ -311,7 +290,7 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     InnerEvent::EventId eventId = 0u;
     bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
     if (!ret) {
-        HILOGD("Event id is empty for parameter 1");
+        HILOGE("Event id is empty for parameter 1");
         return CreateJsUndefined(env);
     }
 
@@ -367,22 +346,26 @@ void ProcessEvent(const InnerEvent::Pointer& event)
 void ProcessCallbackEnhanced(const EventDataWorker* eventDataInner)
 {
     auto callbackInner = eventDataInner->callbackInfo;
+    bool isMainThread = true;
     napi_value resultData = nullptr;
     if (eventDataInner->isCrossRuntime) {
-        char* serializeDataCharPtr = reinterpret_cast<char*>(eventDataInner->enhancedData);
-        std::string serializeData(serializeDataCharPtr);
-        bool ret = StringToNapiValue(callbackInner->env, &resultData, serializeData);
-        if (!ret) {
-            return;
-        }
-    } else {
-        if (eventDataInner->data != nullptr && *(eventDataInner->data) != nullptr) {
-            if (napi_deserialize_hybrid(callbackInner->env, *(eventDataInner->data), &resultData) != napi_ok ||
-                resultData == nullptr) {
-                HILOGE("Deserialize fail.");
+        ani_env *aniEnv = nullptr;
+        if (GetGlobalAniVm()->GetEnv(ANI_VERSION_1, &aniEnv) != ANI_OK) {
+            isMainThread = false;
+            ani_option interopEnabled {"--interop=enable", nullptr};
+            ani_options aniArgs {1, &interopEnabled};
+            if (GetGlobalAniVm()->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &aniEnv) != ANI_OK) {
+                HILOGE("ProcessCallbackEnhanced failed to GetEnv");
                 return;
             }
         }
+    }
+    if (napi_deserialize_hybrid(callbackInner->env, eventDataInner->enhancedData, &resultData) != napi_ok) {
+        if (!isMainThread) {
+            GetGlobalAniVm()->DetachCurrentThread();
+        }
+        HILOGE("ProcessCallback failed to napi_deserialize_hybrid");
+        return;
     }
     napi_value event = nullptr;
     napi_create_object(callbackInner->env, &event);
@@ -393,6 +376,9 @@ void ProcessCallbackEnhanced(const EventDataWorker* eventDataInner)
     napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
     if (callbackInner->once) {
         AsyncCallbackManager::GetInstance().DeleteCallbackInfo(callbackInner->env, callbackInner->eventId, callback);
+    }
+    if (!isMainThread) {
+        GetGlobalAniVm()->DetachCurrentThread();
     }
 }
 

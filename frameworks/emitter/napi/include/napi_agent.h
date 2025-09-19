@@ -15,10 +15,11 @@
 
 #ifndef BASE_EVENTHANDLER_FRAMEWORKS_NAPI_AGENT_H
 #define BASE_EVENTHANDLER_FRAMEWORKS_NAPI_AGENT_H
-
+#include "ani.h"
 namespace OHOS {
 namespace AppExecFwk {
 void AgentInit();
+ani_vm* GetGlobalAniVm();
 } // namespace AppExecFwk
 } // namespace OHOS
 
