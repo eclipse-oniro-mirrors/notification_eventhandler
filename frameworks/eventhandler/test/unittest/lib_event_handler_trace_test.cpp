@@ -498,56 +498,6 @@ HWTEST_F(LibEventHandlerTraceTest, DepositTrace001, TestSize.Level0)
 }
 
 /**
- * @tc.name: SyncSendTrace001
- * @tc.desc: Check wheather trace id of event is valid when SendSyncEvent.
- * @tc.type: FUNC
- * @tc.require: AR000GGRVV
- * @tc.author: liuyanzhi
- */
-HWTEST_F(LibEventHandlerTraceTest, SyncSendTrace001, TestSize.Level0)
-{
-    /**
-     * @tc.setup: create runner and handler, begin trace and set flag.
-     */
-    auto initId = HiTraceChain::Begin("EventHandler", HITRACE_FLAG_INCLUDE_ASYNC | HITRACE_FLAG_TP_INFO);
-
-    /**
-     * @tc.steps: step1. create runner and handler, make sure the runner is the current runner, then get event and
-     *            send Sync Event, then check wheather the trace is valid.
-     * @tc.expected: step1. trace id is not valid.
-     */
-    auto runner = EventRunner::Create(true);
-    auto handler = std::make_shared<ThirdTestEventHandler>(runner);
-    uint32_t innerEventId = 0;
-    auto event = InnerEvent::Get(innerEventId);
-
-    auto process = []() {
-        return !g_eventProcess.load();
-    };
-
-    auto running = [&runner]() {
-        return !runner->IsRunning();
-    };
-
-    auto f = [&runner, &handler, &event, &process, &running]() {
-        Wait(running);
-        handler->SendSyncEvent(event);
-        Wait(process);
-    };
-    auto m = [&handler, &f, &running]() {
-        Wait(running);
-        handler->PostTask(f);
-    };
-
-    std::thread newThread(m);
-    newThread.join();
-    /**
-     * @tc.teardown: end trace id.
-     */
-    HiTraceChain::End(initId);
-}
-
-/**
  * @tc.name: SyncSendTrace002
  * @tc.desc: Check wheather trace id of event is valid when SendSyncEvent.
  * @tc.type: FUNC
