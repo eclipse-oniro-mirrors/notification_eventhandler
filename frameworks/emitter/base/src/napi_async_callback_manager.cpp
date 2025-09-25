@@ -117,6 +117,10 @@ void NapiAsyncCallbackManager::NapiDoCallback(const InnerEvent::Pointer& event)
 {
     auto napiCallbackInfos = NapiGetAsyncCallbackInfo(event->GetInnerEventIdEx());
     auto serializeData = event->GetSharedObject<SerializeData>();
+    if (!serializeData) {
+        HILOGE("Get data failed");
+        return;
+    }
     for (auto it = napiCallbackInfos.begin(); it != napiCallbackInfos.end(); ++it) {
         if (*it == nullptr || (*it)->env == nullptr || (*it)->isDeleted) {
             HILOGE("napiCallbackInfo is unavailable");
