@@ -17,6 +17,7 @@
 
 #include "napi_async_callback_manager.h"
 #include "ani_async_callback_manager.h"
+#include "composite_event.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -29,55 +30,55 @@ public:
     /**
      * Delete all callback info of given event id.
      *
-     * @param eventIdValue event id.
+     * @param compositeId composite event id.
      */
-    void DeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue);
+    void DeleteCallbackInfoByEventId(const CompositeEventId &compositeId);
 
     /**
      * Get all callback info counts of given event id.
      *
-     * @param eventId event id.
+     * @param compositeId composite event id.
      * @return Counts of callback info.
      */
-    uint32_t GetListenerCountByEventId(const InnerEvent::EventId &eventId);
+    uint32_t GetListenerCountByEventId(const CompositeEventId &compositeId);
 
     /**
      * Find whether exists valid callback.
      *
-     * @param eventId event id.
+     * @param compositeId composite event id.
      * @return Returns true if exists valid callback.
      */
-    bool IsExistValidCallback(const InnerEvent::EventId &eventId);
+    bool IsExistValidCallback(const CompositeEventId &compositeId);
 
     /**
      * Insert callback.
      *
      * @param env A pointer to the environment structure.
-     * @param eventId Event id.
+     * @param compositeId composite event id.
      * @param once Whether subscribe once. if true, subscribe once.
      * @param callback Event's callback.
      * @param dataType Data type of callback's parameter.
      */
     void InsertCallbackInfo(
-        ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType);
+        ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType);
 
     /**
      * Delete callback of given event id and callback object.
      *
      * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
+     * @param compositeId composite event id.
      * @param argv Event's callback.
      */
-    void DeleteCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv);
+    void DeleteCallbackInfo(napi_env env, const CompositeEventId &compositeId, napi_value argv);
         
     /**
      * Delete callback of given event id and callback object.
      *
      * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
+     * @param compositeId composite event id.
      * @param callback Event's callback.
      */
-    void DeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback);
+    void DeleteCallbackInfo(ani_env *env, const CompositeEventId &compositeId, ani_ref callback);
 
     /**
      * Execute callback.
@@ -89,11 +90,18 @@ public:
     /**
      * Whether needs to cross runtime.
      *
-     * @param eventId event id.
+     * @param compositeId composite event id.
      * @param envType The type of runtime environment.
      * @return Returns true if needs to cross runtime.
      */
-    bool IsCrossRuntime(const InnerEvent::EventId &eventId, EnvType envType);
+    bool IsCrossRuntime(const CompositeEventId &compositeId, EnvType envType);
+
+    /**
+     * Delete callback of given instance and callback object.
+     *
+     * @param compositeId composite event id.
+     */
+    void CleanCallbackInfo(const CompositeEventId &compositeId);
 private:
     AsyncCallbackManager() = default;
 

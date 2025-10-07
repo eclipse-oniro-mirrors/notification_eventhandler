@@ -21,6 +21,7 @@
 #include "event_queue.h"
 #include "ani.h"
 #include "ani_serialize.h"
+#include "composite_event.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -43,27 +44,27 @@ public:
      * Subscribe an event of given event id.
      *
      * @param env A pointer to the environment structure.
-     * @param eventId Event id.
+     * @param compositeId Composite event id.
      * @param once Whether subscribe once. if true, subscribe once.
      * @param callback Event's callback.
      * @param dataType Data type of callback's parameter.
      */
-    static void OnOrOnce(ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType);
+    static void OnOrOnce(ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType);
 
     /**
      * Unsubscribe all of given event id.
      *
-     * @param eventId Event id.
+     * @param compositeId Composite event id.
      */
-    static void OffEmitterInstances(InnerEvent::EventId eventId);
+    static void OffEmitterInstances(CompositeEventId compositeId);
 
     /**
      * Get all listener counts of given event id.
      *
-     * @param eventId Event id.
+     * @param compositeId Composite event id.
      * @return Returns all listener counts of given event id.
      */
-    static ani_long GetListenerCount(InnerEvent::EventId eventId);
+    static ani_long GetListenerCount(CompositeEventId compositeId);
 
     /**
      * Emit an event of given event id.
@@ -81,8 +82,71 @@ public:
      * @param eventId Event id.
      * @param eventData Data to be emitted.
      * @param enumItem Prority of event.
+     * @param emitterId Event emitterId.
      */
-    static void EmitWithEventIdString(ani_env *env, ani_string eventId, ani_object eventData, ani_enum_item enumItem);
+    static void EmitWithEventIdString(
+        ani_env *env, ani_string eventId, ani_object eventData, ani_enum_item enumItem, uint32_t emitterId = 0);
+
+    /**
+     * Construction of emitter.
+     *
+     * @param env A pointer to the environment structure.
+     * @param emitter The object containing the property.
+     */
+    static void EmitterConstructor(ani_env *env, ani_object emitter);
+
+    /**
+     * Subscribe to events with given instance and given event id.
+     *
+     * @param env A pointer to the environment structure.
+     * @param emitter The object containing the property.
+     * @param eventId Event id.
+     * @param once Whether subscribe once. if true, subscribe once.
+     * @param callback Event's callback.
+     * @param dataType Data type of callback's parameter.
+     */
+    static void EmitterOnOrOnce(
+        ani_env *env, ani_object emitter, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType);
+
+    /**
+     * Unsubscribe of given instance, given event id.
+     *
+     * @param env A pointer to the environment structure.
+     * @param emitter The object containing the property.
+     * @param eventId Event id.
+     * @param callback Delete specified callback.
+     */
+    static void EmitterOff(ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback = nullptr);
+
+    /**
+     * Emit an event of given instance, given event id.
+     *
+     * @param env A pointer to the environment structure.
+     * @param emitter The object containing the property.
+     * @param eventId Event id.
+     * @param eventData Data to be emitted.
+     * @param options Object containing priority for sending events.
+     */
+    static void EmitterEmit(ani_env *env, ani_object emitter,
+                            ani_string eventId, ani_object eventData = nullptr, ani_object options = nullptr);
+
+    /**
+     * Get the count of all listeners for the given instance, given event id.
+     *
+     * @param env A pointer to the environment structure.
+     * @param emitter The object containing the property.
+     * @param eventId Event id.
+     * @return Returns all listener counts of given instance, given event id.
+     */
+    static ani_long EmitterGetListenerCount(ani_env *env, ani_object emitter, ani_string eventId);
+
+    /**
+     * Get the count of all listeners for the given instance, given event id.
+     *
+     * @param env A pointer to the environment structure.
+     * @param cleaner The object containing the property.
+     */
+    static void EmitterClean(ani_env *env, ani_object cleaner);
 
 private:
     static std::shared_ptr<SerializeData> GetSharedSerializeData(ani_env *env);

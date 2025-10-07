@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -795,6 +795,16 @@ public:
         return isEnhanced_;
     }
 
+    inline void SetEmitterId(uint32_t emitterId)
+    {
+        emitterId_ = emitterId;
+    }
+
+    inline uint32_t GetEmitterId()
+    {
+        return emitterId_;
+    }
+
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -934,6 +944,8 @@ private:
 
     // use to store event unique Id
     std::string eventId;
+
+    uint32_t emitterId_ = 0;
 
     int32_t priority = -1;
 

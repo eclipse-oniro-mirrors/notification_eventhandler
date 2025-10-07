@@ -23,23 +23,23 @@ namespace {
 DEFINE_EH_HILOG_LABEL("EventsEmitter");
 }
 
-void NapiAsyncCallbackManager::NapiDeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue)
+void NapiAsyncCallbackManager::NapiDeleteCallbackInfoByEventId(const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(napiAsyncCallbackContainerMutex_);
-    auto iter = napiAsyncCallbackContainer_.find(eventIdValue);
+    auto iter = napiAsyncCallbackContainer_.find(compositeId);
     if (iter != napiAsyncCallbackContainer_.end()) {
         for (auto callbackInfo : iter->second) {
             callbackInfo->isDeleted = true;
         }
     }
-    napiAsyncCallbackContainer_.erase(eventIdValue);
+    napiAsyncCallbackContainer_.erase(compositeId);
 }
 
-uint32_t NapiAsyncCallbackManager::NapiGetListenerCountByEventId(const InnerEvent::EventId &eventId)
+uint32_t NapiAsyncCallbackManager::NapiGetListenerCountByEventId(const CompositeEventId &compositeId)
 {
     uint32_t cnt = 0u;
     std::lock_guard<std::mutex> lock(napiAsyncCallbackContainerMutex_);
-    auto subscribe = napiAsyncCallbackContainer_.find(eventId);
+    auto subscribe = napiAsyncCallbackContainer_.find(compositeId);
     if (subscribe != napiAsyncCallbackContainer_.end()) {
         for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
             if ((*it)->isDeleted == true || (*it)->env == nullptr) {
@@ -53,10 +53,10 @@ uint32_t NapiAsyncCallbackManager::NapiGetListenerCountByEventId(const InnerEven
     return cnt;
 }
 
-bool NapiAsyncCallbackManager::NapiIsExistValidCallback(const InnerEvent::EventId &eventId)
+bool NapiAsyncCallbackManager::NapiIsExistValidCallback(const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(napiAsyncCallbackContainerMutex_);
-    auto subscribe = napiAsyncCallbackContainer_.find(eventId);
+    auto subscribe = napiAsyncCallbackContainer_.find(compositeId);
     if (subscribe == napiAsyncCallbackContainer_.end()) {
         return false;
     }
@@ -67,10 +67,10 @@ bool NapiAsyncCallbackManager::NapiIsExistValidCallback(const InnerEvent::EventI
 }
 
 void NapiAsyncCallbackManager::NapiDeleteCallbackInfo(
-    napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
+    napi_env env, const CompositeEventId &compositeId, napi_value argv)
 {
     std::lock_guard<std::mutex> lock(napiAsyncCallbackContainerMutex_);
-    auto iter = napiAsyncCallbackContainer_.find(eventIdValue);
+    auto iter = napiAsyncCallbackContainer_.find(compositeId);
     if (iter == napiAsyncCallbackContainer_.end()) {
         return;
     }
@@ -95,10 +95,10 @@ void NapiAsyncCallbackManager::NapiDeleteCallbackInfo(
 }
 
 std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> NapiAsyncCallbackManager::NapiGetAsyncCallbackInfo(
-    const InnerEvent::EventId &eventId)
+    const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(napiAsyncCallbackContainerMutex_);
-    auto iter = napiAsyncCallbackContainer_.find(eventId);
+    auto iter = napiAsyncCallbackContainer_.find(compositeId);
     if (iter == napiAsyncCallbackContainer_.end()) {
         std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
         return result;
@@ -115,7 +115,10 @@ std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> NapiAsyncCallbackManager:
 
 void NapiAsyncCallbackManager::NapiDoCallback(const InnerEvent::Pointer& event)
 {
-    auto napiCallbackInfos = NapiGetAsyncCallbackInfo(event->GetInnerEventIdEx());
+    CompositeEventId compositeId;
+    compositeId.eventId = event->GetInnerEventIdEx();
+    compositeId.emitterId = event->GetEmitterId();
+    auto napiCallbackInfos = NapiGetAsyncCallbackInfo(compositeId);
     auto serializeData = event->GetSharedObject<SerializeData>();
     if (!serializeData) {
         HILOGE("Get data failed");

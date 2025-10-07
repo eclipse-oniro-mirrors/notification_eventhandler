@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -461,6 +461,22 @@ HWTEST_F(LibEventHandlerEventTest, Dump001, TestSize.Level1)
     std::string result = event->Dump();
     EXPECT_EQ("Event { No handler }\n", result);
     EXPECT_EQ(runner->GetCurrentEventQueue(), nullptr);
+}
+
+/*
+ * @tc.name: GetEmitterId001
+ * @tc.desc: set emitter id and get emitter id then compare
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, GetEmitterId001, TestSize.Level1)
+{
+    uint32_t eventId = 0;
+    auto event = InnerEvent::Get(eventId);
+    uint32_t emitterId = 1;
+    event->SetEmitterId(emitterId);
+    EXPECT_NE(event, nullptr);
+    uint32_t result = event->GetEmitterId();
+    EXPECT_EQ(result, emitterId);
 }
 
 /*

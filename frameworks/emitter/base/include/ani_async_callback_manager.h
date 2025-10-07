@@ -23,6 +23,7 @@
 
 #include "inner_event.h"
 #include "ani.h"
+#include "composite_event.h"
 #include "serialize.h"
 
 namespace OHOS {
@@ -35,6 +36,7 @@ struct AniAsyncCallbackInfo {
     std::atomic<bool> once = false;
     std::atomic<bool> isDeleted = false;
     InnerEvent::EventId eventId;
+    uint32_t emitterId = 0;
 
     ~AniAsyncCallbackInfo();
     void ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event);
@@ -49,46 +51,46 @@ public:
     /**
      * Delete all callback info of given event id.
      *
-     * @param eventIdValue event id.
+     * @param compositeId Composite event id.
      */
-    void AniDeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue);
+    void AniDeleteCallbackInfoByEventId(const CompositeEventId &compositeId);
 
     /**
      * Get all callback info counts of given event id.
      *
-     * @param eventId event id.
+     * @param compositeId Composite event id.
      * @return Counts of callback info.
      */
-    uint32_t AniGetListenerCountByEventId(const InnerEvent::EventId &eventId);
+    uint32_t AniGetListenerCountByEventId(const CompositeEventId &compositeId);
 
     /**
      * Find whether exists valid callback.
      *
-     * @param eventId event id.
+     * @param compositeId Composite event id.
      * @return Returns true if exists valid callback.
      */
-    bool AniIsExistValidCallback(const InnerEvent::EventId &eventId);
+    bool AniIsExistValidCallback(const CompositeEventId &compositeId);
 
     /**
      * Insert callback.
      *
      * @param env A pointer to the environment structure.
-     * @param eventId Event id.
+     * @param compositeId Composite event id.
      * @param once Whether subscribe once. if true, subscribe once.
      * @param callback Event's callback.
      * @param dataType Data type of callback's parameter.
      */
     void AniInsertCallbackInfo(
-        ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType);
+        ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType);
 
     /**
      * Delete callback of given event id and callback object.
      *
      * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
+     * @param compositeId Composite event id.
      * @param callback Event's callback.
      */
-    void AniDeleteCallbackInfo(ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback);
+    void AniDeleteCallbackInfo(ani_env *env, const CompositeEventId &compositeId, ani_ref callback);
 
     /**
      * Execute callback.
@@ -97,15 +99,21 @@ public:
      */
     void AniDoCallback(const InnerEvent::Pointer& event);
 
+    /**
+     * Delete callback of given instance and callback object.
+     *
+     * @param compositeId Composite event id.
+     */
+    void AniCleanCallbackInfo(const CompositeEventId &compositeId);
 private:
     std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> AniGetAsyncCallbackInfo(
-        const InnerEvent::EventId &eventId);
+        const CompositeEventId &compositeId);
     static void AniReleaseCallbackInfo(AniAsyncCallbackInfo* callbackInfo);
     std::string AniGetStdString(ani_env *env, ani_string str);
 
 private:
     std::mutex aniAsyncCallbackContainerMutex_;
-    std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>>>
+    std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>>>
         aniAsyncCallbackContainer_;
 };
 } // namespace AppExecFwk

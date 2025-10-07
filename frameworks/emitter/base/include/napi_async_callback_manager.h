@@ -20,6 +20,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "composite_event.h"
 #include "nocopyable.h"
 #include "inner_event.h"
 #include "napi/native_api.h"
@@ -39,7 +40,7 @@ struct NapiEventDataWorker {
 
 class NapiAsyncCallbackManager {
 using AsyncCallbackInfoContainer =
-    std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>>;
+    std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>>;
 public:
     NapiAsyncCallbackManager(
         std::mutex& containerMutex = GetAsyncCallbackInfoContainerMutex(),
@@ -49,34 +50,34 @@ public:
     /**
      * Delete all callback info of given event id.
      *
-     * @param eventIdValue event id.
+     * @param compositeId composite event id.
      */
-    void NapiDeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue);
+    void NapiDeleteCallbackInfoByEventId(const CompositeEventId &compositeId);
 
     /**
      * Get all callback info counts of given event id.
      *
-     * @param eventId event id.
+     * @param compositeId composite event id.
      * @return Counts of callback info.
      */
-    uint32_t NapiGetListenerCountByEventId(const InnerEvent::EventId &eventId);
+    uint32_t NapiGetListenerCountByEventId(const CompositeEventId &compositeId);
 
     /**
      * Find whether exists valid callback.
      *
-     * @param eventId event id.
+     * @param compositeId composite event id.
      * @return Returns true if exists valid callback.
      */
-    bool NapiIsExistValidCallback(const InnerEvent::EventId &eventId);
+    bool NapiIsExistValidCallback(const CompositeEventId &compositeId);
 
     /**
      * Delete callback of given event id and callback object.
      *
      * @param env A pointer to the environment structure.
-     * @param eventIdValue Event id.
+     * @param  compositeId composite event id.
      * @param argv Event's callback.
      */
-    void NapiDeleteCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv);
+    void NapiDeleteCallbackInfo(napi_env env, const CompositeEventId &compositeId, napi_value argv);
 
     /**
      * Execute callback.
@@ -87,7 +88,7 @@ public:
 
 private:
     std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> NapiGetAsyncCallbackInfo(
-        const InnerEvent::EventId &eventId);
+        const CompositeEventId &compositeId);
 private:
     std::mutex& napiAsyncCallbackContainerMutex_;
     AsyncCallbackInfoContainer& napiAsyncCallbackContainer_;

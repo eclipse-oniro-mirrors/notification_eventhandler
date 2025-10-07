@@ -23,6 +23,7 @@ if (is_arkui_x) {
   import("//plugins/events/eventhandler.gni")
   ohos_source_set("emitter") {
     include_dirs = [
+      "${frameworks_path}/emitter/base/include",
       "include",
       "//third_party/node/src",
       "//third_party/libuv/include",
@@ -76,6 +77,7 @@ if (is_arkui_x) {
     version_script = "libemitter.map"
 
     include_dirs = [
+      "${frameworks_path}/emitter/base/include",
       "include",
       "${inner_api_path}",
     ]

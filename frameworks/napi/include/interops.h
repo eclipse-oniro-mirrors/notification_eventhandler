@@ -20,6 +20,7 @@
 #include <atomic>
 #include <unordered_set>
 
+#include "composite_event.h"
 #include "inner_event.h"
 #include "event_handler.h"
 #include "napi/native_api.h"
@@ -35,6 +36,7 @@ struct AsyncCallbackInfo {
     napi_ref callback = 0;
     napi_threadsafe_function tsfn = nullptr;
     InnerEvent::EventId eventId;
+    uint32_t emitterId = 0;
     ~AsyncCallbackInfo();
 };
 
@@ -44,12 +46,18 @@ public:
     static std::shared_ptr<EventHandlerInstance> GetInstance();
     ~EventHandlerInstance();
     void ProcessEvent(const InnerEvent::Pointer& event) override;
-    std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> GetAsyncCallbackInfo(const InnerEvent::EventId &eventId);
+    void ProcessEventCallbacks(
+        const std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>& callbackInfos,
+        std::shared_ptr<napi_value> eventData, size_t callbackSize);
+    std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> GetAsyncCallbackInfo(const CompositeEventId &compositeId);
     napi_env deleteEnv = nullptr;
 };
 
+static std::atomic<uint32_t> nextEmitterInstanceId {1};
+uint32_t GetNextEmitterInstanceId();
+
 using AsyncCallbackInfoContainer =
-    std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>>;
+    std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>>;
 AsyncCallbackInfoContainer& GetAsyncCallbackInfoContainer();
 std::mutex& GetAsyncCallbackInfoContainerMutex();
 
@@ -70,6 +78,13 @@ struct EmitterEnhancedApi {
     napi_value (*JS_GetListenerCount)(napi_env env, napi_callback_info cbinfo) = nullptr;
     void (*ProcessEvent)(const InnerEvent::Pointer& event) = nullptr;
     void (*ProcessCallbackEnhanced)(const EventDataWorker* eventDataInner) = nullptr;
+
+    napi_value (*JS_EmitterConstructor)(napi_env env, napi_callback_info cbinfo) = nullptr;
+    napi_value (*JS_EmitterOn)(napi_env env, napi_callback_info cbinfo) = nullptr;
+    napi_value (*JS_EmitterOnce)(napi_env env, napi_callback_info cbinfo) = nullptr;
+    napi_value (*JS_EmitterOff)(napi_env env, napi_callback_info cbinfo) = nullptr;
+    napi_value (*JS_EmitterEmit)(napi_env env, napi_callback_info cbinfo) = nullptr;
+    napi_value (*JS_EmitterGetListenerCount)(napi_env env, napi_callback_info cbinfo) = nullptr;
 };
 
 class EmitterEnhancedApiRegister {

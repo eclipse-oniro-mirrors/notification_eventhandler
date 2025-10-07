@@ -84,6 +84,8 @@ napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
         return nullptr;
     }
 
+    CompositeEventId compositeId;
+    compositeId.eventId = eventId;
     if (argc == ARGC_NUM) {
         napi_valuetype eventHandleType;
         napi_typeof(env, argv[1], &eventHandleType);
@@ -91,10 +93,10 @@ napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
             HILOGE("type mismatch for parameter 2");
             return nullptr;
         }
-        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, eventId, argv[1]);
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, compositeId, argv[1]);
         return nullptr;
     }
-    AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(eventId);
+    AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(compositeId);
     return nullptr;
 }
 
@@ -124,7 +126,9 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
     if (!NapiSerialize::PeerSerialize(env, argv, serializeData)) {
         return false;
     }
-    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
+    CompositeEventId compositeId;
+    compositeId.eventId = eventId;
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(compositeId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
     }
     auto event = InnerEvent::Get(eventId, serializeData);
@@ -137,7 +141,9 @@ void EmitWithDefaultData(InnerEvent::EventId eventId, Priority priority)
 {
     auto serializeData = make_shared<SerializeData>();
     serializeData->envType = EnvType::NAPI;
-    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(eventId, EnvType::NAPI)) {
+    CompositeEventId compositeId;
+    compositeId.eventId = eventId;
+    if (AsyncCallbackManager::GetInstance().IsCrossRuntime(compositeId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
     }
     auto event = InnerEvent::Get(eventId, serializeData);
@@ -159,10 +165,11 @@ napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
     napi_get_named_property(env, argv[0], "eventId", &value);
     uint32_t id = 0u;
     napi_get_value_uint32(env, value, &id);
-    eventId = id;
+    CompositeEventId compositeId;
+    compositeId.eventId = id;
     HILOGD("Event id value:%{public}u", id);
 
-    if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(eventId)) {
+    if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(compositeId)) {
         EH_LOGE_LIMIT("Invalid callback");
         return nullptr;
     }
@@ -197,10 +204,11 @@ napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
         HILOGE("Invalid event id:%{public}s", id.c_str());
         return nullptr;
     }
-    eventId = id;
+    CompositeEventId compositeId;
+    compositeId.eventId = id;
     HILOGD("Event id value:%{public}s", id.c_str());
 
-    if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(eventId)) {
+    if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(compositeId)) {
         EH_LOGE_LIMIT("Invalid callback");
         return nullptr;
     }
@@ -293,8 +301,9 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
         HILOGE("Event id is empty for parameter 1");
         return CreateJsUndefined(env);
     }
-
-    uint32_t cnt = AsyncCallbackManager::GetInstance().GetListenerCountByEventId(eventId);
+    CompositeEventId compositeId;
+    compositeId.eventId = eventId;
+    uint32_t cnt = AsyncCallbackManager::GetInstance().GetListenerCountByEventId(compositeId);
     return CreateJsNumber(env, cnt);
 }
 
@@ -375,7 +384,10 @@ void ProcessCallbackEnhanced(const EventDataWorker* eventDataInner)
     napi_get_reference_value(callbackInner->env, callbackInner->callback, &callback);
     napi_call_function(callbackInner->env, nullptr, callback, 1, &event, &returnVal);
     if (callbackInner->once) {
-        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(callbackInner->env, callbackInner->eventId, callback);
+        CompositeEventId compositeId;
+        compositeId.eventId = callbackInner->eventId;
+        compositeId.emitterId = callbackInner->emitterId;
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(callbackInner->env, compositeId, callback);
     }
     if (!isMainThread) {
         GetGlobalAniVm()->DetachCurrentThread();

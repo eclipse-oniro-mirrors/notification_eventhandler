@@ -47,5 +47,10 @@ EmitterEnhancedApiRegister& GetEmitterEnhancedApiRegister()
     static EmitterEnhancedApiRegister emitterEnhancedApiRegister;
     return emitterEnhancedApiRegister;
 }
+
+uint32_t GetNextEmitterInstanceId()
+{
+    return ++nextEmitterInstanceId;
+}
 }
 }

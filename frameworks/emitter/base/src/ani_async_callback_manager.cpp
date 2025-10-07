@@ -125,23 +125,39 @@ void AniAsyncCallbackInfo::ThreadFunction(
     vm->DetachCurrentThread();
 }
 
-void AniAsyncCallbackManager::AniDeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue)
+void AniAsyncCallbackManager::AniDeleteCallbackInfoByEventId(const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
-    auto iter = aniAsyncCallbackContainer_.find(eventIdValue);
+    auto iter = aniAsyncCallbackContainer_.find(compositeId);
     if (iter != aniAsyncCallbackContainer_.end()) {
         for (auto callbackInfo : iter->second) {
             callbackInfo->isDeleted = true;
         }
     }
-    aniAsyncCallbackContainer_.erase(eventIdValue);
+    aniAsyncCallbackContainer_.erase(compositeId);
 }
 
-uint32_t AniAsyncCallbackManager::AniGetListenerCountByEventId(const InnerEvent::EventId &eventId)
+void AniAsyncCallbackManager::AniCleanCallbackInfo(const CompositeEventId &compositeId)
+{
+    std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
+    auto eventIter = aniAsyncCallbackContainer_.begin();
+    while (eventIter != aniAsyncCallbackContainer_.end()) {
+        if (eventIter->first.emitterId == compositeId.emitterId) {
+            for (const auto& callbackInfo : eventIter->second) {
+                callbackInfo->isDeleted = true;
+            }
+            eventIter = aniAsyncCallbackContainer_.erase(eventIter);
+        } else {
+            ++eventIter;
+        }
+    }
+}
+
+uint32_t AniAsyncCallbackManager::AniGetListenerCountByEventId(const CompositeEventId &compositeId)
 {
     uint32_t cnt = 0u;
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
-    auto subscribe = aniAsyncCallbackContainer_.find(eventId);
+    auto subscribe = aniAsyncCallbackContainer_.find(compositeId);
     if (subscribe != aniAsyncCallbackContainer_.end()) {
         for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
             if ((*it)->isDeleted == true || (*it)->vm == nullptr) {
@@ -155,10 +171,10 @@ uint32_t AniAsyncCallbackManager::AniGetListenerCountByEventId(const InnerEvent:
     return cnt;
 }
 
-bool AniAsyncCallbackManager::AniIsExistValidCallback(const InnerEvent::EventId &eventId)
+bool AniAsyncCallbackManager::AniIsExistValidCallback(const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
-    auto subscribe = aniAsyncCallbackContainer_.find(eventId);
+    auto subscribe = aniAsyncCallbackContainer_.find(compositeId);
     if (subscribe == aniAsyncCallbackContainer_.end()) {
         return false;
     }
@@ -169,12 +185,12 @@ bool AniAsyncCallbackManager::AniIsExistValidCallback(const InnerEvent::EventId 
 }
 
 void AniAsyncCallbackManager::AniInsertCallbackInfo(
-    ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType)
+    ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType)
 {
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
     ani_ref globalRefCallback;
     env->GlobalReference_Create(callback, &globalRefCallback);
-    auto subscriber = aniAsyncCallbackContainer_.find(eventId);
+    auto subscriber = aniAsyncCallbackContainer_.find(compositeId);
     if (subscriber != aniAsyncCallbackContainer_.end()) {
         for (auto callbackInfo : subscriber->second) {
             if (callbackInfo->isDeleted) {
@@ -203,17 +219,18 @@ void AniAsyncCallbackManager::AniInsertCallbackInfo(
         return;
     }
     callbackInfo->once = once;
-    callbackInfo->eventId = eventId;
+    callbackInfo->eventId = compositeId.eventId;
+    callbackInfo->emitterId = compositeId.emitterId;
     callbackInfo->callback = globalRefCallback;
     callbackInfo->dataType = AniGetStdString(env, dataType);
-    aniAsyncCallbackContainer_[eventId].insert(callbackInfo);
+    aniAsyncCallbackContainer_[compositeId].insert(callbackInfo);
 }
 
 void AniAsyncCallbackManager::AniDeleteCallbackInfo(
-    ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback)
+    ani_env *env, const CompositeEventId &compositeId, ani_ref callback)
 {
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
-    auto iter = aniAsyncCallbackContainer_.find(eventIdValue);
+    auto iter = aniAsyncCallbackContainer_.find(compositeId);
     if (iter == aniAsyncCallbackContainer_.end()) {
         return;
     }
@@ -231,10 +248,10 @@ void AniAsyncCallbackManager::AniDeleteCallbackInfo(
 }
 
 std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> AniAsyncCallbackManager::AniGetAsyncCallbackInfo(
-    const InnerEvent::EventId &eventId)
+    const CompositeEventId &compositeId)
 {
     std::lock_guard<std::mutex> lock(aniAsyncCallbackContainerMutex_);
-    auto iter = aniAsyncCallbackContainer_.find(eventId);
+    auto iter = aniAsyncCallbackContainer_.find(compositeId);
     if (iter == aniAsyncCallbackContainer_.end()) {
         std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> result;
         return result;
@@ -251,7 +268,10 @@ std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>> AniAsyncCallbackManage
 
 void AniAsyncCallbackManager::AniDoCallback(const InnerEvent::Pointer& event)
 {
-    auto aniCallbackInfos = AniGetAsyncCallbackInfo(event->GetInnerEventIdEx());
+    CompositeEventId compositeId;
+    compositeId.eventId = event->GetInnerEventIdEx();
+    compositeId.emitterId = event->GetEmitterId();
+    auto aniCallbackInfos = AniGetAsyncCallbackInfo(compositeId);
     for (auto it = aniCallbackInfos.begin(); it != aniCallbackInfos.end(); ++it) {
         (*it)->ProcessEvent(event);
     }

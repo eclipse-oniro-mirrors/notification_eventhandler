@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -56,6 +56,13 @@ napi_value JS_On(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Off(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Once(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Emit(napi_env env, napi_callback_info cbinfo);
+
+napi_value JS_EmitterConstructor(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterOn(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterOnce(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterGetListenerCount(napi_env env, napi_callback_info cbinfo);
 
 static inline napi_valuetype GetNapiType(napi_env env, napi_value param)
 {

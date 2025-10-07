@@ -19,8 +19,9 @@
 #include "aync_callback_manager.h"
 #include "interops.h"
 #include "napi_agent.h"
-#include "interop_js/hybridgref_ani.h"
+#include "interop_js/arkts_esvalue.h"
 #include "interop_js/arkts_interop_js_api.h"
+#include "interop_js/hybridgref_ani.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -46,14 +47,14 @@ std::string EventsEmitter::GetStdString(ani_env *env, ani_string str)
 }
 
 void EventsEmitter::OnOrOnce(
-    ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType)
+    ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType)
 {
-    AsyncCallbackManager::GetInstance().InsertCallbackInfo(env, eventId, once, callback, dataType);
+    AsyncCallbackManager::GetInstance().InsertCallbackInfo(env, compositeId, once, callback, dataType);
 }
 
-void EventsEmitter::OffEmitterInstances(InnerEvent::EventId eventIdValue)
+void EventsEmitter::OffEmitterInstances(CompositeEventId compositeId)
 {
-    AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(eventIdValue);
+    AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(compositeId);
 }
 
 void EventsEmitter::ReleaseAniData(ani_env *env, SerializeData* data)
@@ -131,7 +132,7 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
         HILOGE("eventId not find");
         return;
     }
-    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
+    CompositeEventId id = static_cast<uint32_t>(eventId);
     if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(id)) {
         HILOGI("Emit has no callback");
         return;
@@ -165,15 +166,17 @@ void EventsEmitter::EmitWithEventId(ani_env *env, ani_object InnerEvent, ani_obj
             return;
         }
     }
-    auto event = InnerEvent::Get(id, serializeData);
+    auto event = InnerEvent::Get(id.eventId, serializeData);
     event->SetIsEnhanced(true);
     EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
 void EventsEmitter::EmitWithEventIdString(
-    ani_env *env, ani_string eventId, ani_object eventData, ani_enum_item enumItem)
+    ani_env *env, ani_string eventId, ani_object eventData, ani_enum_item enumItem, uint32_t emitterId)
 {
-    InnerEvent::EventId id = GetStdString(env, eventId);
+    CompositeEventId id;
+    id.eventId = GetStdString(env, eventId);
+    id.emitterId = emitterId;
     if (!AsyncCallbackManager::GetInstance().IsExistValidCallback(id)) {
         HILOGI("Emit has no callback");
         return;
@@ -197,75 +200,156 @@ void EventsEmitter::EmitWithEventIdString(
             return;
         }
     }
-    auto event = InnerEvent::Get(id, serializeData);
+    auto event = InnerEvent::Get(id.eventId, serializeData);
+    event->SetEmitterId(emitterId);
     event->SetIsEnhanced(true);
     EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
-ani_long EventsEmitter::GetListenerCount(InnerEvent::EventId eventId)
+ani_long EventsEmitter::GetListenerCount(CompositeEventId compositeId)
 {
-    return static_cast<int64_t>(AsyncCallbackManager::GetInstance().GetListenerCountByEventId(eventId));
+    return static_cast<int64_t>(AsyncCallbackManager::GetInstance().GetListenerCountByEventId(compositeId));
+}
+
+void EventsEmitter::EmitterConstructor(ani_env *env, ani_object emitter)
+{
+    ani_class emitterClass;
+    ani_status status = env->FindClass("@ohos.events.emitter.emitter.Emitter", &emitterClass);
+    if (status != ANI_OK) {
+        HILOGE("Failed to find Emitter class");
+        return ;
+    }
+
+    uint32_t instanceId = GetNextEmitterInstanceId();
+    ani_long emitterIdValue = static_cast<ani_long>(instanceId);
+    env->Object_SetPropertyByName_Long(emitter, "emitterId", emitterIdValue);
+}
+
+void EventsEmitter::EmitterOnOrOnce(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType)
+{
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(emitter, "emitterId", &emitterId);
+    if (status != ANI_OK) {
+        HILOGE("Failed to get emitterId");
+        return;
+    }
+
+    CompositeEventId id;
+    id.eventId = GetStdString(env, eventId);
+    id.emitterId = static_cast<uint32_t>(emitterId);
+    EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
+}
+
+void EventsEmitter::EmitterOff(ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback)
+{
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(emitter, "emitterId", &emitterId);
+    if (status != ANI_OK) {
+        HILOGE("Failed to get emitterId");
+        return;
+    }
+
+    CompositeEventId id;
+    id.eventId = GetStdString(env, eventId);
+    id.emitterId = static_cast<uint32_t>(emitterId);
+
+    if (callback == nullptr) {
+        EventsEmitter::OffEmitterInstances(id);
+    } else {
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
+    }
+}
+
+ani_long EventsEmitter::EmitterGetListenerCount(ani_env *env, ani_object emitter, ani_string eventId)
+{
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(emitter, "emitterId", &emitterId);
+    if (status != ANI_OK) {
+        HILOGE("Failed to get emitterId");
+        return 0;
+    }
+
+    CompositeEventId id;
+    id.eventId = GetStdString(env, eventId);
+    id.emitterId = static_cast<uint32_t>(emitterId);
+    return EventsEmitter::GetListenerCount(id);
+}
+
+void EventsEmitter::EmitterClean(ani_env *env, ani_object cleaner)
+{
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(cleaner, "emitterId", &emitterId);
+    if (status != ANI_OK) {
+        HILOGE("Failed to get emitterId");
+        return;
+    }
+    CompositeEventId id;
+    id.emitterId = static_cast<uint32_t>(emitterId);
+    if (id.emitterId > 0) {
+        AsyncCallbackManager::GetInstance().CleanCallbackInfo(id);
+    }
 }
 
 static void OnOrOnceSync(ani_env *env, ani_long eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
+    CompositeEventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
 static void OnOrOnceStringSync(
     ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
 static void OnOrOnceGenericEventSync(
     ani_env *env, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::OnOrOnce(env, id, once, callback, dataType);
 }
 
 static void OffStringIdSync(ani_env *env, ani_string eventId)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     EventsEmitter::OffEmitterInstances(id);
 }
 
 static void OffStringSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
 static void OffGenericEventSync(ani_env *env, ani_string eventId, ani_ref callback)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
 static void OffNumberSync(ani_env *env, ani_long eventId)
 {
-    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
+    CompositeEventId id = static_cast<uint32_t>(eventId);
     EventsEmitter::OffEmitterInstances(id);
 }
 
 static void OffNumberCallbackSync(ani_env *env, ani_long eventId, ani_ref callback)
 {
-    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
+    CompositeEventId id = static_cast<uint32_t>(eventId);
     AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, id, callback);
 }
 
 static ani_long getListenerCountNumber(ani_env *env, ani_long eventId)
 {
-    InnerEvent::EventId id = static_cast<uint32_t>(eventId);
+    CompositeEventId id = static_cast<uint32_t>(eventId);
     return EventsEmitter::GetListenerCount(id);
 }
 
 static ani_long getListenerCountString(ani_env *env, ani_string eventId)
 {
-    InnerEvent::EventId id = EventsEmitter::GetStdString(env, eventId);
+    CompositeEventId id = EventsEmitter::GetStdString(env, eventId);
     return EventsEmitter::GetListenerCount(id);
 }
 
@@ -310,6 +394,23 @@ static ani_status GetPriority(ani_env *env, ani_object options, ani_enum_item &p
     return status;
 }
 
+void EventsEmitter::EmitterEmit(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_object eventData, ani_object options)
+{
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(emitter, "emitterId", &emitterId);
+    if (status != ANI_OK) {
+        HILOGE("Failed to get emitterId");
+        return;
+    }
+
+    ani_enum_item priority = nullptr;
+    if (options != nullptr) {
+        GetPriority(env, options, priority);
+    }
+    EventsEmitter::EmitWithEventIdString(env, eventId, eventData, priority, static_cast<uint32_t>(emitterId));
+}
+
 static void EmitStringOptionsSync(ani_env *env, ani_string eventId, ani_object options)
 {
     ani_enum_item priority = nullptr;
@@ -331,6 +432,149 @@ static void EmitStringOptionsDataSync(ani_env *env,
     ani_enum_item priority = nullptr;
     GetPriority(env, options, priority);
     EventsEmitter::EmitWithEventIdString(env, eventId, EventData, priority);
+}
+
+static void EmitterConstructor(ani_env *env, ani_object emitter)
+{
+    EventsEmitter::EmitterConstructor(env, emitter);
+}
+
+static void EmitterOnDataSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback, ani_string dataType)
+{
+    EventsEmitter::EmitterOnOrOnce(env, emitter, eventId, false, callback, dataType);
+}
+
+static void EmitterOnceDataSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback, ani_string dataType)
+{
+    EventsEmitter::EmitterOnOrOnce(env, emitter, eventId, true, callback, dataType);
+}
+
+static void EmitterOnGenericSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback, ani_string dataType)
+{
+    EventsEmitter::EmitterOnOrOnce(env, emitter, eventId, false, callback, dataType);
+}
+
+static void EmitterOnceGenericSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback, ani_string dataType)
+{
+    EventsEmitter::EmitterOnOrOnce(env, emitter, eventId, true, callback, dataType);
+}
+
+static void EmitterOffSync(ani_env *env, ani_object emitter, ani_string eventId)
+{
+    EventsEmitter::EmitterOff(env, emitter, eventId);
+}
+
+static void EmitterOffCallbackSync(ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback)
+{
+    EventsEmitter::EmitterOff(env, emitter, eventId, callback);
+}
+
+static void EmitterEmitSync(ani_env *env, ani_object emitter, ani_string eventId)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId);
+}
+
+static void EmitterEmitDataSync(ani_env *env, ani_object emitter, ani_string eventId, ani_object EventData)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId, EventData);
+}
+
+static void EmitterEmitGenericSync(ani_env *env, ani_object emitter, ani_string eventId, ani_object GenericEventData)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId, GenericEventData);
+}
+
+static void EmitterEmitOptionsSync(ani_env *env, ani_object emitter, ani_string eventId, ani_object options)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId, nullptr, options);
+}
+
+static void EmitterEmitOptionsDataSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_object options, ani_object EventData)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId, EventData, options);
+}
+
+static void EmitterEmitOptionsGenericSync(
+    ani_env *env, ani_object emitter, ani_string eventId, ani_object options, ani_object GenericEventData)
+{
+    EventsEmitter::EmitterEmit(env, emitter, eventId, GenericEventData, options);
+}
+
+static ani_long EmitterGetListenerCountSync(ani_env *env, ani_object emitter, ani_string eventId)
+{
+    return EventsEmitter::EmitterGetListenerCount(env, emitter, eventId);
+}
+
+static ani_ref EmitterTransferToDynamic(ani_env *env, ani_object input)
+{
+    ani_ref undefinedRef {};
+    env->GetUndefined(&undefinedRef);
+    ani_long emitterId = 0;
+    ani_status status = env->Object_GetPropertyByName_Long(input, "emitterId", &emitterId);
+    if (status != ANI_OK || emitterId == 0) {
+        HILOGE("Failed to get emitterId");
+        return undefinedRef;
+    }
+    napi_env jsEnv;
+    uint32_t id = static_cast<uint32_t>(emitterId);
+    HILOGD("emitterId: %{public}d", id);
+    arkts_napi_scope_open(env, &jsEnv);
+    napi_value object = nullptr;
+    napi_create_object(jsEnv, &object);
+    napi_wrap(
+        jsEnv, object, reinterpret_cast<void*>(id), [](napi_env env, void* data, void* hint) {}, nullptr, nullptr);
+    ani_ref result {};
+    arkts_napi_scope_close_n(jsEnv, 1, &object, &result);
+    return result;
+}
+
+static ani_ref EmitterTransferToStatic(ani_env *env, ani_object input)
+{
+    ani_ref undefinedRef {};
+    env->GetUndefined(&undefinedRef);
+    uint32_t emitterId = 0;
+    arkts_esvalue_unwrap(env, input, reinterpret_cast<void**>(&emitterId));
+    if (emitterId == 0) {
+        HILOGE("Failed to get emitterId");
+        return undefinedRef;
+    }
+    HILOGD("emitterId: %{public}d", emitterId);
+    ani_class cls;
+    ani_status status = env->FindClass("@ohos.events.emitter.emitter.Emitter", &cls);
+    if (status != ANI_OK) {
+        HILOGE("Failed to find Emitter class");
+        return undefinedRef;
+    }
+    ani_method ctor = nullptr;
+    status = env->Class_FindMethod(cls, "<ctor>", ":", &ctor);
+    if (status != ANI_OK) {
+        HILOGE("Class_FindMethod error. result: %{public}d.", status);
+        return undefinedRef;
+    }
+    ani_object ani_data;
+    status = env->Object_New(cls, ctor, &ani_data);
+    if (status != ANI_OK) {
+        HILOGE("Object_New error. result: %{public}d.", status);
+        return undefinedRef;
+    }
+    ani_long emitterIdValue = static_cast<ani_long>(emitterId);
+    env->Object_SetPropertyByName_Long(ani_data, "emitterId", emitterIdValue);
+    ani_ref result = nullptr;
+    if (env->GlobalReference_Create(ani_data, &result) != ANI_OK) {
+        HILOGE("GlobalReference_Create failed");
+        return undefinedRef;
+    }
+    return result;
+}
+
+static void Clean(ani_env *env, ani_object cleaner)
+{
+    EventsEmitter::EmitterClean(env, cleaner);
 }
 
 ani_status init(ani_env *env, ani_namespace kitNs)
@@ -368,6 +612,26 @@ ani_status init(ani_env *env, ani_namespace kitNs)
         ani_native_function{"EmitStringOptionsDataSync",
             "Lstd/core/String;L@ohos/events/emitter/emitter/Options;L@ohos/events/emitter/emitter/EventData;:V",
             reinterpret_cast<void *>(EmitStringOptionsDataSync)},
+        ani_native_function{"EmitterConstructor", nullptr, reinterpret_cast<void *>(EmitterConstructor)},
+        ani_native_function{"EmitterOnDataSync", nullptr, reinterpret_cast<void *>(EmitterOnDataSync)},
+        ani_native_function{"EmitterOnceDataSync", nullptr, reinterpret_cast<void *>(EmitterOnceDataSync)},
+        ani_native_function{"EmitterOnGenericSync", nullptr, reinterpret_cast<void *>(EmitterOnGenericSync)},
+        ani_native_function{"EmitterOnceGenericSync", nullptr, reinterpret_cast<void *>(EmitterOnceGenericSync)},
+        ani_native_function{"EmitterOffSync", nullptr, reinterpret_cast<void *>(EmitterOffSync)},
+        ani_native_function{"EmitterOffDataSync", nullptr, reinterpret_cast<void *>(EmitterOffCallbackSync)},
+        ani_native_function{"EmitterOffGenericSync", nullptr, reinterpret_cast<void *>(EmitterOffCallbackSync)},
+        ani_native_function{"EmitterEmitSync", nullptr, reinterpret_cast<void *>(EmitterEmitSync)},
+        ani_native_function{"EmitterEmitDataSync", nullptr, reinterpret_cast<void *>(EmitterEmitDataSync)},
+        ani_native_function{"EmitterEmitGenericSync", nullptr, reinterpret_cast<void *>(EmitterEmitGenericSync)},
+        ani_native_function{"EmitterEmitOptionsSync",  nullptr, reinterpret_cast<void *>(EmitterEmitOptionsSync)},
+        ani_native_function{"EmitterEmitOptionsDataSync",
+            nullptr, reinterpret_cast<void *>(EmitterEmitOptionsDataSync)},
+        ani_native_function{"EmitterEmitOptionsGenericSync",
+            nullptr, reinterpret_cast<void *>(EmitterEmitOptionsGenericSync)},
+        ani_native_function{"EmitterGetListenerCountSync",
+            nullptr, reinterpret_cast<void *>(EmitterGetListenerCountSync)},
+        ani_native_function{"EmitterTransferToDynamic", nullptr, reinterpret_cast<void *>(EmitterTransferToDynamic)},
+        ani_native_function{"EmitterTransferToStatic", nullptr, reinterpret_cast<void *>(EmitterTransferToStatic)},
     };
     AgentInit();
     return env->Namespace_BindNativeFunctions(kitNs, methods.data(), methods.size());
@@ -394,6 +658,19 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     status = init(env, kitNs);
     if (status != ANI_OK) {
         HILOGE("Cannot bind native methods to L@ohos/events/emitter/emitter");
+        return ANI_INVALID_TYPE;
+    }
+    ani_class cls;
+    status = env->FindClass("@ohos.events.emitter.emitter.Cleaner", &cls);
+    if (status != ANI_OK) {
+        HILOGE("Not found @ohos.events.emitter.emitter.Cleaner");
+        return ANI_INVALID_ARGS;
+    }
+    std::array cleanMethod = {
+    ani_native_function{"clean", nullptr, reinterpret_cast<void *>(Clean)}};
+    status = env->Class_BindNativeMethods(cls, cleanMethod.data(), cleanMethod.size());
+    if (status != ANI_OK) {
+        HILOGE("Cannot bind native methods to @ohos.events.emitter.emitter");
         return ANI_INVALID_TYPE;
     }
     *result = ANI_VERSION_1;
