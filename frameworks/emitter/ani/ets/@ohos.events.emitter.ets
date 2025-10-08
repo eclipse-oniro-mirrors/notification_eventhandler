@@ -78,6 +78,25 @@ namespace emitter {
   export native function EmitStringOptionsGenericSync<T>(eventId: string, options: Options, data: GenericEventData<T>): void;
   export native function EmitStringOptionsSync(eventId:string, options: Options): void;
 
+  export native function EmitterConstructor(emitter: Emitter): void
+  export native function EmitterOnDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>, dataType: string): void;
+  export native function EmitterOnceDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>, dataType: string): void;
+  export native function EmitterOnGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
+  export native function EmitterOnceGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
+  export native function EmitterOffSync(emitter: Emitter, eventId: string): void;
+  export native function EmitterOffDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>): void;
+  export native function EmitterOffGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>): void;
+  export native function EmitterEmitSync(emitter: Emitter, eventId: string): void;
+  export native function EmitterEmitDataSync(emitter: Emitter, eventId: string, data: EventData): void;
+  export native function EmitterEmitGenericSync<T>(emitter: Emitter, eventId: string, data: GenericEventData<T>): void;
+  export native function EmitterEmitOptionsSync(emitter: Emitter, eventId: string, options: Options): void;
+  export native function EmitterEmitOptionsDataSync(emitter: Emitter, eventId: string, options: Options, data: EventData): void;
+  export native function EmitterEmitOptionsGenericSync<T>(emitter: Emitter, eventId: string, options: Options, data: GenericEventData<T>): void;
+  export native function EmitterGetListenerCountSync(emitter: Emitter, eventId: string): long;
+  export native function EmitterDeleteInstanceSync(emitter: Emitter): void;
+  export native function EmitterTransferToDynamic(input: Object): Any;
+  export native function EmitterTransferToStatic(input: Any): Object;
+
   export function onWithEventTypeInnerEventCallback(event: InnerEvent, callback: Callback<EventData>): void {
     if (event.eventId) {
       OnOrOnceSync(event.eventId, false, callback, "eventData");
@@ -212,5 +231,145 @@ namespace emitter {
   overload off { offWithEventIdTypeLong, offWithEventIdTypeString, offWithEventIdTypeLongCallback, offWithEventIdTypeStringCallback, offWithEventIdTypeStringCallbackTypeGenericEventData };
   overload emit { emitWithEventTypeInnerEventDataTypeEventData, emitWithEventIdTypeStringDataTypeEventData, emitWithEventIdTypeStringDataTypeGenericEventData, emitWithEventIdTypeStringOptionsDataTypeEventData, emitWithEventIdTypeStringOptionsDataTypeGenericEventData };
   overload getListenerCount { getListenerCountWithEventIdTypeLong, getListenerCountWithEventIdTypeString };
+
+  export class Cleaner {
+    private emitterId: long = 0
+
+    constructor(emitterId:long) {
+        this.emitterId = emitterId
+    }
+    native clean(): void
+  }
+
+  export function callback(cleaner: Cleaner): void {
+    cleaner.clean()
+  }
+  let destroyRegister = new FinalizationRegistry<Cleaner>(callback)
+  let unregisterToken = new object()
+
+  export class Emitter {
+    constructor() {
+      EmitterConstructor(this);
+      this.registerCleaner(this.emitterId);
+    }
+
+    static transferDynamic(input: Object): Any {
+      return EmitterTransferToDynamic(input);
+    }
+
+    static transferStatic(input: Any): Object {
+      return EmitterTransferToStatic(input);
+    }
+
+    public onEventData(eventId: string, callback: Callback<EventData>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOnDataSync(this, eventId, callback, "eventData")
+    }
+
+    public onceEventData(eventId: string, callback: Callback<EventData>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOnceDataSync(this, eventId, callback, "eventData")
+    }
+
+    public onGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOnGenericSync(this, eventId, callback, "genericEventData");
+    }
+
+    public onceGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOnceGenericSync(this, eventId, callback, "genericEventData");
+    }
+
+    public off(eventId: string): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOffSync(this, eventId);
+    }
+
+    public offEventData(eventId: string, callback: Callback<EventData>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOffDataSync(this, eventId, callback);
+    }
+
+    public offGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
+      if (eventId === '') {
+        return;
+      }
+      EmitterOffGenericSync(this, eventId, callback);
+    }
+
+    public emit(eventId: string, options: Options, data?: EventData): void {
+      if (eventId === '') {
+        return;
+      }
+      if (data != undefined) {
+        EmitterEmitOptionsDataSync(this, eventId, options, data as EventData);
+      } else {
+        EmitterEmitOptionsSync(this, eventId, options);
+      }
+    }
+
+    public emit<T>(eventId: string, options: Options, data?: GenericEventData<T>): void {
+      if (eventId === '') {
+        return;
+      }
+      if (data != undefined) {
+        EmitterEmitOptionsGenericSync(this, eventId, options, data as GenericEventData<T>);
+      } else {
+        EmitterEmitOptionsSync(this, eventId, options);
+      }
+    }
+
+    public emit(eventId: string, data?: EventData): void {
+      if (eventId === '') {
+        return;
+      }
+      if (data != undefined) {
+        EmitterEmitDataSync(this, eventId, data as EventData);
+      } else {
+        EmitterEmitSync(this, eventId);
+      }
+    }
+
+    public emit<T>(eventId: string, data?: GenericEventData<T>): void {
+      if (eventId === '') {
+        return;
+      }
+      if (data != undefined) {
+        EmitterEmitGenericSync(this, eventId, data as GenericEventData<T>);
+      } else {
+        EmitterEmitSync(this, eventId);
+      }
+    }
+
+    public getListenerCount(eventId: string): long {
+      let count : long = 0;
+      if (eventId === '') {
+        return count;
+      }
+      return EmitterGetListenerCountSync(this, eventId);
+    }
+
+    private emitterId: long;
+
+    private cleaner: Cleaner | null = null;
+
+    registerCleaner(emitterId: long): void {
+        this.cleaner = new Cleaner(this.emitterId)
+        destroyRegister.register(this, this.cleaner!, unregisterToken);
+    }
+  }
 }
 export default emitter;

@@ -27,50 +27,50 @@ AsyncCallbackManager& AsyncCallbackManager::GetInstance()
     return instance;
 }
 
-void AsyncCallbackManager::DeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue)
+void AsyncCallbackManager::DeleteCallbackInfoByEventId(const CompositeEventId &compositeId)
 {
-    aniAsyncCallbackManager_.AniDeleteCallbackInfoByEventId(eventIdValue);
-    napiAsyncCallbackManager_.NapiDeleteCallbackInfoByEventId(eventIdValue);
+    aniAsyncCallbackManager_.AniDeleteCallbackInfoByEventId(compositeId);
+    napiAsyncCallbackManager_.NapiDeleteCallbackInfoByEventId(compositeId);
 }
 
-uint32_t AsyncCallbackManager::GetListenerCountByEventId(const InnerEvent::EventId &eventId)
+uint32_t AsyncCallbackManager::GetListenerCountByEventId(const CompositeEventId &compositeId)
 {
     uint32_t cnt = 0u;
-    cnt += aniAsyncCallbackManager_.AniGetListenerCountByEventId(eventId);
-    cnt += napiAsyncCallbackManager_.NapiGetListenerCountByEventId(eventId);
+    cnt += aniAsyncCallbackManager_.AniGetListenerCountByEventId(compositeId);
+    cnt += napiAsyncCallbackManager_.NapiGetListenerCountByEventId(compositeId);
     return cnt;
 }
 
-bool AsyncCallbackManager::IsExistValidCallback(const InnerEvent::EventId &eventId)
+bool AsyncCallbackManager::IsExistValidCallback(const CompositeEventId &compositeId)
 {
-    auto ret = napiAsyncCallbackManager_.NapiIsExistValidCallback(eventId) ||
-        aniAsyncCallbackManager_.AniIsExistValidCallback(eventId);
+    auto ret = napiAsyncCallbackManager_.NapiIsExistValidCallback(compositeId) ||
+        aniAsyncCallbackManager_.AniIsExistValidCallback(compositeId);
     if (!ret) {
-        if (eventId.index() == OHOS::AppExecFwk::TYPE_U32_INDEX) {
-            HILOGW("Event id: %{public}u has no callback", std::get<uint32_t>(eventId));
+        if (compositeId.eventId.index() == OHOS::AppExecFwk::TYPE_U32_INDEX) {
+            HILOGE("Event id: %{public}u has no callback", std::get<uint32_t>(compositeId.eventId));
         } else {
-            HILOGW("Event id: %{public}s has no callback", std::get<std::string>(eventId).c_str());
+            HILOGE("Event id: %{public}s has no callback", std::get<std::string>(compositeId.eventId).c_str());
         }
     }
     return ret;
 }
 
 void AsyncCallbackManager::InsertCallbackInfo(
-    ani_env *env, InnerEvent::EventId eventId, bool once, ani_ref callback, ani_string dataType)
+    ani_env *env, CompositeEventId compositeId, bool once, ani_ref callback, ani_string dataType)
 {
-    aniAsyncCallbackManager_.AniInsertCallbackInfo(env, eventId, once, callback, dataType);
+    aniAsyncCallbackManager_.AniInsertCallbackInfo(env, compositeId, once, callback, dataType);
 }
 
 void AsyncCallbackManager::DeleteCallbackInfo(
-    napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
+    napi_env env, const CompositeEventId &compositeId, napi_value argv)
 {
-    napiAsyncCallbackManager_.NapiDeleteCallbackInfo(env, eventIdValue, argv);
+    napiAsyncCallbackManager_.NapiDeleteCallbackInfo(env, compositeId, argv);
 }
 
 void AsyncCallbackManager::DeleteCallbackInfo(
-    ani_env *env, const InnerEvent::EventId &eventIdValue, ani_ref callback)
+    ani_env *env, const CompositeEventId &compositeId, ani_ref callback)
 {
-    aniAsyncCallbackManager_.AniDeleteCallbackInfo(env, eventIdValue, callback);
+    aniAsyncCallbackManager_.AniDeleteCallbackInfo(env, compositeId, callback);
 }
 
 void AsyncCallbackManager::DoCallback(const InnerEvent::Pointer& event)
@@ -79,16 +79,21 @@ void AsyncCallbackManager::DoCallback(const InnerEvent::Pointer& event)
     aniAsyncCallbackManager_.AniDoCallback(event);
 }
 
-bool AsyncCallbackManager::IsCrossRuntime(const InnerEvent::EventId &eventId, EnvType envType)
+bool AsyncCallbackManager::IsCrossRuntime(const CompositeEventId &compositeId, EnvType envType)
 {
     if (envType == EnvType::NAPI) {
-        return aniAsyncCallbackManager_.AniIsExistValidCallback(eventId);
+        return aniAsyncCallbackManager_.AniIsExistValidCallback(compositeId);
     }
 
     if (envType == EnvType::ANI) {
-        return napiAsyncCallbackManager_.NapiIsExistValidCallback(eventId);
+        return napiAsyncCallbackManager_.NapiIsExistValidCallback(compositeId);
     }
     return false;
+}
+
+void AsyncCallbackManager::CleanCallbackInfo(const CompositeEventId &compositeId)
+{
+    aniAsyncCallbackManager_.AniCleanCallbackInfo(compositeId);
 }
 }
 }

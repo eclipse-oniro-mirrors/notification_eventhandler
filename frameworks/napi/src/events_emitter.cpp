@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,6 +21,7 @@
 #include <new>
 #include <uv.h>
 #include <unordered_set>
+#include "composite_event.h"
 #include "event_logger.h"
 #include "js_native_api_types.h"
 #include "napi/native_node_api.h"
@@ -37,7 +38,7 @@ namespace {
     constexpr static uint32_t ARGC_ONE = 1u;
 }
     static std::mutex g_emitterInsMutex;
-    static std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
+    static std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
     AsyncCallbackInfoContainer& GetAsyncCallbackInfoContainer()
     {
         return emitterInstances;
@@ -111,7 +112,10 @@ namespace {
         if (callbackInner->once) {
             HILOGD("ProcessEvent delete once");
             std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-            auto iter = emitterInstances.find(callbackInner->eventId);
+            CompositeEventId compositeId;
+            compositeId.eventId = callbackInner->eventId;
+            compositeId.emitterId = callbackInner->emitterId;
+            auto iter = emitterInstances.find(compositeId);
             if (iter != emitterInstances.end()) {
                 auto callback = iter->second.find(callbackInner);
                 if (callback != iter->second.end()) {
@@ -152,10 +156,10 @@ namespace {
     }
 
     std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> EventHandlerInstance::GetAsyncCallbackInfo(
-        const InnerEvent::EventId &eventId)
+        const CompositeEventId &compositeId)
     {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto iter = emitterInstances.find(eventId);
+        auto iter = emitterInstances.find(compositeId);
         if (iter == emitterInstances.end()) {
             std::unordered_set<std::shared_ptr<AsyncCallbackInfo>> result;
             HILOGD("ProcessEvent has no callback");
@@ -180,7 +184,10 @@ namespace {
         }
         InnerEvent::EventId eventId = event->GetInnerEventIdEx();
         OutPutEventIdLog(eventId);
-        auto callbackInfos = GetAsyncCallbackInfo(eventId);
+        CompositeEventId compositeId;
+        compositeId.eventId = eventId;
+        compositeId.emitterId = event->GetEmitterId();
+        auto callbackInfos = GetAsyncCallbackInfo(compositeId);
         if (callbackInfos.size() <= 0) {
             HILOGD("ProcessEvent has no valid callback");
             return;
@@ -196,6 +203,14 @@ namespace {
                 HILOGD("EventData delete release failed.");
             }
         });
+
+        ProcessEventCallbacks(callbackInfos, eventData, callbackSize);
+    }
+
+    void EventHandlerInstance::ProcessEventCallbacks(
+        const std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>& callbackInfos,
+        std::shared_ptr<napi_value> eventData, size_t callbackSize)
+    {
         for (auto it = callbackInfos.begin(); it != callbackInfos.end(); ++it) {
             callbackSize--;
             EventDataWorker* eventDataWorker = new (std::nothrow) EventDataWorker();
@@ -245,10 +260,10 @@ namespace {
         }
     }
 
-    void DeleteCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue, napi_value argv)
+    void DeleteCallbackInfo(napi_env env, const CompositeEventId &compositeId, napi_value argv)
     {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto iter = emitterInstances.find(eventIdValue);
+        auto iter = emitterInstances.find(compositeId);
         if (iter == emitterInstances.end()) {
             return;
         }
@@ -272,10 +287,10 @@ namespace {
         return;
     }
 
-    std::shared_ptr<AsyncCallbackInfo> SearchCallbackInfo(napi_env env, const InnerEvent::EventId &eventIdValue,
+    std::shared_ptr<AsyncCallbackInfo> SearchCallbackInfo(napi_env env, const CompositeEventId &compositeId,
         napi_value argv)
     {
-        auto subscribe = emitterInstances.find(eventIdValue);
+        auto subscribe = emitterInstances.find(compositeId);
         if (subscribe == emitterInstances.end()) {
             return nullptr;
         }
@@ -393,13 +408,13 @@ namespace {
             return nullptr;
         }
 
-        InnerEvent::EventId eventIdValue = 0u;
-        bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, eventIdValue);
+        CompositeEventId compositeId;
+        bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, compositeId.eventId);
         if (!ret) {
             return nullptr;
         }
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto callbackInfo = SearchCallbackInfo(env, eventIdValue, argv[1]);
+        auto callbackInfo = SearchCallbackInfo(env, compositeId, argv[1]);
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
         } else {
@@ -413,7 +428,7 @@ namespace {
             }
             callbackInfo->env = env;
             callbackInfo->once = once;
-            callbackInfo->eventId = eventIdValue;
+            callbackInfo->eventId = compositeId.eventId;
             napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
             napi_wrap(env, argv[1], new (std::nothrow) std::weak_ptr<AsyncCallbackInfo>(callbackInfo),
                 [](napi_env env, void* data, void* hint) {
@@ -427,7 +442,7 @@ namespace {
             napi_create_string_utf8(env, "Call thread-safe function", NAPI_AUTO_LENGTH, &resourceName);
             napi_create_threadsafe_function(env, argv[1], nullptr, resourceName, 0, 1, nullptr, ThreadFinished,
                 nullptr, ThreadSafeCallback, &(callbackInfo->tsfn));
-            emitterInstances[eventIdValue].insert(callbackInfo);
+            emitterInstances[compositeId].insert(callbackInfo);
         }
         return nullptr;
     }
@@ -488,8 +503,8 @@ namespace {
             return nullptr;
         }
 
-        InnerEvent::EventId eventId = 0u;
-        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
+        CompositeEventId compositeId;
+        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, compositeId.eventId);
         if (!ret) {
             HILOGD("Event id is empty for parameter 1.");
             return nullptr;
@@ -502,21 +517,21 @@ namespace {
                 HILOGD("JS_Off type mismatch for parameter 2");
                 return nullptr;
             }
-            DeleteCallbackInfo(env, eventId, argv[1]);
+            DeleteCallbackInfo(env, compositeId, argv[1]);
             return nullptr;
         }
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto iter = emitterInstances.find(eventId);
+        auto iter = emitterInstances.find(compositeId);
         if (iter != emitterInstances.end()) {
             for (auto callbackInfo : iter->second) {
                 callbackInfo->isDeleted = true;
             }
+            emitterInstances.erase(compositeId);
         }
-        emitterInstances.erase(eventId);
         return nullptr;
     }
 
-    bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId &eventId, Priority priority)
+    bool EmitWithEventData(napi_env env, napi_value argv, const CompositeEventId &compositeId, Priority priority)
     {
         HILOGD("EmitWithEventData enter");
         napi_valuetype dataType;
@@ -546,16 +561,18 @@ namespace {
                 return false;
             }
         }
-        OutPutEventIdLog(eventId);
-        auto event = InnerEvent::Get(eventId, make_unique<napi_value>(reinterpret_cast<napi_value>(serializeData)));
+        OutPutEventIdLog(compositeId.eventId);
+        auto event = InnerEvent::Get(
+            compositeId.eventId, make_unique<napi_value>(reinterpret_cast<napi_value>(serializeData)));
+        event->SetEmitterId(compositeId.emitterId);
         eventHandler->SendEvent(event, 0, priority);
         return true;
     }
 
-    bool IsExistValidCallback(napi_env env, const InnerEvent::EventId &eventId)
+    bool IsExistValidCallback(napi_env env, const CompositeEventId &compositeId)
     {
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto subscribe = emitterInstances.find(eventId);
+        auto subscribe = emitterInstances.find(compositeId);
         if (subscribe == emitterInstances.end()) {
             HILOGD("JS_Emit has no callback");
             return false;
@@ -569,7 +586,7 @@ namespace {
 
     napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
     {
-        InnerEvent::EventId eventId = 0u;
+        CompositeEventId compositeId;
         bool hasEventId = false;
         napi_value value = nullptr;
         napi_has_named_property(env, argv[0], "eventId", &hasEventId);
@@ -581,10 +598,10 @@ namespace {
         napi_get_named_property(env, argv[0], "eventId", &value);
         uint32_t id = 0u;
         napi_get_value_uint32(env, value, &id);
-        eventId = id;
+        compositeId.eventId = id;
         HILOGD("Event id value:%{public}u", id);
 
-        if (!IsExistValidCallback(env, eventId)) {
+        if (!IsExistValidCallback(env, compositeId)) {
             return nullptr;
         }
 
@@ -599,18 +616,18 @@ namespace {
             priority = static_cast<Priority>(priorityValue);
         }
 
-        if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], eventId, priority)) {
+        if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], compositeId, priority)) {
             return nullptr;
         } else {
-            auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
             eventHandler->SendEvent(event, 0, priority);
         }
         return nullptr;
     }
 
-    napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
+    napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[], uint32_t emitterId = 0)
     {
-        InnerEvent::EventId eventId = 0u;
+        CompositeEventId compositeId;
         auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
         size_t valueStrLength = 0;
         napi_get_value_string_utf8(env, argv[0], valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
@@ -619,16 +636,17 @@ namespace {
             HILOGE("Invalid event id:%{public}s", id.c_str());
             return nullptr;
         }
-        eventId = id;
-        HILOGD("Event id value:%{public}s", id.c_str());
+        compositeId.eventId = id;
+        compositeId.emitterId = emitterId;
+        HILOGD("Event id value:%{public}s, emitterId value: %{public}d", id.c_str(), emitterId);
 
-        if (!IsExistValidCallback(env, eventId)) {
+        if (!IsExistValidCallback(env, compositeId)) {
             return nullptr;
         }
 
         Priority priority = Priority::LOW;
         if (argc < ARGC_NUM) {
-            auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
             eventHandler->SendEvent(event, 0, priority);
             return nullptr;
         }
@@ -637,8 +655,8 @@ namespace {
         napi_value value = nullptr;
         napi_has_named_property(env, argv[1], "priority", &hasPriority);
         if (!hasPriority) {
-            if (!EmitWithEventData(env, argv[1], eventId, priority)) {
-                auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            if (!EmitWithEventData(env, argv[1], compositeId, priority)) {
+                auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
                 eventHandler->SendEvent(event, 0, priority);
             }
             return nullptr;
@@ -650,10 +668,10 @@ namespace {
         HILOGD("Event priority:%{public}d", priorityValue);
         priority = static_cast<Priority>(priorityValue);
 
-        if (argc > ARGC_NUM && EmitWithEventData(env, argv[ARGC_NUM], eventId, priority)) {
+        if (argc > ARGC_NUM && EmitWithEventData(env, argv[ARGC_NUM], compositeId, priority)) {
             return nullptr;
         } else {
-            auto event = InnerEvent::Get(eventId, make_unique<EventData>());
+            auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
             eventHandler->SendEvent(event, 0, priority);
         }
         return nullptr;
@@ -764,14 +782,14 @@ namespace {
         }
 
         uint32_t cnt = 0u;
-        InnerEvent::EventId eventId = 0u;
-        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
+        CompositeEventId compositeId;
+        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, compositeId.eventId);
         if (!ret) {
             HILOGD("Event id is empty for parameter 1.");
             return CreateJsUndefined(env);
         }
         std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto subscribe = emitterInstances.find(eventId);
+        auto subscribe = emitterInstances.find(compositeId);
         if (subscribe != emitterInstances.end()) {
             for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
                 if ((*it)->isDeleted == true || (*it)->env == nullptr) {
@@ -782,6 +800,232 @@ namespace {
                 ++cnt;
             }
         }
+        return CreateJsNumber(env, cnt);
+    }
+
+    void DeleteEmitterInstance(uint32_t emitterId)
+    {
+        HILOGD("emitterId: %{public}d", emitterId);
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        for (auto it = emitterInstances.begin(); it != emitterInstances.end();) {
+            if (it->first.emitterId == emitterId) {
+                for (auto& callbackInfo : it->second) {
+                    callbackInfo->isDeleted = true;
+                }
+                it = emitterInstances.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    napi_value JS_EmitterConstructor(napi_env env, napi_callback_info cbinfo)
+    {
+        napi_value thisArg;
+        size_t argc = 0;
+        void* data = nullptr;
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, nullptr, &thisArg, &data));
+        uint32_t emitterId = GetNextEmitterInstanceId();
+        napi_status status = napi_wrap(env, thisArg, reinterpret_cast<void*>(emitterId),
+            [](napi_env env, void* data, void* hint) {
+                uint32_t* idPtr = static_cast<uint32_t*>(data);
+                if (idPtr != nullptr) {
+                    uint32_t emitterId = *idPtr;
+                    DeleteEmitterInstance(emitterId);
+                }
+            }, nullptr, nullptr);
+        if (status != napi_ok) {
+            HILOGE("Failed to wrap emitter instance");
+            return nullptr;
+        }
+        return thisArg;
+    }
+
+    napi_value EmitterOnOrOnce(napi_env env, napi_callback_info cbinfo, bool once)
+    {
+        size_t argc = ARGC_NUM;
+        napi_value argv[ARGC_NUM] = {0};
+        napi_value thisArg;
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+        if (argc < ARGC_NUM) {
+            HILOGD("requires 2 parameter");
+            return nullptr;
+        }
+        uint32_t emitterId = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        napi_valuetype eventValueType = GetNapiType(env, argv[0]);
+        if (eventValueType != napi_string) {
+            return nullptr;
+        }
+        if (GetNapiType(env, argv[1]) != napi_function) {
+            HILOGD("OnOrOnce type mismatch for parameter 2");
+            return nullptr;
+        }
+        CompositeEventId compositeId;
+        bool ret = GetEventIdWithObjectOrString(env, argv[0], eventValueType, compositeId.eventId);
+        if (!ret) {
+            return nullptr;
+        }
+        compositeId.emitterId = emitterId;
+        auto callbackInfo = SearchCallbackInfo(env, compositeId, argv[1]);
+        if (callbackInfo != nullptr) {
+            UpdateOnceFlag(callbackInfo, once);
+            return nullptr;
+        }
+        callbackInfo = std::shared_ptr<AsyncCallbackInfo>(new (std::nothrow) AsyncCallbackInfo(),
+            [](AsyncCallbackInfo* callbackInfo) {
+            ReleaseCallbackInfo(callbackInfo);
+        });
+        if (!callbackInfo) {
+            HILOGE("new object failed");
+            return nullptr;
+        }
+        callbackInfo->env = env;
+        callbackInfo->once = once;
+        callbackInfo->eventId = compositeId.eventId;
+        callbackInfo->emitterId = compositeId.emitterId;
+        napi_create_reference(env, argv[1], 1, &callbackInfo->callback);
+        napi_value resourceName = nullptr;
+        napi_create_string_utf8(env, "Call thread-safe function", NAPI_AUTO_LENGTH, &resourceName);
+        napi_create_threadsafe_function(env, argv[1], nullptr, resourceName, 0, 1, nullptr, ThreadFinished,
+            nullptr, ThreadSafeCallback, &(callbackInfo->tsfn));
+        emitterInstances[compositeId].insert(callbackInfo);
+        return nullptr;
+    }
+
+    napi_value JS_EmitterOn(napi_env env, napi_callback_info cbinfo)
+    {
+        HILOGD("JS_EmitterOn enter");
+        return EmitterOnOrOnce(env, cbinfo, false);
+    }
+
+    napi_value JS_EmitterOnce(napi_env env, napi_callback_info cbinfo)
+    {
+        HILOGD("JS_EmitterOnce enter");
+        return EmitterOnOrOnce(env, cbinfo, true);
+    }
+
+    napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo)
+    {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off(env, cbinfo);
+        }
+        size_t argc = ARGC_NUM;
+        napi_value argv[ARGC_NUM] = {0};
+        napi_value thisArg;
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+
+        if (argc < 1) {
+            HILOGE("requires at least 1 parameter");
+            return nullptr;
+        }
+
+        uint32_t emitterId = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        napi_valuetype eventValueType;
+        napi_typeof(env, argv[0], &eventValueType);
+        if (eventValueType != napi_string) {
+            HILOGE("type mismatch for parameter 1");
+            return nullptr;
+        }
+        CompositeEventId compositeId;
+        bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, compositeId.eventId);
+        if (!ret) {
+            HILOGD("Event id is empty for parameter 1.");
+            return nullptr;
+        }
+        compositeId.emitterId = emitterId;
+        if (argc == ARGC_NUM) {
+            napi_valuetype eventHandleType;
+            napi_typeof(env, argv[1], &eventHandleType);
+            if (eventHandleType != napi_function) {
+                HILOGE("type mismatch for parameter 2");
+                return nullptr;
+            }
+            DeleteCallbackInfo(env, compositeId, argv[1]);
+            return nullptr;
+        }
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        auto eventIt = emitterInstances.find(compositeId);
+        if (eventIt != emitterInstances.end()) {
+            for (auto& callbackInfo : eventIt->second) {
+                callbackInfo->isDeleted = true;
+            }
+            emitterInstances.erase(eventIt);
+        }
+        return nullptr;
+    }
+
+    napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo)
+    {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit(env, cbinfo);
+        }
+        size_t argc = ARGC_NUM + ARGC_ONE;
+        napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
+        napi_value thisArg;
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+
+        if (argc < ARGC_ONE) {
+            HILOGE("Requires more than 1 parameter");
+            return nullptr;
+        }
+
+        uint32_t emitterId = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        return EmitWithEventIdString(env, argc, argv, emitterId);
+    }
+
+    napi_value JS_EmitterGetListenerCount(napi_env env, napi_callback_info cbinfo)
+    {
+        size_t argc = ARGC_NUM;
+        napi_value argv[ARGC_NUM] = {0};
+        napi_value thisArg;
+        NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+
+        if (argc < ARGC_ONE) {
+            HILOGE("Requires more than 1 parameter");
+            return CreateJsUndefined(env);
+        }
+
+        uint32_t emitterId = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+
+        napi_valuetype eventValueType;
+        napi_typeof(env, argv[0], &eventValueType);
+        if (eventValueType != napi_string) {
+            HILOGE("Type mismatch for parameter 1");
+            return CreateJsUndefined(env);
+        }
+
+        CompositeEventId compositeId;
+        auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
+        size_t valueStrLength = 0;
+        napi_get_value_string_utf8(env, argv[0], valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
+        std::string id(valueCStr.get(), valueStrLength);
+        if (id.empty()) {
+            HILOGD("Event id is empty for parameter 1");
+            return CreateJsUndefined(env);
+        }
+        compositeId.eventId = id;
+        compositeId.emitterId = emitterId;
+
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+        uint32_t cnt = 0u;
+        auto subscribe = emitterInstances.find(compositeId);
+        if (subscribe != emitterInstances.end()) {
+            for (auto it = subscribe->second.begin(); it != subscribe->second.end();) {
+                if ((*it)->isDeleted == true || (*it)->env == nullptr) {
+                    it = subscribe->second.erase(it);
+                    continue;
+                }
+                ++it;
+                ++cnt;
+            }
+        };
+
         return CreateJsNumber(env, cnt);
     }
 
@@ -797,6 +1041,19 @@ namespace {
         };
         NAPI_CALL(env, napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc));
 
+        napi_value emitterClass;
+        napi_property_descriptor emitterDesc[] = {
+            DECLARE_NAPI_FUNCTION("on", JS_EmitterOn),
+            DECLARE_NAPI_FUNCTION("once", JS_EmitterOnce),
+            DECLARE_NAPI_FUNCTION("off", JS_EmitterOff),
+            DECLARE_NAPI_FUNCTION("emit", JS_EmitterEmit),
+            DECLARE_NAPI_FUNCTION("getListenerCount", JS_EmitterGetListenerCount),
+        };
+
+        NAPI_CALL(env, napi_define_class(env, "Emitter", NAPI_AUTO_LENGTH, JS_EmitterConstructor, nullptr,
+            sizeof(emitterDesc) / sizeof(napi_property_descriptor), emitterDesc, &emitterClass));
+
+        NAPI_CALL(env, napi_set_named_property(env, exports, "Emitter", emitterClass));
         CreateEnumEventPriority(env, exports);
 
         eventHandler = EventHandlerInstance::GetInstance();
