@@ -826,11 +826,13 @@ namespace {
         void* data = nullptr;
         NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, nullptr, &thisArg, &data));
         uint32_t emitterId = GetNextEmitterInstanceId();
-        napi_status status = napi_wrap(env, thisArg, reinterpret_cast<void*>(emitterId),
+        uintptr_t emitterIdPtr = static_cast<uintptr_t>(emitterId);
+        napi_status status = napi_wrap(env, thisArg, reinterpret_cast<void*>(emitterIdPtr),
             [](napi_env env, void* data, void* hint) {
-                uint32_t* idPtr = static_cast<uint32_t*>(data);
-                if (idPtr != nullptr) {
-                    uint32_t emitterId = *idPtr;
+                uintptr_t emitterIdPtr = reinterpret_cast<uintptr_t>(data);
+                uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
+                HILOGD("emitterId: %{public}d", emitterId);
+                if (emitterId != 0) {
                     DeleteEmitterInstance(emitterId);
                 }
             }, nullptr, nullptr);
