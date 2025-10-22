@@ -390,12 +390,12 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     ani_namespace kitNs;
     status = env->FindNamespace("@ohos.events.emitter.emitter", &kitNs);
     if (status != ANI_OK) {
-        HILOGE("Not found ani_namespace L@ohos/events/emitter/emitter");
+        HILOGE("Not found ani_namespace @ohos.events.emitter.emitter");
         return status;
     }
     status = init(env, kitNs);
     if (status != ANI_OK) {
-        HILOGE("Cannot bind native methods to L@ohos/events/emitter/emitter");
+        HILOGE("Cannot bind native methods to @ohos.events.emitter.emitter");
         return ANI_INVALID_TYPE;
     }
     *result = ANI_VERSION_1;
