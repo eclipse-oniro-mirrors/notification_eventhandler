@@ -100,7 +100,7 @@ napi_value JS_Off(napi_env env, napi_callback_info cbinfo)
     return nullptr;
 }
 
-bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId &eventId, Priority priority)
+bool EmitWithEventData(napi_env env, napi_value argv, const CompositeEventId &compositeId, Priority priority)
 {
     HILOGD("EmitWithEventData enter");
     napi_valuetype dataType;
@@ -126,28 +126,26 @@ bool EmitWithEventData(napi_env env, napi_value argv, const InnerEvent::EventId 
     if (!NapiSerialize::PeerSerialize(env, argv, serializeData)) {
         return false;
     }
-    CompositeEventId compositeId;
-    compositeId.eventId = eventId;
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(compositeId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
     }
-    auto event = InnerEvent::Get(eventId, serializeData);
+    auto event = InnerEvent::Get(compositeId.eventId, serializeData);
     event->SetIsEnhanced(true);
+    event->SetEmitterId(compositeId.emitterId);
     EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
     return true;
 }
 
-void EmitWithDefaultData(InnerEvent::EventId eventId, Priority priority)
+void EmitWithDefaultData(CompositeEventId compositeId, Priority priority)
 {
     auto serializeData = make_shared<SerializeData>();
     serializeData->envType = EnvType::NAPI;
-    CompositeEventId compositeId;
-    compositeId.eventId = eventId;
     if (AsyncCallbackManager::GetInstance().IsCrossRuntime(compositeId, EnvType::NAPI)) {
         serializeData->isCrossRuntime = true;
     }
-    auto event = InnerEvent::Get(eventId, serializeData);
+    auto event = InnerEvent::Get(compositeId.eventId, serializeData);
     event->SetIsEnhanced(true);
+    event->SetEmitterId(compositeId.emitterId);
     EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
 }
 
@@ -185,17 +183,16 @@ napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
         priority = static_cast<Priority>(priorityValue);
     }
 
-    if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], eventId, priority)) {
+    if (argc == ARGC_NUM && EmitWithEventData(env, argv[1], compositeId, priority)) {
         return nullptr;
     } else {
-        EmitWithDefaultData(eventId, priority);
+        EmitWithDefaultData(compositeId, priority);
     }
     return nullptr;
 }
 
-napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
+napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[], uint32_t emitterId = 0)
 {
-    InnerEvent::EventId eventId = 0u;
     auto valueCStr = std::make_unique<char[]>(NAPI_VALUE_STRING_LEN + 1);
     size_t valueStrLength = 0;
     napi_get_value_string_utf8(env, argv[0], valueCStr.get(), NAPI_VALUE_STRING_LEN, &valueStrLength);
@@ -205,6 +202,7 @@ napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
         return nullptr;
     }
     CompositeEventId compositeId;
+    compositeId.emitterId = emitterId;
     compositeId.eventId = id;
     HILOGD("Event id value:%{public}s", id.c_str());
 
@@ -214,15 +212,15 @@ napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
     }
     Priority priority = Priority::LOW;
     if (argc < ARGC_NUM) {
-        EmitWithDefaultData(eventId, priority);
+        EmitWithDefaultData(compositeId, priority);
         return nullptr;
     }
     bool hasPriority = false;
     napi_value value = nullptr;
     napi_has_named_property(env, argv[1], "priority", &hasPriority);
     if (!hasPriority) {
-        if (!EmitWithEventData(env, argv[1], eventId, priority)) {
-            EmitWithDefaultData(eventId, priority);
+        if (!EmitWithEventData(env, argv[1], compositeId, priority)) {
+            EmitWithDefaultData(compositeId, priority);
         }
         return nullptr;
     }
@@ -233,10 +231,10 @@ napi_value EmitWithEventIdString(napi_env env, size_t argc, napi_value argv[])
     HILOGD("Event priority:%{public}d", priorityValue);
     priority = static_cast<Priority>(priorityValue);
 
-    if (argc > ARGC_NUM && EmitWithEventData(env, argv[ARGC_NUM], eventId, priority)) {
+    if (argc > ARGC_NUM && EmitWithEventData(env, argv[ARGC_NUM], compositeId, priority)) {
         return nullptr;
     } else {
-        EmitWithDefaultData(eventId, priority);
+        EmitWithDefaultData(compositeId, priority);
     }
     return nullptr;
 }
@@ -261,6 +259,71 @@ napi_value JS_Emit(napi_env env, napi_callback_info cbinfo)
         return EmitWithEventIdString(env, argc, argv);
     }
     return EmitWithEventIdUint32(env, argc, argv);
+}
+
+napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo)
+{
+    HILOGD("JS_EmitterOff enter");
+    size_t argc = ARGC_NUM;
+    napi_value argv[ARGC_NUM] = {0};
+    napi_value thisArg;
+    NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+
+    if (argc < ARGC_ONE) {
+        HILOGE("Requires more than 1 parameter");
+        return nullptr;
+    }
+
+    uint32_t emitterId = 0;
+    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+
+    napi_valuetype eventValueType;
+    napi_typeof(env, argv[0], &eventValueType);
+    if (eventValueType != napi_string) {
+        HILOGE("type mismatch for parameter 1");
+        return nullptr;
+    }
+
+    InnerEvent::EventId eventId = 0u;
+    bool ret = GetEventIdWithNumberOrString(env, argv[0], eventValueType, eventId);
+    if (!ret) {
+        HILOGE("Event id is empty for parameter 1.");
+        return nullptr;
+    }
+
+    CompositeEventId compositeId;
+    compositeId.emitterId = emitterId;
+    compositeId.eventId = eventId;
+    if (argc == ARGC_NUM) {
+        napi_valuetype eventHandleType;
+        napi_typeof(env, argv[1], &eventHandleType);
+        if (eventHandleType != napi_function) {
+            HILOGE("type mismatch for parameter 2");
+            return nullptr;
+        }
+        AsyncCallbackManager::GetInstance().DeleteCallbackInfo(env, compositeId, argv[1]);
+        return nullptr;
+    }
+    AsyncCallbackManager::GetInstance().DeleteCallbackInfoByEventId(compositeId);
+    return nullptr;
+}
+
+napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo)
+{
+    HILOGD("JS_EmitterEmit enter");
+    size_t argc = ARGC_NUM + ARGC_ONE;
+    napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
+    napi_value thisArg;
+    NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
+
+    if (argc < ARGC_ONE) {
+        HILOGE("Requires more than 1 parameter");
+        return nullptr;
+    }
+
+    uint32_t emitterId = 0;
+    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+    return EmitWithEventIdString(env, argc, argv, emitterId);
 }
 
 napi_value CreateJsUndefined(napi_env env)
@@ -399,6 +462,8 @@ void AgentInit()
     EmitterEnhancedApi api = {
         .JS_Off = &JS_Off,
         .JS_Emit = &JS_Emit,
+        .JS_EmitterOff = &JS_EmitterOff,
+        .JS_EmitterEmit = &JS_EmitterEmit,
         .JS_GetListenerCount = &JS_GetListenerCount,
         .ProcessEvent = &ProcessEvent,
         .ProcessCallbackEnhanced = &ProcessCallbackEnhanced

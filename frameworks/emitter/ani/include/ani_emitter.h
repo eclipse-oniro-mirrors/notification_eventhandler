@@ -99,46 +99,46 @@ public:
      * Subscribe to events with given instance and given event id.
      *
      * @param env A pointer to the environment structure.
-     * @param emitter The object containing the property.
+     * @param emitterId Emitter id.
      * @param eventId Event id.
      * @param once Whether subscribe once. if true, subscribe once.
      * @param callback Event's callback.
      * @param dataType Data type of callback's parameter.
      */
     static void EmitterOnOrOnce(
-        ani_env *env, ani_object emitter, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType);
+        ani_env *env, ani_long emitterId, ani_string eventId, ani_boolean once, ani_ref callback, ani_string dataType);
 
     /**
      * Unsubscribe of given instance, given event id.
      *
      * @param env A pointer to the environment structure.
-     * @param emitter The object containing the property.
+     * @param emitterId Emitter id.
      * @param eventId Event id.
      * @param callback Delete specified callback.
      */
-    static void EmitterOff(ani_env *env, ani_object emitter, ani_string eventId, ani_ref callback = nullptr);
+    static void EmitterOff(ani_env *env, ani_long emitterId, ani_string eventId, ani_ref callback = nullptr);
 
     /**
      * Emit an event of given instance, given event id.
      *
      * @param env A pointer to the environment structure.
-     * @param emitter The object containing the property.
+     * @param emitterId Emitter id.
      * @param eventId Event id.
      * @param eventData Data to be emitted.
      * @param options Object containing priority for sending events.
      */
-    static void EmitterEmit(ani_env *env, ani_object emitter,
+    static void EmitterEmit(ani_env *env, ani_long emitterId,
                             ani_string eventId, ani_object eventData = nullptr, ani_object options = nullptr);
 
     /**
      * Get the count of all listeners for the given instance, given event id.
      *
      * @param env A pointer to the environment structure.
-     * @param emitter The object containing the property.
+     * @param emitterId Emitter id.
      * @param eventId Event id.
      * @return Returns all listener counts of given instance, given event id.
      */
-    static ani_long EmitterGetListenerCount(ani_env *env, ani_object emitter, ani_string eventId);
+    static ani_long EmitterGetListenerCount(ani_env *env, ani_long emitterId, ani_string eventId);
 
     /**
      * Get the count of all listeners for the given instance, given event id.
