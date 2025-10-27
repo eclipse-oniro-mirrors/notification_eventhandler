@@ -22,6 +22,7 @@
 #include "interop_js/arkts_esvalue.h"
 #include "interop_js/arkts_interop_js_api.h"
 #include "interop_js/hybridgref_ani.h"
+#include "events_emitter.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -494,10 +495,13 @@ static ani_ref EmitterTransferToDynamic(ani_env *env, ani_object input)
     }
     napi_env jsEnv;
     uint32_t id = static_cast<uint32_t>(emitterId);
-    HILOGD("emitterId: %{public}d", id);
+    HILOGI("emitterId: %{public}d", id);
     arkts_napi_scope_open(env, &jsEnv);
-    napi_value object = nullptr;
-    napi_create_object(jsEnv, &object);
+    napi_value object = TransferedEmitterConstructor(jsEnv);
+    if (object == nullptr) {
+        HILOGE("EmitterTransferToStatic is nullptr");
+        return undefinedRef;
+    }
     napi_wrap(
         jsEnv, object, reinterpret_cast<void*>(id), [](napi_env env, void* data, void* hint) {}, nullptr, nullptr);
     ani_ref result {};
@@ -515,7 +519,7 @@ static ani_ref EmitterTransferToStatic(ani_env *env, ani_object input)
         HILOGE("Failed to get emitterId");
         return undefinedRef;
     }
-    HILOGD("emitterId: %{public}d", emitterId);
+    HILOGI("emitterId: %{public}d", emitterId);
     ani_class cls;
     ani_status status = env->FindClass("@ohos.events.emitter.emitter.Emitter", &cls);
     if (status != ANI_OK) {
