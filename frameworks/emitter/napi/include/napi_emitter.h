@@ -26,6 +26,8 @@ using Priority = EventQueue::Priority;
 
 napi_value JS_Off(napi_env env, napi_callback_info cbinfo);
 napi_value JS_Emit(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo);
+napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo);
 void ProcessEvent(const InnerEvent::Pointer& event);
 
 static inline napi_valuetype GetNapiType(napi_env env, napi_value param)

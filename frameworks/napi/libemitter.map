@@ -17,6 +17,7 @@
     *GetAsyncCallbackInfoContainerMutex*;
     *GetEmitterEnhancedApiRegister*;
     *GetNextEmitterInstanceId*;
+    *TransferedEmitterConstructor*;
     *EmitterInit*;
     extern "C++" {
         *EventHandlerInstance::*;

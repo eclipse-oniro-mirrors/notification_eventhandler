@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <new>
+#include <set>
 #include <uv.h>
 #include <unordered_set>
 #include "composite_event.h"
@@ -39,6 +40,8 @@ namespace {
 }
     static std::mutex g_emitterInsMutex;
     static std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AsyncCallbackInfo>>> emitterInstances;
+    static std::mutex g_emitterConstructorRefSetMutex;
+    static std::set<std::pair<napi_env, napi_ref> *> g_emitterConstructorRefSets;
     AsyncCallbackInfoContainer& GetAsyncCallbackInfoContainer()
     {
         return emitterInstances;
@@ -639,14 +642,13 @@ namespace {
         compositeId.eventId = id;
         compositeId.emitterId = emitterId;
         HILOGD("Event id value:%{public}s, emitterId value: %{public}d", id.c_str(), emitterId);
-
         if (!IsExistValidCallback(env, compositeId)) {
             return nullptr;
         }
-
         Priority priority = Priority::LOW;
         if (argc < ARGC_NUM) {
             auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
+            event->SetEmitterId(compositeId.emitterId);
             eventHandler->SendEvent(event, 0, priority);
             return nullptr;
         }
@@ -657,11 +659,11 @@ namespace {
         if (!hasPriority) {
             if (!EmitWithEventData(env, argv[1], compositeId, priority)) {
                 auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
+                event->SetEmitterId(compositeId.emitterId);
                 eventHandler->SendEvent(event, 0, priority);
             }
             return nullptr;
         }
-
         napi_get_named_property(env, argv[1], "priority", &value);
         uint32_t priorityValue = 0u;
         napi_get_value_uint32(env, value, &priorityValue);
@@ -672,6 +674,7 @@ namespace {
             return nullptr;
         } else {
             auto event = InnerEvent::Get(compositeId.eventId, make_unique<EventData>());
+            event->SetEmitterId(compositeId.emitterId);
             eventHandler->SendEvent(event, 0, priority);
         }
         return nullptr;
@@ -910,8 +913,8 @@ namespace {
     napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo)
     {
         if (GetEmitterEnhancedApiRegister().IsInit() &&
-            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off != nullptr) {
-            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Off(env, cbinfo);
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_EmitterOff != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_EmitterOff(env, cbinfo);
         }
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
@@ -962,8 +965,8 @@ namespace {
     napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo)
     {
         if (GetEmitterEnhancedApiRegister().IsInit() &&
-            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit != nullptr) {
-            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_Emit(env, cbinfo);
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_EmitterEmit != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_EmitterEmit(env, cbinfo);
         }
         size_t argc = ARGC_NUM + ARGC_ONE;
         napi_value argv[ARGC_NUM + ARGC_ONE] = {0};
@@ -1031,6 +1034,36 @@ namespace {
         return CreateJsNumber(env, cnt);
     }
 
+    napi_value GetSubscriberConstructor(napi_env env)
+    {
+        napi_value constructor = nullptr;
+        std::lock_guard<std::mutex> lock(g_emitterConstructorRefSetMutex);
+        for (auto item : g_emitterConstructorRefSets) {
+            if (item->first == env) {
+                napi_get_reference_value(env, item->second, &constructor);
+                return constructor;
+            }
+        }
+        return constructor;
+    }
+
+    napi_value TransferedEmitterConstructor(napi_env env)
+    {
+        napi_value constructor = GetSubscriberConstructor(env);
+        napi_value thisVar = nullptr;
+        napi_new_instance(env, constructor, 0, nullptr, &thisVar);
+        return thisVar;
+    }
+
+    static void EmitterConstructorCleanupCallback(void *data)
+    {
+        std::pair<napi_env, napi_ref> *wrapper = static_cast<std::pair<napi_env, napi_ref> *>(data);
+        napi_delete_reference(wrapper->first, wrapper->second);
+        std::lock_guard<std::mutex> lock(g_emitterConstructorRefSetMutex);
+        g_emitterConstructorRefSets.erase(wrapper);
+        delete wrapper;
+    }
+
     napi_value EmitterInit(napi_env env, napi_value exports)
     {
         HILOGD("EmitterInit enter");
@@ -1054,6 +1087,15 @@ namespace {
 
         NAPI_CALL(env, napi_define_class(env, "Emitter", NAPI_AUTO_LENGTH, JS_EmitterConstructor, nullptr,
             sizeof(emitterDesc) / sizeof(napi_property_descriptor), emitterDesc, &emitterClass));
+
+        napi_ref constructorRef = nullptr;
+        napi_create_reference(env, emitterClass, 1, &constructorRef);
+        {
+            std::lock_guard<std::mutex> lock(g_emitterConstructorRefSetMutex);
+            auto constructorWrapper = new std::pair<napi_env, napi_ref>(env, constructorRef);
+            g_emitterConstructorRefSets.insert(constructorWrapper);
+            napi_add_env_cleanup_hook(env, EmitterConstructorCleanupCallback, constructorWrapper);
+        }
 
         NAPI_CALL(env, napi_set_named_property(env, exports, "Emitter", emitterClass));
         CreateEnumEventPriority(env, exports);

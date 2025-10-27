@@ -63,6 +63,7 @@ napi_value JS_EmitterOnce(napi_env env, napi_callback_info cbinfo);
 napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo);
 napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo);
 napi_value JS_EmitterGetListenerCount(napi_env env, napi_callback_info cbinfo);
+napi_value TransferedEmitterConstructor(napi_env env);
 
 static inline napi_valuetype GetNapiType(napi_env env, napi_value param)
 {

@@ -79,21 +79,20 @@ namespace emitter {
   export native function EmitStringOptionsSync(eventId:string, options: Options): void;
 
   export native function EmitterConstructor(emitter: Emitter): void
-  export native function EmitterOnDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>, dataType: string): void;
-  export native function EmitterOnceDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>, dataType: string): void;
-  export native function EmitterOnGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
-  export native function EmitterOnceGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
-  export native function EmitterOffSync(emitter: Emitter, eventId: string): void;
-  export native function EmitterOffDataSync(emitter: Emitter, eventId: string, callback: Callback<EventData>): void;
-  export native function EmitterOffGenericSync<T>(emitter: Emitter, eventId: string, callback: Callback<GenericEventData<T>>): void;
-  export native function EmitterEmitSync(emitter: Emitter, eventId: string): void;
-  export native function EmitterEmitDataSync(emitter: Emitter, eventId: string, data: EventData): void;
-  export native function EmitterEmitGenericSync<T>(emitter: Emitter, eventId: string, data: GenericEventData<T>): void;
-  export native function EmitterEmitOptionsSync(emitter: Emitter, eventId: string, options: Options): void;
-  export native function EmitterEmitOptionsDataSync(emitter: Emitter, eventId: string, options: Options, data: EventData): void;
-  export native function EmitterEmitOptionsGenericSync<T>(emitter: Emitter, eventId: string, options: Options, data: GenericEventData<T>): void;
-  export native function EmitterGetListenerCountSync(emitter: Emitter, eventId: string): long;
-  export native function EmitterDeleteInstanceSync(emitter: Emitter): void;
+  export native function EmitterOnDataSync(emitterId: long, eventId: string, callback: Callback<EventData>, dataType: string): void;
+  export native function EmitterOnceDataSync(emitterId: long, eventId: string, callback: Callback<EventData>, dataType: string): void;
+  export native function EmitterOnGenericSync<T>(emitterId: long, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
+  export native function EmitterOnceGenericSync<T>(emitterId: long, eventId: string, callback: Callback<GenericEventData<T>>, dataType: string): void;
+  export native function EmitterOffSync(emitterId: long, eventId: string): void;
+  export native function EmitterOffDataSync(emitterId: long, eventId: string, callback: Callback<EventData>): void;
+  export native function EmitterOffGenericSync<T>(emitterId: long, eventId: string, callback: Callback<GenericEventData<T>>): void;
+  export native function EmitterEmitSync(emitterId: long, eventId: string): void;
+  export native function EmitterEmitDataSync(emitterId: long, eventId: string, data: EventData): void;
+  export native function EmitterEmitGenericSync<T>(emitterId: long, eventId: string, data: GenericEventData<T>): void;
+  export native function EmitterEmitOptionsSync(emitterId: long, eventId: string, options: Options): void;
+  export native function EmitterEmitOptionsDataSync(emitterId: long, eventId: string, options: Options, data: EventData): void;
+  export native function EmitterEmitOptionsGenericSync<T>(emitterId: long, eventId: string, options: Options, data: GenericEventData<T>): void;
+  export native function EmitterGetListenerCountSync(emitterId: long, eventId: string): long;
   export native function EmitterTransferToDynamic(input: Object): Any;
   export native function EmitterTransferToStatic(input: Any): Object;
 
@@ -265,49 +264,49 @@ namespace emitter {
       if (eventId === '') {
         return;
       }
-      EmitterOnDataSync(this, eventId, callback, "eventData")
+      EmitterOnDataSync(this.emitterId, eventId, callback, "eventData")
     }
 
     public onceEventData(eventId: string, callback: Callback<EventData>): void {
       if (eventId === '') {
         return;
       }
-      EmitterOnceDataSync(this, eventId, callback, "eventData")
+      EmitterOnceDataSync(this.emitterId, eventId, callback, "eventData")
     }
 
     public onGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
       if (eventId === '') {
         return;
       }
-      EmitterOnGenericSync(this, eventId, callback, "genericEventData");
+      EmitterOnGenericSync(this.emitterId, eventId, callback, "genericEventData");
     }
 
     public onceGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
       if (eventId === '') {
         return;
       }
-      EmitterOnceGenericSync(this, eventId, callback, "genericEventData");
+      EmitterOnceGenericSync(this.emitterId, eventId, callback, "genericEventData");
     }
 
     public off(eventId: string): void {
       if (eventId === '') {
         return;
       }
-      EmitterOffSync(this, eventId);
+      EmitterOffSync(this.emitterId, eventId);
     }
 
     public offEventData(eventId: string, callback: Callback<EventData>): void {
       if (eventId === '') {
         return;
       }
-      EmitterOffDataSync(this, eventId, callback);
+      EmitterOffDataSync(this.emitterId, eventId, callback);
     }
 
     public offGenericEventData<T>(eventId: string, callback: Callback<GenericEventData<T>>): void {
       if (eventId === '') {
         return;
       }
-      EmitterOffGenericSync(this, eventId, callback);
+      EmitterOffGenericSync(this.emitterId, eventId, callback);
     }
 
     public emit(eventId: string, options: Options, data?: EventData): void {
@@ -315,9 +314,9 @@ namespace emitter {
         return;
       }
       if (data != undefined) {
-        EmitterEmitOptionsDataSync(this, eventId, options, data as EventData);
+        EmitterEmitOptionsDataSync(this.emitterId, eventId, options, data as EventData);
       } else {
-        EmitterEmitOptionsSync(this, eventId, options);
+        EmitterEmitOptionsSync(this.emitterId, eventId, options);
       }
     }
 
@@ -326,9 +325,9 @@ namespace emitter {
         return;
       }
       if (data != undefined) {
-        EmitterEmitOptionsGenericSync(this, eventId, options, data as GenericEventData<T>);
+        EmitterEmitOptionsGenericSync(this.emitterId, eventId, options, data as GenericEventData<T>);
       } else {
-        EmitterEmitOptionsSync(this, eventId, options);
+        EmitterEmitOptionsSync(this.emitterId, eventId, options);
       }
     }
 
@@ -337,9 +336,9 @@ namespace emitter {
         return;
       }
       if (data != undefined) {
-        EmitterEmitDataSync(this, eventId, data as EventData);
+        EmitterEmitDataSync(this.emitterId, eventId, data as EventData);
       } else {
-        EmitterEmitSync(this, eventId);
+        EmitterEmitSync(this.emitterId, eventId);
       }
     }
 
@@ -348,9 +347,9 @@ namespace emitter {
         return;
       }
       if (data != undefined) {
-        EmitterEmitGenericSync(this, eventId, data as GenericEventData<T>);
+        EmitterEmitGenericSync(this.emitterId, eventId, data as GenericEventData<T>);
       } else {
-        EmitterEmitSync(this, eventId);
+        EmitterEmitSync(this.emitterId, eventId);
       }
     }
 
@@ -359,7 +358,7 @@ namespace emitter {
       if (eventId === '') {
         return count;
       }
-      return EmitterGetListenerCountSync(this, eventId);
+      return EmitterGetListenerCountSync(this.emitterId, eventId);
     }
 
     private emitterId: long;
