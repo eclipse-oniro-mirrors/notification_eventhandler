@@ -21,12 +21,16 @@
 #include <memory>
 #include <unordered_set>
 
-#include "inner_event.h"
 #include "ani.h"
+#include "concurrency_helpers.h"
+#include "inner_event.h"
 #include "serialize.h"
+
 
 namespace OHOS {
 namespace AppExecFwk {
+using arkts::concurrency_helpers::GetWorkerId;
+using arkts::concurrency_helpers::SendEvent;
 
 struct AniAsyncCallbackInfo {
     ani_vm* vm = nullptr;
@@ -35,11 +39,12 @@ struct AniAsyncCallbackInfo {
     std::atomic<bool> once = false;
     std::atomic<bool> isDeleted = false;
     InnerEvent::EventId eventId;
+    arkts::concurrency_helpers::AniWorkerId workId;
+    std::shared_ptr<SerializeData> serializeData;
 
     ~AniAsyncCallbackInfo();
     void ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event);
-    static void ThreadFunction(
-        ani_vm* vm, ani_ref callback, std::string dataType, std::shared_ptr<SerializeData> serializeData);
+    static void ThreadFunction(AniAsyncCallbackInfo *asyncCallbackInfo);
     static ani_status GetCallbackArgs(
         ani_env *env, std::string& dataType, std::vector<ani_ref>& args, std::shared_ptr<SerializeData> serializeData);
 };
