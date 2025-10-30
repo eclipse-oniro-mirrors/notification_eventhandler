@@ -26,6 +26,8 @@ void EmitterEnhancedApiRegister::Register(const EmitterEnhancedApi& api)
 {
     enhancedApi_->JS_Off = api.JS_Off;
     enhancedApi_->JS_Emit = api.JS_Emit;
+    enhancedApi_->JS_EmitterOff = api.JS_EmitterOff;
+    enhancedApi_->JS_EmitterEmit = api.JS_EmitterEmit;
     enhancedApi_->JS_GetListenerCount = api.JS_GetListenerCount;
     enhancedApi_->ProcessEvent = api.ProcessEvent;
     enhancedApi_->ProcessCallbackEnhanced = api.ProcessCallbackEnhanced;

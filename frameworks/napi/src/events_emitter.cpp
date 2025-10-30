@@ -985,6 +985,10 @@ namespace {
 
     napi_value JS_EmitterGetListenerCount(napi_env env, napi_callback_info cbinfo)
     {
+        if (GetEmitterEnhancedApiRegister().IsInit() &&
+            GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_GetListenerCount != nullptr) {
+            return GetEmitterEnhancedApiRegister().GetEnhancedApi()->JS_GetListenerCount(env, cbinfo);
+        }
         size_t argc = ARGC_NUM;
         napi_value argv[ARGC_NUM] = {0};
         napi_value thisArg;
