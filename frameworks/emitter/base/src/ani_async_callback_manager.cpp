@@ -36,8 +36,6 @@ void AniAsyncCallbackInfo::ProcessEvent([[maybe_unused]] const InnerEvent::Point
         return;
     }
     auto serializeData = event->GetSharedObject<SerializeData>();
-    // ThreadFunction(this, serializeData);
-
     auto t = std::thread(ThreadFunction, this, serializeData);
     t.join();
     if (once) {
