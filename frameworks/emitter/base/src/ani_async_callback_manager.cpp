@@ -36,7 +36,7 @@ void AniAsyncCallbackInfo::ProcessEvent([[maybe_unused]] const InnerEvent::Point
         return;
     }
     auto serializeData = event->GetSharedObject<SerializeData>();
-    auto t = std::thread(ThreadFunction, vm, callback, dataType, serializeData);
+    auto t = std::thread(ThreadFunction, this, serializeData);
     t.join();
     if (once) {
         isDeleted = true;
@@ -86,43 +86,60 @@ ani_status AniAsyncCallbackInfo::GetCallbackArgs(
     }
 
     env->Object_SetPropertyByName_Ref(obj, "data", eventData);
-    args.push_back(reinterpret_cast<ani_ref>(obj));
+    ani_ref globalRef;
+    env->GlobalReference_Create(static_cast<ani_ref>(obj), &globalRef);
+    args.push_back(globalRef);
     return status;
 }
 
 void AniAsyncCallbackInfo::ThreadFunction(
-    ani_vm* vm, ani_ref callback, std::string dataType, std::shared_ptr<SerializeData> serializeData)
+    AniAsyncCallbackInfo *asyncCallbackInfo, std::shared_ptr<SerializeData> serializeData)
 {
     ani_env *env;
     ani_status status = ANI_OK;
     ani_option interopEnabled {"--interop=enable", nullptr};
     ani_options aniArgs {1, &interopEnabled};
-    status = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
+    status = asyncCallbackInfo->vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &env);
     if (ANI_OK != status) {
         HILOGE("vm GetEnv error %{public}d", status);
         return;
     }
 
-    auto fnObj = reinterpret_cast<ani_fn_object>(callback);
-    if (fnObj == nullptr) {
-        HILOGE("threadFunciton fnObj is nullptr");
-        vm->DetachCurrentThread();
-        return;
-    }
     std::vector<ani_ref> args;
-    ani_ref result;
-    status = AniAsyncCallbackInfo::GetCallbackArgs(env, dataType, args, serializeData);
+    status = AniAsyncCallbackInfo::GetCallbackArgs(env, asyncCallbackInfo->dataType, args, serializeData);
     if (status != ANI_OK) {
         HILOGI("Get callback args failed. error %{public}d", status);
-        vm->DetachCurrentThread();
+        asyncCallbackInfo->vm->DetachCurrentThread();
         return;
     }
-    status = env->FunctionalObject_Call(fnObj, args.size(), args.data(), &result);
-    if (ANI_OK != status) {
-        HILOGI("ANI call function failed. error %{public}d", status);
+    auto callbackInfo = new (std::nothrow) AniCallbackInfo();
+    if (!callbackInfo) {
+        HILOGE("new object failed");
+        return;
     }
-
-    vm->DetachCurrentThread();
+    callbackInfo->vm = asyncCallbackInfo->vm;
+    callbackInfo->callback = asyncCallbackInfo->callback;
+    callbackInfo->args = args;
+    arkts::concurrency_helpers::SendEvent(env, asyncCallbackInfo->workId,
+        [](void *data) {
+            AniCallbackInfo* info = reinterpret_cast<AniCallbackInfo*>(data);
+            ani_env *envCurr = nullptr;
+            ani_status status = info->vm->GetEnv(ANI_VERSION_1, &envCurr);
+            auto fnObj = reinterpret_cast<ani_fn_object>(info->callback);
+            if (fnObj == nullptr) {
+                HILOGE("threadFunciton fnObj is nullptr");
+                return;
+            }
+            ani_ref result;
+            std::vector<ani_ref> args = info->args;
+            status = envCurr->FunctionalObject_Call(fnObj, args.size(), args.data(), &result);
+            if (status != ANI_OK) {
+                HILOGI("ANI call function failed. error %{public}d", status);
+            }
+            delete(info);
+            info = nullptr;
+        }, reinterpret_cast<void *>(callbackInfo));
+    asyncCallbackInfo->vm->DetachCurrentThread();
 }
 
 void AniAsyncCallbackManager::AniDeleteCallbackInfoByEventId(const InnerEvent::EventId &eventIdValue)
@@ -202,6 +219,7 @@ void AniAsyncCallbackManager::AniInsertCallbackInfo(
         HILOGE("Get vm failed. status: %{public}d", status);
         return;
     }
+    callbackInfo->workId = GetWorkerId(env);
     callbackInfo->once = once;
     callbackInfo->eventId = eventId;
     callbackInfo->callback = globalRefCallback;
