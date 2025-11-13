@@ -345,7 +345,8 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     HILOGD("JS_GetListenerCount enter");
     size_t argc = ARGC_NUM;
     napi_value argv[ARGC_NUM] = {0};
-    NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, NULL, NULL));
+    napi_value thisArg;
+    NAPI_CALL(env, napi_get_cb_info(env, cbinfo, &argc, argv, &thisArg, nullptr));
     if (argc < ARGC_ONE) {
         HILOGE("Requires more than 1 parameter");
         return CreateJsUndefined(env);
@@ -366,6 +367,11 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     }
     CompositeEventId compositeId;
     compositeId.eventId = eventId;
+    if (thisArg != nullptr) {
+        uint32_t emitterId = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        compositeId.emitterId = emitterId;
+    }
     uint32_t cnt = AsyncCallbackManager::GetInstance().GetListenerCountByEventId(compositeId);
     return CreateJsNumber(env, cnt);
 }
