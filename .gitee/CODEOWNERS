@@ -1,5 +1,5 @@
 [FWK NOTIFICATION]
-frameworks/ @fwk_notification
-interfaces/ @fwk_notification
-test/ @fwk_notification
-frameworks/napi/ @fwk_notification @zhongchuanzhi @michael_woo required_reviewers=2
+frameworks/ @afwk_helper
+interfaces/ @afwk_helper
+test/ @afwk_helper
+frameworks/napi/ @afwk_helper @zhongchuanzhi @michael_woo required_reviewers=2
