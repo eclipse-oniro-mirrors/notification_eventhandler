@@ -38,7 +38,6 @@ ohos_shared_library("libeventhandler") {
   }
   branch_protector_ret = "pac_ret"
 
-  all_dependent_configs = [ ":libeventhandler_config" ]
   cflags_cc = []
   sources = inner_api_sources
 
