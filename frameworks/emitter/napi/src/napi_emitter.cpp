@@ -132,7 +132,9 @@ bool EmitWithEventData(napi_env env, napi_value argv, const CompositeEventId &co
     auto event = InnerEvent::Get(compositeId.eventId, serializeData);
     event->SetIsEnhanced(true);
     event->SetEmitterId(compositeId.emitterId);
-    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
+    if (EventHandlerInstance::GetInstance() != nullptr) {
+        EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
+    }
     return true;
 }
 
@@ -146,7 +148,9 @@ void EmitWithDefaultData(CompositeEventId compositeId, Priority priority)
     auto event = InnerEvent::Get(compositeId.eventId, serializeData);
     event->SetIsEnhanced(true);
     event->SetEmitterId(compositeId.emitterId);
-    EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
+    if (EventHandlerInstance::GetInstance() != nullptr) {
+        EventHandlerInstance::GetInstance()->SendEvent(event, 0, priority);
+    }
 }
 
 napi_value EmitWithEventIdUint32(napi_env env, size_t argc, napi_value argv[])
