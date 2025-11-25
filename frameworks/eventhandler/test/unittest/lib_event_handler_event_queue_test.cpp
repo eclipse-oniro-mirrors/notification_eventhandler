@@ -2469,6 +2469,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_002, TestSize.Lev
     auto event1 = InnerEvent::Get(f, "CheckEventInListLocked_002");
     auto event2 = InnerEvent::Get(f, "CheckEventInListLocked_002");
     auto event3 = InnerEvent::Get(f, "CheckEventInListLocked_002");
+    auto event4 = InnerEvent::Get(f, "CheckEventInListLocked_002");
     event->MarkBarrierTask();
     event1->MarkBarrierTask();
     event2->MarkBarrierTask();
@@ -2477,6 +2478,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_002, TestSize.Lev
     handler->SendEvent(event1, 50, EventQueue::Priority::VIP);
     handler->SendEvent(event2, 0, EventQueue::Priority::IDLE);
     handler->SendEvent(event3, 50, EventQueue::Priority::IDLE);
+    handler->SendEvent(event4, 0, EventQueue::Priority::VIP);
     EXPECT_EQ(handler->GetEventRunner()->GetEventQueue()->IsBarrierMode(), true);
     usleep(500);
 }

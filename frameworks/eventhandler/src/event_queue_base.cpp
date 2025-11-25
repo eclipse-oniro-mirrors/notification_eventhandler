@@ -75,19 +75,36 @@ void InsertEventsLocked(std::list<InnerEvent::Pointer> &events, InnerEvent::Poin
 
 // Help to check whether there is a valid event in list and update wake up time.
 inline bool CheckEventInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
-    InnerEvent::TimePoint &nextWakeUpTime, bool isBarrierMode)
+    InnerEvent::TimePoint &nextWakeUpTime)
+{
+    if (!events.empty()) {
+        const auto &handleTime = events.front()->GetHandleTime();
+        if (handleTime < nextWakeUpTime) {
+            nextWakeUpTime = handleTime;
+            return handleTime <= now;
+        }
+    }
+    return false;
+}
+
+inline bool CheckBarrierTaskInListLocked(const std::list<InnerEvent::Pointer> &events, const InnerEvent::TimePoint &now,
+    InnerEvent::TimePoint &nextWakeUpTime)
 {
     if (events.empty()) return false;
 
-    auto filter = [&now, &nextWakeUpTime, isBarrierMode](const InnerEvent::Pointer &p) {
-        const auto &handleTime = p->GetHandleTime();
+    for (auto it = events.begin(); it != events.end(); it++) {
+        const auto &handleTime = (*it)->GetHandleTime();
         if (handleTime < nextWakeUpTime) {
             nextWakeUpTime = handleTime;
-            return handleTime <= now && (!isBarrierMode || p->IsBarrierTask());
         }
-        return false;
-    };
-    return std::find_if(events.begin(), events.end(), filter) != events.end();
+        if (handleTime > now) {
+            break;
+        }
+        if ((*it)->IsBarrierTask()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 inline InnerEvent::Pointer PopFrontEventFromListLocked(std::list<InnerEvent::Pointer> &events)
@@ -149,8 +166,9 @@ EventQueueBase::~EventQueueBase()
 
 static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)
 {
-    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner())) {
+    bool res = (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask());
+    if (res) {
         event->MarkBarrierTask();
     }
 }
@@ -447,7 +465,11 @@ InnerEvent::Pointer EventQueueBase::PickEventLocked(const InnerEvent::TimePoint 
     uint32_t priorityIndex = SUB_EVENT_QUEUE_NUM;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         // Check whether any event need to be distributed.
-        if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime, isBarrierMode)) {
+        if (isBarrierMode) {
+            if (!CheckBarrierTaskInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime)) {
+                continue;
+            }
+        } else if (!CheckEventInListLocked(subEventQueues_[i].queue, now, nextWakeUpTime)) {
             continue;
         }
 
