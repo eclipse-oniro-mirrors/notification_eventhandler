@@ -2483,6 +2483,36 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_002, TestSize.Lev
     usleep(500);
 }
 
+HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_003, TestSize.Level1)
+{
+/**
+ * @tc.steps: step1. get event with event id and param, then get event id and param from event.
+ * @tc.expected: step1. the event id and param is the same as we set.
+ */
+    DeamonIoWaiter::GetInstance().Init();
+    auto runner1 = EventRunner::Create(true);
+    runner1->GetEventQueue()->SetBarrierMode(true);
+    auto handler1 = std::make_shared<EventHandler>(runner1);
+
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "CheckEventInListLocked_003");
+    auto event1 = InnerEvent::Get(f, "CheckEventInListLocked_003");
+    auto event2 = InnerEvent::Get(f, "CheckEventInListLocked_003");
+    auto event3 = InnerEvent::Get(f, "CheckEventInListLocked_003");
+    auto event4 = InnerEvent::Get(f, "CheckEventInListLocked_003");
+    event->MarkBarrierTask();
+    event1->MarkBarrierTask();
+    event2->MarkBarrierTask();
+    event3->MarkBarrierTask();
+    handler1->SendEvent(event, 0, EventQueue::Priority::VIP);
+    handler1->SendEvent(event1, 50, EventQueue::Priority::VIP);
+    handler1->SendEvent(event2, 0, EventQueue::Priority::IDLE);
+    handler1->SendEvent(event3, 50, EventQueue::Priority::IDLE);
+    handler1->SendEvent(event4, 0, EventQueue::Priority::VIP);
+    EXPECT_EQ(handler1->GetEventRunner()->GetEventQueue()->IsBarrierMode(), false);
+    usleep(500);
+}
+
 /*
  * @tc.name: SetVsyncPolicy_001
  * @tc.desc: SetVsyncPolicy_001 test
