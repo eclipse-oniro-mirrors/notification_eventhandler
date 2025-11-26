@@ -166,9 +166,8 @@ EventQueueBase::~EventQueueBase()
 
 static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event)
 {
-    bool res = (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask());
-    if (res) {
+    if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+        (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask()) {
         event->MarkBarrierTask();
     }
 }
