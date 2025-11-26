@@ -91,18 +91,11 @@ inline bool CheckBarrierTaskInListLocked(const std::list<InnerEvent::Pointer> &e
     InnerEvent::TimePoint &nextWakeUpTime)
 {
     if (events.empty()) return false;
-
     for (auto it = events.begin(); it != events.end(); it++) {
         const auto &handleTime = (*it)->GetHandleTime();
-        if (handleTime < nextWakeUpTime) {
-            nextWakeUpTime = handleTime;
-        }
-        if (handleTime > now) {
-            break;
-        }
-        if ((*it)->IsBarrierTask()) {
-            return true;
-        }
+        if (handleTime < nextWakeUpTime) nextWakeUpTime = handleTime;
+        if (handleTime > now) break;
+        if ((*it)->IsBarrierTask()) return true;
     }
     return false;
 }
