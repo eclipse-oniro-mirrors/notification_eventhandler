@@ -2491,7 +2491,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckEventInListLocked_003, TestSize.Lev
  */
     DeamonIoWaiter::GetInstance().Init();
     auto runner1 = EventRunner::Create(true);
-    runner1->GetEventQueue()->SetBarrierMode(true);
+    runner1->GetEventQueue()->SetBarrierMode(false);
     auto handler1 = std::make_shared<EventHandler>(runner1);
 
     auto f = []() {; };
