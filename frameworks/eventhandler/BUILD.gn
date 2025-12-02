@@ -105,10 +105,12 @@ ohos_shared_library("libeventhandler") {
         enable_enhanced_opt) {
       ldflags += [ "-Wl,--aarch64-inline-plt" ]
     }
-    ldflags += [ 
-      "-Wl,--emit-relocs", 
-      "-Wl,--no-relax", 
-      "-mno-fix-cortex-a53-843419" 
-    ]
+    if (defined(build_ext_path)) {
+      ldflags += [ 
+        "-Wl,--emit-relocs", 
+        "-Wl,--no-relax", 
+        "-mno-fix-cortex-a53-843419" 
+      ]
+    }
   }
 }
