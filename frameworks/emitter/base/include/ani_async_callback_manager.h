@@ -20,6 +20,9 @@
 #include <mutex>
 #include <memory>
 #include <unordered_set>
+#include <queue>
+#include <thread>
+#include <condition_variable>
 
 #include "ani.h"
 
@@ -37,7 +40,8 @@ using arkts::concurrency_helpers::SendEvent;
 struct AniCallbackInfo {
     ani_vm* vm = nullptr;
     ani_ref callback = 0;
-    std::vector<ani_ref> args;
+    std::string dataType;
+    std::shared_ptr<SerializeData> serializeData;
 };
 
 struct AniAsyncCallbackInfo {
@@ -50,10 +54,13 @@ struct AniAsyncCallbackInfo {
     uint32_t emitterId = 0;
     arkts::concurrency_helpers::AniWorkerId workId;
     ~AniAsyncCallbackInfo();
-    void ProcessEvent([[maybe_unused]] const InnerEvent::Pointer& event);
-    static void ThreadFunction(AniAsyncCallbackInfo *asyncCallbackInfo, std::shared_ptr<SerializeData> serializeData);
     static ani_status GetCallbackArgs(
         ani_env *env, std::string& dataType, std::vector<ani_ref>& args, std::shared_ptr<SerializeData> serializeData);
+};
+
+struct AniTaskData {
+    std::shared_ptr<AniAsyncCallbackInfo> cb_ptr;
+    std::shared_ptr<SerializeData> serializeData;
 };
 
 class AniAsyncCallbackManager {
@@ -120,11 +127,21 @@ private:
         const CompositeEventId &compositeId);
     static void AniReleaseCallbackInfo(AniAsyncCallbackInfo* callbackInfo);
     std::string AniGetStdString(ani_env *env, ani_string str);
+    void PushTaskData(const std::shared_ptr<AniTaskData>& data);
+    std::shared_ptr<AniTaskData> PopTaskData();
+    void WorkTheadFunction(ani_vm* vm);
+    void SendEventData(ani_env *env, arkts::concurrency_helpers::AniWorkerId workId, void* data);
 
 private:
     std::mutex aniAsyncCallbackContainerMutex_;
     std::map<CompositeEventId, std::unordered_set<std::shared_ptr<AniAsyncCallbackInfo>>>
         aniAsyncCallbackContainer_;
+    std::mutex taskMutex_;
+    std::queue<std::shared_ptr<AniTaskData>> taskData_;
+    std::atomic<bool> taskRunning_{false};
+    bool needNotify_{false};
+    std::condition_variable taskCond_;
+    std::thread workerThread_;
 };
 } // namespace AppExecFwk
 } // namespace OHOS
