@@ -52,10 +52,7 @@ if (is_arkui_x) {
       "src/init.cpp",
     ]
 
-    deps = [
-      "${frameworks_path}/napi:emitter_interops",
-      "${frameworks_path}/eventhandler:libeventhandler"
-    ]
+    deps = [ "${frameworks_path}/napi:emitter_interops" ]
 
     external_deps = [
       "c_utils:utils",
