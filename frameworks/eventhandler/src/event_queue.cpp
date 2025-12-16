@@ -33,7 +33,7 @@ namespace AppExecFwk {
 namespace {
 static const bool MONITOR_FLAG =
     system::GetBoolParameter("const.sys.param_file_description_monitor", false);
-static bool g_vsyncFirstEnabled = true;
+
 DEFINE_EH_HILOG_LABEL("EventQueue");
 
 // Help to remove file descriptor listeners.
@@ -112,7 +112,7 @@ bool EventQueue::AddFileDescriptorByFd(int32_t fileDescriptor, uint32_t events, 
 {
     bool isVsyncListener = listener && listener->IsVsyncListener();
     bool isDaemonListener = listener && listener->GetIsDeamonWaiter() && MONITOR_FLAG;
- 
+
     if (isVsyncListener) {
         priority = Priority::VIP;
     }
@@ -195,22 +195,12 @@ static void PostTaskForVsync(const InnerEvent::Callback &cb, const std::string &
     if (!runner) {
         return;
     }
-    auto queue = runner->GetEventQueue();
-    if (!queue) {
-        return;
-    }
     auto event = InnerEvent::Get(cb, name);
     if (!event) {
         return;
     }
     event->MarkVsyncTask();
-    int64_t delayTime = queue->GetDelayTimeOfVsyncTask();
-    auto task = []() { EventRunner::Current()->GetEventQueue()->SetBarrierMode(true); };
-    handler->PostTask(task, "BarrierEvent", delayTime, priority);
-    if (!handler->SendEvent(event, delayTime, priority)) {
-        handler->RemoveTask("BarrierEvent");
-        queue->SetBarrierMode(false);
-    }
+    handler->SendEvent(event, UINT32_MAX, priority);
 }
 
 std::shared_ptr<FileDescriptorListener> EventQueue::GetListenerByfd(int32_t fileDescriptor)
@@ -246,8 +236,8 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
     bool isVsyncTask = handler->GetEventRunner() && listener->IsVsyncListener();
     std::weak_ptr<FileDescriptorListener> wp = listener;
     auto f = [fileDescriptor, events, wp, isVsyncTask]() {
+        auto queue = EventRunner::Current()->GetEventQueue();
         if (isVsyncTask) {
-            auto queue = EventRunner::Current()->GetEventQueue();
             queue->HandleVsyncTaskNotify();
             queue->SetBarrierMode(false);
         }
@@ -271,6 +261,10 @@ void EventQueue::HandleFileDescriptorEvent(int32_t fileDescriptor, uint32_t even
 
         if ((events & FILE_DESCRIPTOR_EXCEPTION_EVENT) != 0) {
             listener->OnException(fileDescriptor);
+        }
+
+        if (isVsyncTask) {
+            queue->HandleVsyncTaskCompletely();
         }
     };
 
@@ -338,18 +332,18 @@ void EventQueue::RemoveInvalidFileDescriptor()
 
 void EventQueue::SetVsyncLazyMode(bool isLazy)
 {
-    if (!g_vsyncFirstEnabled) {
+    if (vsyncPolicy_ == VsyncPolicy::DISABLE_VSYNC_FIRST) {
         return;
     }
     isLazyMode_.store(isLazy);
     HILOGD("%{public}s(%{public}d)", __func__, isLazy);
 }
 
-void EventQueue::SetVsyncFirst(bool isFirst)
+void EventQueue::SetVsyncPolicy(VsyncPolicy vsyncPolicy)
 {
-    HILOGD("%{public}s(%{public}d)", __func__, isFirst);
-    g_vsyncFirstEnabled = isFirst;
-    if (!isFirst) {
+    HILOGD("%{public}s(%{public}d)", __func__, vsyncPolicy);
+    vsyncPolicy_ = vsyncPolicy;
+    if (vsyncPolicy_ == VsyncPolicy::DISABLE_VSYNC_FIRST) {
         isLazyMode_.store(true);
     }
 }
@@ -359,10 +353,13 @@ void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<
     bool need = needEpoll_;
 
     WaitUntilLocked(when, lock, !need);
+    if (sumOfPendingVsync_) {
+        return;
+    }
 
-    needEpoll_ = need ? false : needEpoll_;
-
-    if (!sumOfPendingVsync_ && !need) {
+    if (need) {
+        needEpoll_ = false;
+    } else {
         if (vsyncPeriod_ < MAX_CHECK_VSYNC_PERIOD_NS) {
             vsyncCheckTime_ += vsyncPeriod_;
             vsyncPeriod_ <<= 1;

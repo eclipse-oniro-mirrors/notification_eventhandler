@@ -134,18 +134,18 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     return ret;
 }
 
-bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+InnerEvent::Pointer EventHandler::CreateTask(const Callback &callback, const std::string &name, Priority priority,
     const Caller &caller)
 {
     if (!eventRunner_) {
         HILOGE("MUST Set event runner before posting events");
-        return false;
+        return InnerEvent::Pointer(nullptr, nullptr);
     }
 
     auto event = InnerEvent::Get(callback, name, caller);
     if (!event) {
         HILOGE("Get an invalid event");
-        return false;
+        return InnerEvent::Pointer(nullptr, nullptr);
     }
 
     event->SetDelayTime(0);
@@ -156,15 +156,45 @@ bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &
     event->SetSenderKernelThreadId(getproctid());
     event->SetEventUniqueId();
     event->SetOwner(shared_from_this());
+    return event;
+}
+
+bool EventHandler::PostTaskAtFront(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller, VsyncBarrierOption option)
+{
+    auto event = CreateTask(callback, name, priority, caller);
+    if (!event) {
+        return false;
+    }
     auto traceId = event->GetOrCreateTraceId();
     bool isAllowHiTrace = AllowHiTraceOutPut(traceId, event->HasWaiter());
     if (isAllowHiTrace) {
         HiTracePointerOutPut(traceId, event, "PostTaskAtFront", HiTraceTracepointType::HITRACE_TP_CS);
     }
     HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
-    bool ret = eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT);
+    bool ret = eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_FRONT, option);
     if (isAllowHiTrace) {
         HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *traceId, "PostTaskAtFront over");
+    }
+    return ret;
+}
+
+bool EventHandler::PostTaskAtTail(const Callback &callback, const std::string &name, Priority priority,
+    const Caller &caller, VsyncBarrierOption option)
+{
+    auto event = CreateTask(callback, name, priority, caller);
+    if (!event) {
+        return false;
+    }
+    auto traceId = event->GetOrCreateTraceId();
+    bool isAllowHiTrace = AllowHiTraceOutPut(traceId, event->HasWaiter());
+    if (isAllowHiTrace) {
+        HiTracePointerOutPut(traceId, event, "PostTaskAtTail", HiTraceTracepointType::HITRACE_TP_CS);
+    }
+    HILOGD("Current front event id is %{public}s .", (event->GetEventUniqueId()).c_str());
+    bool ret = eventRunner_->GetEventQueue()->Insert(event, priority, EventInsertType::AT_END, option);
+    if (isAllowHiTrace) {
+        HiTraceChain::Tracepoint(HiTraceTracepointType::HITRACE_TP_CR, *traceId, "PostTaskAtTail over");
     }
     return ret;
 }
@@ -527,17 +557,16 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
     if (priority <= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP)) {
         return false;
     }
-    InnerEvent::TimePoint now = InnerEvent::Clock::now();
+    uint64_t now = static_cast<uint64_t>(InnerEvent::Clock::now().time_since_epoch().count());
     for (int i = priority - 1; i >= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP); --i) {
-        auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(i);
+        auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(now, i);
         if (eventHandleTime == UINT64_MAX) {
             continue;
         }
         if (priority == static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
             return true;
         }
-        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO <=
-            static_cast<uint64_t>(now.time_since_epoch().count())) {
+        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO <= now) {
             return true;
         }
     }

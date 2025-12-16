@@ -2567,8 +2567,8 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_003, TestSize.Level1)
     queue.AddFileDescriptorListener(1, 1, listener1, "t1", EventQueue::Priority::VIP);
     queue.AddFileDescriptorListener(2, 1, listener, "t2", EventQueue::Priority::VIP);
     DeamonIoWaiter::GetInstance().AddFileDescriptor(3, 1, "t3", listener2, EventQueue::Priority::VIP);
-    queue.SetVsyncFirst(true);
-    queue.SetVsyncFirst(false);
+    queue.SetVsyncPolicy(VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER);
+    queue.SetVsyncPolicy(VsyncPolicy::DISABLE_VSYNC_FIRST);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
@@ -2582,7 +2582,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_004, TestSize.Level1)
 {
     EventQueueBase queue;
     queue.Prepare();
-    queue.SetVsyncFirst(false);
+    queue.SetVsyncPolicy(VsyncPolicy::DISABLE_VSYNC_FIRST);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
@@ -2603,7 +2603,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_005, TestSize.Level1)
     listener->SetDeamonWaiter();
     queue.AddFileDescriptorListener(2, 1, listener, "t1", EventQueue::Priority::VIP);
     newIoWaiter->AddFileDescriptor(2, 1, "t2", listener, EventQueue::Priority::VIP);
-    queue.SetVsyncFirst(true);
+    queue.SetVsyncPolicy(VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }

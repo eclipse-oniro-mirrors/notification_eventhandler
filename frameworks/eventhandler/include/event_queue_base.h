@@ -65,7 +65,8 @@ public:
      * @see #Priority
      */
     bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END) override;
+        EventInsertType insertType = EventInsertType::AT_END,
+        VsyncBarrierOption option = VsyncBarrierOption::NO_BARRIER) override;
 
     /**
      * Remove events if its owner is invalid.
@@ -270,7 +271,7 @@ public:
      * @return Return event handle time of the first event of the specified priority queue if the queue is not null,
      * or return UINT64_MAX as invalid value.
      */
-    inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
+    uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) override;
 
     /**
      * set queue usable status.
