@@ -443,10 +443,26 @@ public:
      * @param name Name of the task.
      * @param priority Priority of the event queue for this event.
      * @param caller Caller info of the event, default is caller's file, func and line.
+     * @param option VsyncBarrierOption of the event, default is no barrier.
      * @return Returns true if task has been sent successfully.
      */
     bool PostTaskAtFront(const Callback &callback, const std::string &name = std::string(),
-                         Priority priority = Priority::LOW, const Caller &caller = {});
+                         Priority priority = Priority::LOW, const Caller &caller = {},
+                         VsyncBarrierOption option = VsyncBarrierOption::NO_BARRIER);
+
+    /**
+     * Post a task at tail of queue.
+     *
+     * @param callback Task callback.
+     * @param name Name of the task.
+     * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
+     * @param option VsyncBarrierOption of the event, default is no barrier.
+     * @return Returns true if task has been sent successfully.
+     */
+    bool PostTaskAtTail(const Callback &callback, const std::string &name = std::string(),
+                        Priority priority = Priority::LOW, const Caller &caller = {},
+                        VsyncBarrierOption option = VsyncBarrierOption::NO_BARRIER);
 
     /**
      * Set delivery time out callback.
@@ -1111,7 +1127,9 @@ public:
         if (runner) {
             auto queue = runner->GetEventQueue();
             if (queue) {
-                queue->SetVsyncFirst(isFirst);
+                auto vsyncPolicy = isFirst ? VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER :
+                    VsyncPolicy::DISABLE_VSYNC_FIRST;
+                queue->SetVsyncPolicy(vsyncPolicy);
             }
         }
     }
@@ -1139,6 +1157,18 @@ protected:
     virtual void ProcessEvent(const InnerEvent::Pointer &event);
 
 private:
+    /**
+     * Create a task.
+     *
+     * @param callback Task callback.
+     * @param name Name of the task.
+     * @param priority Priority of the event queue for this event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
+     * @return Returns a innerEvent pointer if task has been created successfully.
+     */
+    InnerEvent::Pointer CreateTask(const Callback &callback, const std::string &name,
+        Priority priority, const Caller &caller);
+    
     std::string handlerId_;
     bool enableEventLog_ {false};
     std::shared_ptr<EventRunner> eventRunner_;

@@ -103,7 +103,8 @@ EventQueueFFRT::~EventQueueFFRT()
     EH_LOGD_LIMIT("EventQueueFFRT is unavailable hence");
 }
 
-bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType)
+bool EventQueueFFRT::Insert(InnerEvent::Pointer &event, Priority priority, EventInsertType insertType,
+    VsyncBarrierOption option)
 {
     return InsertEvent(event, priority, false, insertType);
 }
@@ -581,7 +582,7 @@ void EventQueueFFRT::RemoveFileDescriptorListener(int32_t fileDescriptor)
     RemoveListenerByFd(fileDescriptor);
 }
 
-inline uint64_t EventQueueFFRT::GetQueueFirstEventHandleTime(int32_t priority)
+inline uint64_t EventQueueFFRT::GetQueueFirstEventHandleTime(uint64_t now, int32_t priority)
 {
     return UINT64_MAX;
 }

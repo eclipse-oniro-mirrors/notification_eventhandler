@@ -35,6 +35,12 @@ class EventHandler;
 class DeamonIoWaiter;
 struct PendingTaskInfo;
 
+enum class VsyncPolicy: uint32_t {
+    DISABLE_VSYNC_FIRST = 0,
+    VSYNC_FIRST_WITH_DEFAULT_BARRIER,
+    VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER,
+};
+
 enum class EventInsertType: uint32_t {
     // Insert event at end
     AT_END = 0,
@@ -113,8 +119,15 @@ struct ObserverTrace {
 #define CHECK_VSYNC_DELAY_NS        1000000
 #define MAX_INIT_VSYNC_PERIOD_NS    34000000
 #define MAX_CHECK_VSYNC_PERIOD_NS   69000000
-#define VSYNC_TASK_DELAYMS          50
-#define MS_TO_NS_RATIO              1000000
+
+enum class VsyncBarrierOption {
+    // Not required handling the designated task before handling the vsync.
+    NO_BARRIER = 0,
+    // Required handling the designated task before handling vsync when it is sended by the main thread itself.
+    NEED_BARRIER = 1,
+    // Required handling the designated task before handling vsync for all situations.
+    FORCE_BARRIER = 2,
+};
 
 class EventQueue {
 public:
@@ -148,7 +161,8 @@ public:
      * @see #Priority
      */
     virtual bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END) = 0;
+        EventInsertType insertType = EventInsertType::AT_END,
+        VsyncBarrierOption option = VsyncBarrierOption::NO_BARRIER) = 0;
 
     /**
      * Remove events if its owner is invalid, for base queue.
@@ -374,7 +388,7 @@ public:
      *
      * @param priority The specified priority.
      */
-    virtual inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) = 0;
+    virtual uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) = 0;
 
     /**
      * Set the lazy mode for AppVsync
@@ -382,9 +396,9 @@ public:
     void SetVsyncLazyMode(bool isLazy);
 
     /**
-     * Set the first policy of AppVsync
+     * Set the policy of AppVsync
      */
-    void SetVsyncFirst(bool isFirst);
+    void SetVsyncPolicy(VsyncPolicy vsyncPolicy);
 
     /**
      * the vsync task is comming.
@@ -392,8 +406,20 @@ public:
     inline void DispatchVsyncTaskNotify()
     {
         ++sumOfPendingVsync_;
+        vsyncRecvTime_ = NOW_NS;
+        if (vsyncRecvTime_ > vsyncCheckTime_) {
+            vsyncRecvTime_ = vsyncCheckTime_;
+        }
         needEpoll_ = true;
         vsyncCheckTime_ = INT64_MAX;
+    }
+
+    /**
+     * handling the vsync task is completed.
+    */
+    inline void HandleVsyncTaskCompletely()
+    {
+        vsyncCompleteTime_ = NOW_NS;
     }
 
     /**
@@ -410,6 +436,7 @@ public:
     inline void SetBarrierMode(bool isBarrierMode)
     {
         isBarrierMode_ = isBarrierMode;
+        enterBarrierTime_ = !isBarrierMode ? INT64_MAX : NOW_NS;
     }
 
     /**
@@ -418,16 +445,6 @@ public:
     inline bool IsBarrierMode()
     {
         return isBarrierMode_;
-    }
-
-    /**
-     * get the delay time of vsync task.
-     */
-    inline int64_t GetDelayTimeOfVsyncTask()
-    {
-        int64_t now = NOW_NS;
-        return isLazyMode_.load()? INT32_MAX : ((now > vsyncCheckTime_)?
-            VSYNC_TASK_DELAYMS - (now - vsyncCheckTime_ + CHECK_VSYNC_DELAY_NS) / MS_TO_NS_RATIO : VSYNC_TASK_DELAYMS);
     }
 
     /**
@@ -537,11 +554,15 @@ protected:
     bool needEpoll_ = false;
     std::atomic_bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
+    VsyncPolicy vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER;
+    int64_t enterBarrierTime_ = INT64_MAX;
     int64_t vsyncPeriod_ = INT64_MAX;
     int64_t vsyncCheckTime_ = INT64_MAX;
+    int64_t vsyncRecvTime_ = INT64_MAX;
+    int64_t vsyncCompleteTime_ = 0;
 
 private:
-    std::shared_ptr<FileDescriptorListener> GetListenerByfd(int32_t FileDescriptor);
+    std::shared_ptr<FileDescriptorListener> GetListenerByfd(int32_t fileDescriptor);
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

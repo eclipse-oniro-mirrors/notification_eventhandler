@@ -44,7 +44,8 @@ public:
      * @see #Priority
      */
     LOCAL_API bool Insert(InnerEvent::Pointer &event, Priority priority = Priority::LOW,
-        EventInsertType insertType = EventInsertType::AT_END) override;
+        EventInsertType insertType = EventInsertType::AT_END,
+        VsyncBarrierOption option = VsyncBarrierOption::NO_BARRIER) override;
 
     /**
      * Remove events if its owner is invalid.
@@ -201,7 +202,7 @@ public:
      * @param priority Specify priority.
      * @return Return UINT64_MAX as invalid value.
      */
-    inline uint64_t GetQueueFirstEventHandleTime(int32_t priority) override;
+    uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) override;
 
     /**
      * set queue usable status.
