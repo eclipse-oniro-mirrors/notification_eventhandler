@@ -28,6 +28,7 @@
                 "hilog",
                 "hichecker",
                 "napi",
+                "faultloggerd",
                 "ffrt",
                 "c_utils",
                 "init",

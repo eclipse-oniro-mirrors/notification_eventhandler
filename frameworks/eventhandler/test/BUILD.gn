@@ -32,6 +32,7 @@ ohos_unittest("LibEventHandlerEpollIoWaiterTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utilsbase",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -62,6 +63,7 @@ ohos_unittest("LibEventHandlerCheckTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utilsbase",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -87,6 +89,7 @@ ohos_unittest("LibEventHandlerEventQueueTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -111,6 +114,7 @@ ohos_unittest("LibEventHandlerEventTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -135,6 +139,7 @@ ohos_unittest("LibEventHandlerEventRunnerTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -159,6 +164,7 @@ ohos_unittest("LibEventHandlerTraceTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -183,6 +189,7 @@ ohos_unittest("LibEventHandlerInnerEventTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -207,6 +214,7 @@ ohos_unittest("LibEventHandlerTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -231,6 +239,7 @@ ohos_unittest("FrameReportTest") {
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
+    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",

@@ -29,6 +29,7 @@
 #include "thread_local_data.h"
 #include "event_hitrace_meter_adapter.h"
 #include "ffrt_descriptor_listener.h"
+#include "async_stack_adapter.h"
 
 using namespace OHOS::HiviewDFX;
 namespace OHOS {
@@ -119,6 +120,15 @@ bool EventHandler::SendEvent(InnerEvent::Pointer &event, int64_t delayTime, Prio
     event->SetOwnerId(handlerId_);
     event->SetDelayTime(delayTime);
     event->SetOwner(shared_from_this());
+#ifdef FFRT_USAGE_ENABLE
+    if (eventRunner_->threadMode_ != ThreadMode::FFRT) {
+        uint64_t trackId = AsyncStackAdapter::GetInstance().EventCollectAsyncStack(ASYNC_TYPE_EVENTHANDLER);
+        event->SetStackId(trackId);
+    }
+#else
+    uint64_t trackId = AsyncStackAdapter::GetInstance().EventCollectAsyncStack(ASYNC_TYPE_EVENTHANDLER);
+    event->SetStackId(trackId);
+#endif
     // get traceId from event, if HiTraceChain::begin has been called, would get a valid trace id.
     auto traceId = event->GetOrCreateTraceId();
     // if traceId is valid, out put trace information
@@ -514,7 +524,13 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     if (EventRunner::distributeBegin_ && isAppMainThread) {
         beginTime = EventRunner::distributeBegin_(eventName);
     }
-
+#ifdef FFRT_USAGE_ENABLE
+    if (eventRunner_ != nullptr && eventRunner_->threadMode_ != ThreadMode::FFRT) {
+        AsyncStackAdapter::GetInstance().EventSetStackId(event->GetStackId());
+    }
+#else
+    AsyncStackAdapter::GetInstance().EventSetStackId(event->GetStackId());
+#endif
     if (event->HasTask()) {
         // Call task callback directly if contains a task.
         HILOGD("excute event taskCallback");
@@ -780,6 +796,12 @@ extern "C" int RemoveFdListenerByFFRT(void* handler, uint32_t fd)
     }
     (*ptr)->RemoveFileDescriptorListener(fd);
     return FFRT_SUCCESS;
+}
+
+extern "C" void EventSetAsyncStackFunc(EventCollectAsyncStackFunc collectFunc, EventSetStackIdFunc setStackIdFunc)
+{
+    AsyncStackAdapter::GetInstance().SetAsyncStackFunc(collectFunc);
+    AsyncStackAdapter::GetInstance().SetStackIdFunc(setStackIdFunc);
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS
