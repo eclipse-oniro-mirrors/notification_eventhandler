@@ -566,7 +566,8 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
         if (priority == static_cast<int32_t>(AppExecFwk::EventQueue::Priority::IDLE)) {
             return true;
         }
-        if (eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO <= now) {
+        auto timeoutStamp = eventHandleTime + PENDING_JOB_TIMEOUT[i] * MILLISECONDS_TO_NANOSECONDS_RATIO;
+        if (timeoutStamp <= now) {
             return true;
         }
     }

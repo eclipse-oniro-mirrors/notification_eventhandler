@@ -339,10 +339,22 @@ void EventQueue::SetVsyncLazyMode(bool isLazy)
     HILOGD("%{public}s(%{public}d)", __func__, isLazy);
 }
 
+void EventQueue::SetVsyncFirstForceEnableTime(bool enable, uint64_t timeout)
+{
+    if (enable) {
+        vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
+        vsyncFirstForceEnableEndTime_ = NOW_NS + timeout;
+    } else {
+        vsyncPolicy_ = vsyncOriginPolicy_;
+        vsyncFirstForceEnableEndTime_ = 0;
+    }
+}
+
 void EventQueue::SetVsyncPolicy(VsyncPolicy vsyncPolicy)
 {
     HILOGD("%{public}s(%{public}d)", __func__, vsyncPolicy);
     vsyncPolicy_ = vsyncPolicy;
+    vsyncOriginPolicy_ = vsyncPolicy;
     if (vsyncPolicy_ == VsyncPolicy::DISABLE_VSYNC_FIRST) {
         isLazyMode_.store(true);
     }

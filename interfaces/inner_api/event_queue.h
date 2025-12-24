@@ -391,6 +391,13 @@ public:
     virtual uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) = 0;
 
     /**
+     * Set the first force enable time for AppVsync.
+     * @enable Enable or not
+     * @timeout The timeout duration in nanoseconds
+     */
+    void SetVsyncFirstForceEnableTime(bool enable, uint64_t timeout);
+
+    /**
      * Set the lazy mode for AppVsync
      */
     void SetVsyncLazyMode(bool isLazy);
@@ -555,11 +562,13 @@ protected:
     std::atomic_bool isLazyMode_ = true;
     bool isBarrierMode_ = false;
     VsyncPolicy vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER;
+    VsyncPolicy vsyncOriginPolicy_ = VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER;
     int64_t enterBarrierTime_ = INT64_MAX;
-    int64_t vsyncPeriod_ = INT64_MAX;
+    int64_t vsyncPeriod_ = MAX_INIT_VSYNC_PERIOD_NS;
     int64_t vsyncCheckTime_ = INT64_MAX;
     int64_t vsyncRecvTime_ = INT64_MAX;
     int64_t vsyncCompleteTime_ = 0;
+    int64_t vsyncFirstForceEnableEndTime_ = 0;
 
 private:
     std::shared_ptr<FileDescriptorListener> GetListenerByfd(int32_t fileDescriptor);

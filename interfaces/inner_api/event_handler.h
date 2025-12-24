@@ -1103,6 +1103,22 @@ public:
     const int32_t &GetCurrentEventPriority();
 
     /**
+     * Set the first force enable time for AppVsync.
+     * @enable Enable or not
+     * @timeout The timeout duration in nanoseconds
+     */
+    static inline void SetVsyncFirstForceEnableTime(bool enable, uint64_t timeout)
+    {
+        auto runner = EventRunner::GetMainEventRunner();
+        if (runner) {
+            auto queue = runner->GetEventQueue();
+            if (queue) {
+                queue->SetVsyncFirstForceEnableTime(enable, timeout);
+            }
+        }
+    }
+
+    /**
      * Set the lazy mode for AppVsync.
      * @isLazy Lazy or not
      */
@@ -1119,17 +1135,18 @@ public:
 
     /**
      * Set the policy of AppVsync.
-     * @isFirst Vsync first policy or not
+     * @policy corresponding to VsyncPolicy enum
      */
-    static inline void SetVsyncPolicy(bool isFirst)
+    static inline void SetVsyncPolicy(uint32_t policy)
     {
+        if (policy > static_cast<uint32_t>(VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER)) {
+            return;
+        }
         auto runner = EventRunner::GetMainEventRunner();
         if (runner) {
             auto queue = runner->GetEventQueue();
             if (queue) {
-                auto vsyncPolicy = isFirst ? VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER :
-                    VsyncPolicy::DISABLE_VSYNC_FIRST;
-                queue->SetVsyncPolicy(vsyncPolicy);
+                queue->SetVsyncPolicy(static_cast<VsyncPolicy>(policy));
             }
         }
     }

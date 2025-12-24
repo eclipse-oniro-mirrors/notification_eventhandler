@@ -2523,7 +2523,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_001, TestSize.Level1)
      */
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
-    handler->SetVsyncPolicy(true);
+    handler->SetVsyncPolicy(0);
     bool result = handler->HasPendingHigherEvent(8);
     EXPECT_EQ(result, false);
 }
@@ -2540,7 +2540,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_002, TestSize.Level1)
      */
     auto runner = EventRunner::Create(true);
     auto handler = std::make_shared<EventHandler>(runner);
-    handler->SetVsyncPolicy(false);
+    handler->SetVsyncPolicy(1);
     bool result = handler->HasPendingHigherEvent(8);
     EXPECT_EQ(result, false);
 }
