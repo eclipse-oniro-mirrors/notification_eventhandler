@@ -13,6 +13,7 @@
 import("../../eventhandler.gni")
 
 inner_api_sources = [
+  "${frameworks_path}/eventhandler/src/async_stack_adapter.cpp",
   "${frameworks_path}/eventhandler/src/deamon_io_waiter.cpp",
   "${frameworks_path}/eventhandler/src/epoll_io_waiter.cpp",
   "${frameworks_path}/eventhandler/src/event_handler.cpp",

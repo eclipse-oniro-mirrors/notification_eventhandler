@@ -805,6 +805,15 @@ public:
         return emitterId_;
     }
 
+    inline void SetStackId(uint64_t stackId)
+    {
+        stackId_ = stackId;
+    }
+
+    inline uint64_t GetStackId()
+    {
+        return stackId_;
+    }
 private:
     using SmartPtrDestructor = void (*)(void *);
 
@@ -958,6 +967,8 @@ private:
     int64_t delayTime_ = 0;
 
     bool isEnhanced_ = false;
+
+    uint64_t stackId_ = 0;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

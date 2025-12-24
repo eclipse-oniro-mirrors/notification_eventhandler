@@ -81,6 +81,7 @@ HWTEST_F(LibEventHandlerInnerEventTest, GetEventPointer001, TestSize.Level1)
     bool callbackCalled = false;
     auto f = [&callbackCalled]() { callbackCalled = true; };
     InnerEvent::Pointer event = InnerEvent::Get(f, taskName);
+    event->SetStackId(3);
     auto getName = event->GetTaskName();
     EXPECT_EQ(taskName, getName);
     // execute callback function, check whether the callback function is the one we set
