@@ -49,7 +49,6 @@ ohos_shared_library("libeventhandler") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
