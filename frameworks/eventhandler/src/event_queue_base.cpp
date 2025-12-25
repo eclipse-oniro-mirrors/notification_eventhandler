@@ -165,19 +165,19 @@ EventQueueBase::~EventQueueBase()
 
 static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event, VsyncBarrierOption option, VsyncPolicy vsyncPolicy)
 {
+    bool needMarkBarrier = false;
     if (vsyncPolicy == VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER) {
-        if ((__builtin_expect(option == VsyncBarrierOption::FORCE_BARRIER, 0) ||
+        needMarkBarrier = (__builtin_expect(option == VsyncBarrierOption::FORCE_BARRIER, 0) ||
             event->GetEventPriority() == static_cast<int32_t>(EventQueue::Priority::VIP) ||
             (__builtin_expect(option == VsyncBarrierOption::NEED_BARRIER, 0) &&
             EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()))) && !event->IsVsyncTask()) {
-            event->MarkBarrierTask();
-        }
+            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()))) && !event->IsVsyncTask();
     } else if (vsyncPolicy == VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER) {
-        if (EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask()) {
-            event->MarkBarrierTask();
-        }
+        needMarkBarrier = EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
+            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask();
+    }
+    if (needMarkBarrier) {
+        event->MarkBarrierTask();
     }
 }
 
@@ -556,33 +556,43 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEventLocked(InnerEvent::TimePoint 
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
-static inline int64_t GetVsyncTaskDelayTime(VsyncPolicy vsyncPolicy)
+inline int64_t EventQueueBase::GetVsyncTaskDelayTime()
 {
-    return vsyncPolicy == VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER ?
-        VSYNC_TASK_DELAYMS_NO_BARRIER * MILLISECONDS_TO_NANOSECONDS_RATIO :
-        VSYNC_TASK_DELAYMS_DEFAULT_BARRIER * MILLISECONDS_TO_NANOSECONDS_RATIO;
+    return vsyncPolicy_ == VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER ?
+        vsyncRecvTime_ + vsyncPeriod_ :
+        vsyncRecvTime_ + VSYNC_TASK_DELAYMS_DEFAULT_BARRIER * MILLISECONDS_TO_NANOSECONDS_RATIO;
+}
+
+void EventQueueBase::CheckBarrierMode()
+{
+    int64_t now = NOW_NS;
+    if (vsyncFirstForceEnableEndTime_ > NOW_NS) {
+        vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
+        isLazyMode_.store(false);
+    } else {
+        vsyncPolicy_ = vsyncOriginPolicy_;
+    }
+    if (__builtin_expect((!isLazyMode_.load() && !isBarrierMode_ && sumOfPendingVsync_), 0)) {
+        if ((GetVsyncTaskDelayTime() < now) &&
+            (vsyncCompleteTime_ + VSYNC_TASK_INTERVAL_MS * MILLISECONDS_TO_NANOSECONDS_RATIO < now)) {
+            StartTraceAdapterMsg("EnterBarrierMode");
+            SetBarrierMode(true);
+            FinishTraceAdapter();
+        }
+    } else if (__builtin_expect((isBarrierMode_ && needEpoll_ &&
+        (enterBarrierTime_ + VSYNC_BARRIER_TIMEOUT * MILLISECONDS_TO_NANOSECONDS_RATIO < now)), 0)) {
+        StartTraceAdapterMsg("BarrierModeTimeOut");
+        SetBarrierMode(false);
+        isLazyMode_.store(true);
+        FinishTraceAdapter();
+    }
 }
 
 InnerEvent::Pointer EventQueueBase::GetEvent()
 {
     std::unique_lock<std::mutex> lock(queueLock_);
     while (!finished_) {
-        if (__builtin_expect((!isLazyMode_.load() && !isBarrierMode_ && sumOfPendingVsync_), 0)) {
-            int64_t now = NOW_NS;
-            if ((vsyncRecvTime_ + GetVsyncTaskDelayTime(vsyncPolicy_) < now) &&
-                (vsyncCompleteTime_ + VSYNC_TASK_INTERVAL_MS * MILLISECONDS_TO_NANOSECONDS_RATIO < now)) {
-                StartTraceAdapterMsg("EnterBarrierMode");
-                SetBarrierMode(true);
-                FinishTraceAdapter();
-            }
-        } else if (__builtin_expect((isBarrierMode_ && needEpoll_ &&
-            (enterBarrierTime_ + VSYNC_BARRIER_TIMEOUT * MILLISECONDS_TO_NANOSECONDS_RATIO < NOW_NS)), 0)) {
-            StartTraceAdapterMsg("BarrierModeTimeOut");
-            SetBarrierMode(false);
-            isLazyMode_.store(true);
-            FinishTraceAdapter();
-        }
-
+        CheckBarrierMode();
         InnerEvent::TimePoint nextWakeUpTime = InnerEvent::TimePoint::max();
         InnerEvent::Pointer event = GetExpiredEventLocked(nextWakeUpTime);
         if (event) {
@@ -1071,8 +1081,7 @@ uint64_t EventQueueBase::GetQueueFirstEventHandleTime(uint64_t now, int32_t prio
     uint64_t time = subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
     if (priority == static_cast<uint32_t>(Priority::VIP)) {
         if (sumOfPendingVsync_) {
-            uint64_t vsyncDelayTime = vsyncRecvTime_ +
-                GetVsyncTaskDelayTime(vsyncPolicy_) * MILLISECONDS_TO_NANOSECONDS_RATIO;
+            uint64_t vsyncDelayTime = GetVsyncTaskDelayTime();
             uint64_t vsyncIntervalTime = vsyncCompleteTime_ +
                 VSYNC_TASK_INTERVAL_MS * MILLISECONDS_TO_NANOSECONDS_RATIO;
             uint64_t vsyncTime = vsyncDelayTime < vsyncIntervalTime ? vsyncIntervalTime : vsyncDelayTime;

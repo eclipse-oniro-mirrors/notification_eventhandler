@@ -283,6 +283,16 @@ private:
     using RemoveFilter = std::function<bool(const InnerEvent::Pointer &)>;
     using HasFilter = std::function<bool(const InnerEvent::Pointer &)>;
 
+    /**
+     * Confirm whether it can enter barrier mode
+     */
+    void CheckBarrierMode();
+
+    /**
+     * Get delay time to enter barrier mode for vsync task
+     */
+    inline int64_t GetVsyncTaskDelayTime();
+
     struct HistoryEvent {
         uint64_t senderKernelThreadId{0};
         std::string taskName;
