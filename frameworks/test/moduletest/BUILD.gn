@@ -37,7 +37,6 @@ ohos_moduletest("EventHandlerSendEventModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -64,7 +63,6 @@ ohos_moduletest("EventHandlerPostTaskModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -91,7 +89,6 @@ ohos_moduletest("EventHandlerSetGetRemoveModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -118,7 +115,6 @@ ohos_moduletest("EventHandlerFdListenerModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -145,7 +141,6 @@ ohos_moduletest("EventHandlerPressModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -172,7 +167,6 @@ ohos_moduletest("EventHandlerSendSyncEventModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",
@@ -199,7 +193,6 @@ ohos_moduletest("EventHandlerSendTimingEventModuleTest") {
 
   external_deps = [
     "c_utils:utils",
-    "faultloggerd:libasync_stack",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hitrace:libhitracechain",

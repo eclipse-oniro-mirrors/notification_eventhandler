@@ -39,8 +39,9 @@ void AsyncStackAdapter::SetStackIdFunc(EventSetStackIdFunc func)
 
 uint64_t AsyncStackAdapter::EventCollectAsyncStack(uint64_t type)
 {
-    if (asyncStackFunc != nullptr) {
-        return asyncStackFunc(type);
+    auto func = asyncStackFunc;
+    if (func != nullptr) {
+        return func(type);
     }
 
     return 0;
@@ -48,8 +49,9 @@ uint64_t AsyncStackAdapter::EventCollectAsyncStack(uint64_t type)
 
 void AsyncStackAdapter::EventSetStackId(uint64_t stackId)
 {
-    if (stackIdFunc != nullptr) {
-        return stackIdFunc(stackId);
+    auto func = stackIdFunc;
+    if (func != nullptr) {
+        return func(stackId);
     }
 }
 

@@ -39,6 +39,7 @@ static constexpr int FFRT_SUCCESS = 0;
 static constexpr int FFRT_ERROR = -1;
 static constexpr int FFRT_TASK_REMOVE_FAIL = 1;
 static constexpr uint64_t MILLISECONDS_TO_NANOSECONDS_RATIO = 1000000;
+static constexpr uint64_t ASYNC_TYPE_EVENTHANDLER = 1ULL << 16;
 static const uint64_t PENDING_JOB_TIMEOUT[3] = {
     system::GetIntParameter("const.sys.notification.pending_higher_event_vip", 4),
     system::GetIntParameter("const.sys.notification.pending_higher_event_immediate", 40),
@@ -539,7 +540,13 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
         // Otherwise let developers to handle it.
         ProcessEvent(event);
     }
-
+#ifdef FFRT_USAGE_ENABLE
+    if (eventRunner_ != nullptr && eventRunner_->threadMode_ != ThreadMode::FFRT) {
+        AsyncStackAdapter::GetInstance().EventSetStackId(0);
+    }
+#else
+    AsyncStackAdapter::GetInstance().EventSetStackId(0);
+#endif
     if (EventRunner::distributeBegin_ && EventRunner::distributeEnd_ && isAppMainThread) {
         EventRunner::distributeEnd_(eventName, beginTime);
         DistributeTimeoutHandler(beginTime);
