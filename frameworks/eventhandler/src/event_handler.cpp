@@ -568,7 +568,7 @@ void EventHandler::DistributeEvent(const InnerEvent::Pointer &event) __attribute
     FinishTraceAdapter();
 }
 
-bool EventHandler::HasPendingHigherEvent(int32_t priority)
+bool EventHandler::HasPendingHigherEvent(int32_t priority, bool onlyCheckVsync)
 {
     if (!eventRunner_ || !eventRunner_->GetEventQueue()) {
         return false;
@@ -582,7 +582,7 @@ bool EventHandler::HasPendingHigherEvent(int32_t priority)
     }
     uint64_t now = static_cast<uint64_t>(InnerEvent::Clock::now().time_since_epoch().count());
     for (int i = priority - 1; i >= static_cast<int32_t>(AppExecFwk::EventQueue::Priority::VIP); --i) {
-        auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(now, i);
+        auto eventHandleTime = eventRunner_->GetEventQueue()->GetQueueFirstEventHandleTime(now, i, onlyCheckVsync);
         if (eventHandleTime == UINT64_MAX) {
             continue;
         }

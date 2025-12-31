@@ -1072,13 +1072,18 @@ bool EventQueueBase::HasVipTask()
     return false;
 }
 
-uint64_t EventQueueBase::GetQueueFirstEventHandleTime(uint64_t now, int32_t priority)
+uint64_t EventQueueBase::GetQueueFirstEventHandleTime(uint64_t now, int32_t priority, bool onlyCheckVsync)
 {
-    if (__builtin_expect(isBarrierMode_, 0) || isLazyMode_.load()) {
+    bool invalidation = onlyCheckVsync ?
+        (vsyncPolicy_ != VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER ||
+        isLazyMode_.load() || __builtin_expect(isBarrierMode_, 0)) :
+        __builtin_expect(isBarrierMode_, 0);
+    if (invalidation) {
         return UINT64_MAX;
     }
 
-    uint64_t time = subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
+    uint64_t time = onlyCheckVsync ?
+        UINT64_MAX : subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
     if (priority == static_cast<uint32_t>(Priority::VIP)) {
         if (sumOfPendingVsync_) {
             uint64_t vsyncDelayTime = GetVsyncTaskDelayTime();

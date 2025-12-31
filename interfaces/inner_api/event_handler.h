@@ -1013,11 +1013,13 @@ public:
     /**
      * Check whether there are events which priority higher than current event. Currently ONLY applicable to
      * the main thread, otherwise it will result in problematic returns.
+     * It will return false if the eventQueue is not in barrier mode.
      *
      * @param priority Current priority.
+     * @param onlyCheckVsync Only check Vsync.
      * @return Return true if there are higher priority events, otherwise return false.
      */
-    bool HasPendingHigherEvent(int32_t priority = -1);
+    bool HasPendingHigherEvent(int32_t priority = -1, bool onlyCheckVsync = true);
 
     /**
      * Print out the internal information about an object in the specified format,

@@ -295,3 +295,84 @@ HWTEST_F(LibEventHandlerTest, DistributeTimeoutHandler_001, TestSize.Level1)
     auto event1 = InnerEvent::Get(id, 1, call);
     handler->GetEventName(event1);
 }
+
+/*
+ * @tc.name: CreateTask_001
+ * @tc.desc: CreateTask_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, CreateTask_001, TestSize.Level1)
+{
+    auto handler = std::make_shared<EventHandler>(nullptr);
+    EXPECT_NE(nullptr, handler);
+    Caller caller;
+    EXPECT_EQ(InnerEvent::Pointer(nullptr, nullptr),
+        handler->CreateTask(nullptr, "test", AppExecFwk::EventQueue::Priority::VIP, caller));
+}
+
+/*
+ * @tc.name: CreateTask_002
+ * @tc.desc: CreateTask_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, CreateTask_002, TestSize.Level1)
+{
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(nullptr, handler);
+    Caller caller;
+    EXPECT_EQ(InnerEvent::Pointer(nullptr, nullptr),
+        handler->CreateTask(nullptr, "test", AppExecFwk::EventQueue::Priority::VIP, caller));
+}
+
+/*
+ * @tc.name: PostTaskAtFront_001
+ * @tc.desc: PostTaskAtFront_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, PostTaskAtFront_001, TestSize.Level1)
+{
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(nullptr, handler);
+    Caller caller;
+    EXPECT_FALSE(handler->PostTaskAtFront(nullptr, "test", AppExecFwk::EventQueue::Priority::VIP, caller));
+}
+
+/*
+ * @tc.name: PostTaskAtTail_001
+ * @tc.desc: PostTaskAtTail_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, PostTaskAtTail_001, TestSize.Level1)
+{
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(nullptr, handler);
+    Caller caller;
+    EXPECT_FALSE(handler->PostTaskAtTail(nullptr, "test", AppExecFwk::EventQueue::Priority::VIP, caller));
+    std::function<void()> func = []() {
+        std::cout << "Lambda called!" << std::endl;
+    };
+    EXPECT_TRUE(handler->PostTaskAtTail(func, "test", AppExecFwk::EventQueue::Priority::VIP, caller));
+}
+
+/*
+ * @tc.name: HasPendingHigherEvent_001
+ * @tc.desc: HasPendingHigherEvent_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, HasPendingHigherEvent_001, TestSize.Level1)
+{
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(nullptr, handler);
+    int64_t param = 0;
+    uint32_t eventId = 1;
+    auto event = InnerEvent::Get(eventId, param);
+    EXPECT_NE(nullptr, event);
+    runner->queue_->Insert(event, AppExecFwk::EventQueue::Priority::HIGH);
+    runner->queue_->isBarrierMode_ = true;
+    runner->queue_->isLazyMode_ = false;
+    handler->HasPendingHigherEvent(static_cast<int32_t>(AppExecFwk::EventQueue::Priority::HIGH));
+}

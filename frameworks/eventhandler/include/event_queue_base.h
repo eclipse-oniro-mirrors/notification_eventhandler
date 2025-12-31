@@ -267,11 +267,13 @@ public:
     /**
      * Obtain the first event of the specified priority queue.
      *
-     * @param priority Specify priority.
+     * @param now Current timeStamp.
+     * @param priority The specified priority.
+     * @param onlyCheckVsync Only check Vsync.
      * @return Return event handle time of the first event of the specified priority queue if the queue is not null,
      * or return UINT64_MAX as invalid value.
      */
-    uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) override;
+    uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority, bool onlyCheckVsync = true) override;
 
     /**
      * set queue usable status.

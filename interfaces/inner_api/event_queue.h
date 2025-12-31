@@ -386,9 +386,11 @@ public:
     /**
      * Get the first event handle time in the prioritized task queue.
      *
+     * @param now Current timeStamp.
      * @param priority The specified priority.
+     * @param onlyCheckVsync Only check Vsync.
      */
-    virtual uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority) = 0;
+    virtual uint64_t GetQueueFirstEventHandleTime(uint64_t now, int32_t priority, bool onlyCheckVsync = true) = 0;
 
     /**
      * Set the first force enable time for AppVsync.
