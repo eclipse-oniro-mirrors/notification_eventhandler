@@ -582,7 +582,7 @@ void EventQueueFFRT::RemoveFileDescriptorListener(int32_t fileDescriptor)
     RemoveListenerByFd(fileDescriptor);
 }
 
-inline uint64_t EventQueueFFRT::GetQueueFirstEventHandleTime(uint64_t now, int32_t priority)
+inline uint64_t EventQueueFFRT::GetQueueFirstEventHandleTime(uint64_t now, int32_t priority, bool onlyCheckVsync)
 {
     return UINT64_MAX;
 }

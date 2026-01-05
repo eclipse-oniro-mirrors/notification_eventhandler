@@ -2893,3 +2893,218 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_002, TestSize.Level1)
     auto result = queue.Insert(event);
     EXPECT_EQ(false, result);
 }
+
+/*
+ * @tc.name: SetVsyncLazyModeTest
+ * @tc.desc: SetVsyncLazyModeTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncLazyModeTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.vsyncPolicy_ = VsyncPolicy::DISABLE_VSYNC_FIRST;
+    queue.SetVsyncLazyMode(false);
+    EXPECT_TRUE(queue.isLazyMode_.load());
+    queue.vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER;
+    queue.SetVsyncLazyMode(false);
+    EXPECT_FALSE(queue.isLazyMode_.load());
+}
+
+/*
+ * @tc.name: SetVsyncPolicyTest
+ * @tc.desc: SetVsyncPolicyTest_006 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicyTest_006, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.isLazyMode_.store(false);
+    queue.SetVsyncPolicy(VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER);
+    EXPECT_FALSE(queue.isLazyMode_.load());
+    queue.SetVsyncPolicy(VsyncPolicy::DISABLE_VSYNC_FIRST);
+    EXPECT_TRUE(queue.isLazyMode_.load());
+}
+
+/*
+ * @tc.name: TryEpollFdTest
+ * @tc.desc: TryEpollFdTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, TryEpollFdTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    auto now = InnerEvent::Clock::now();
+    std::unique_lock<std::mutex> lock(queue.queueLock_);
+    queue.sumOfPendingVsync_ = 1;
+    queue.TryEpollFd(now, lock);
+    queue.sumOfPendingVsync_ = 0;
+    queue.needEpoll_ = true;
+    queue.TryEpollFd(now, lock);
+    EXPECT_FALSE(queue.needEpoll_);
+    queue.vsyncCheckTime_ = 0;
+    queue.TryEpollFd(now, lock);
+    EXPECT_EQ(queue.vsyncCheckTime_, MAX_INIT_VSYNC_PERIOD_NS);
+    queue.vsyncPeriod_ = INT64_MAX - 1;
+    queue.TryEpollFd(now, lock);
+    EXPECT_EQ(queue.vsyncCheckTime_, INT64_MAX);
+}
+
+/*
+ * @tc.name: HandleFileDescriptorEventTest
+ * @tc.desc: HandleFileDescriptorEventTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, HandleFileDescriptorEventTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    auto runner = EventRunner::GetMainEventRunner();
+    auto handler = std::make_shared<EventHandler>(runner);
+    auto listener = std::make_shared<IoFileDescriptorListener>();
+    EXPECT_NE(handler, nullptr);
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
+    listener->SetDeamonWaiter();
+    listener->SetOwner(handler);
+    queue.listeners_[1] = listener;
+    queue.SetUsable(true);
+    queue.EventQueue::HandleFileDescriptorEvent(1, FILE_DESCRIPTOR_INPUT_EVENT, "test", EventQueue::Priority::VIP);
+    listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_UNKNOW);
+    queue.EventQueue::HandleFileDescriptorEvent(1, FILE_DESCRIPTOR_INPUT_EVENT, "test", EventQueue::Priority::VIP);
+}
+
+/*
+ * @tc.name: MarkBarrierTaskIfNeedTest
+ * @tc.desc: MarkBarrierTaskIfNeedTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, MarkBarrierTaskIfNeedTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "task");
+    EXPECT_NE(nullptr, event);
+    queue.usable_.store(false);
+    event->isBarrier_ = false;
+    queue.vsyncPolicy_ = VsyncPolicy::DISABLE_VSYNC_FIRST;
+    queue.Insert(event, EventQueue::Priority::IDLE, EventInsertType::AT_FRONT, VsyncBarrierOption::FORCE_BARRIER);
+    EXPECT_FALSE(event->isBarrier_);
+
+    event->isBarrier_ = false;
+    queue.vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
+    queue.Insert(event, EventQueue::Priority::IDLE, EventInsertType::AT_FRONT, VsyncBarrierOption::FORCE_BARRIER);
+    EXPECT_TRUE(event->isBarrier_);
+
+    event->isBarrier_ = false;
+    event->SetEventPriority(static_cast<int32_t>(EventQueue::Priority::VIP));
+    queue.Insert(event, EventQueue::Priority::IDLE, EventInsertType::AT_FRONT, VsyncBarrierOption::NEED_BARRIER);
+    EXPECT_TRUE(event->isBarrier_);
+}
+
+/*
+ * @tc.name: GetQueueFirstEventHandleTimeTest
+ * @tc.desc: GetQueueFirstEventHandleTimeTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetQueueFirstEventHandleTimeTest_001, TestSize.Level1)
+{
+    uint64_t now = 10;
+    int32_t intVip = static_cast<int32_t>(EventQueue::Priority::VIP);
+    EventQueueBase queue;
+    queue.vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
+    queue.isBarrierMode_ = false;
+    queue.isLazyMode_ = true;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(0, intVip), UINT64_MAX);
+    queue.vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(0, intVip), UINT64_MAX);
+    queue.isBarrierMode_ = true;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(0, intVip, false), UINT64_MAX);
+
+    queue.isBarrierMode_ = false;
+    queue.isLazyMode_ = true;
+    EventQueueBase::SubEventQueue subEventQueue1;
+    subEventQueue1.frontEventHandleTime = 8;
+    queue.subEventQueues_[static_cast<int32_t>(EventQueue::Priority::HIGH)] = std::move(subEventQueue1);
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, static_cast<int32_t>(EventQueue::Priority::HIGH), false), 8);
+    queue.isLazyMode_ = false;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, static_cast<int32_t>(EventQueue::Priority::HIGH), false), 8);
+
+    queue.isBarrierMode_ = false;
+    queue.isLazyMode_ = false;
+    EventQueueBase::SubEventQueue subEventQueue2;
+    subEventQueue2.frontEventHandleTime = 8;
+    queue.subEventQueues_[intVip] = std::move(subEventQueue2);
+    queue.sumOfPendingVsync_ = 0;
+    queue.vsyncCheckTime_ = 7;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, intVip, false), 7);
+
+    queue.vsyncCheckTime_ = 12;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, intVip, false), 8);
+
+    queue.sumOfPendingVsync_ = 1;
+    queue.vsyncRecvTime_ = 10;
+    queue.vsyncCompleteTime_ = 12;
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, intVip, false), 8);
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(now, intVip, true), UINT64_MAX);
+}
+
+/*
+ * @tc.name: CheckBarrierModeTest
+ * @tc.desc: CheckBarrierModeTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, CheckBarrierModeTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    queue.isLazyMode_ = false;
+    queue.isBarrierMode_ = false;
+    queue.sumOfPendingVsync_ = 0;
+    queue.enterBarrierTime_ = NOW_NS;
+    queue.CheckBarrierMode();
+    EXPECT_FALSE(queue.isBarrierMode_);
+
+    queue.vsyncFirstForceEnableEndTime_ = INT64_MAX;
+    queue.sumOfPendingVsync_ = 1;
+    queue.vsyncRecvTime_ = 0;
+    queue.vsyncCompleteTime_ = 0;
+    queue.CheckBarrierMode();
+    EXPECT_TRUE(queue.isBarrierMode_);
+
+    queue.isBarrierMode_ = false;
+    queue.vsyncRecvTime_ = NOW_NS;
+    queue.vsyncCompleteTime_ = NOW_NS;
+    queue.CheckBarrierMode();
+    EXPECT_FALSE(queue.isBarrierMode_);
+
+    queue.vsyncRecvTime_ = 0;
+    queue.vsyncCompleteTime_ = NOW_NS;
+    queue.CheckBarrierMode();
+    EXPECT_FALSE(queue.isBarrierMode_);
+
+    queue.vsyncRecvTime_ = NOW_NS;
+    queue.vsyncCompleteTime_ = 0;
+    queue.CheckBarrierMode();
+    EXPECT_FALSE(queue.isBarrierMode_);
+
+    queue.isBarrierMode_ = true;
+    queue.needEpoll_ = true;
+    queue.enterBarrierTime_ = 0;
+    queue.CheckBarrierMode();
+    EXPECT_TRUE(queue.isLazyMode_);
+
+    queue.needEpoll_ = false;
+    queue.CheckBarrierMode();
+}
+
+/*
+ * @tc.name: SetVsyncFirstForceEnableTimeTest
+ * @tc.desc: SetVsyncFirstForceEnableTimeTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncFirstForceEnableTimeTest_001, TestSize.Level1)
+{
+    EventQueueBase queue;
+    uint64_t timeout = 50000;
+    queue.SetVsyncFirstForceEnableTime(true, timeout);
+    EXPECT_EQ(queue.vsyncPolicy_, VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER);
+    queue.SetVsyncFirstForceEnableTime(false, timeout);
+    EXPECT_EQ(queue.vsyncFirstForceEnableEndTime_, 0);
+}
