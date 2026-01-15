@@ -1085,14 +1085,15 @@ uint64_t EventQueueBase::GetQueueFirstEventHandleTime(uint64_t now, int32_t prio
     uint64_t time = onlyCheckVsync ?
         UINT64_MAX : subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime;
     if (priority == static_cast<uint32_t>(Priority::VIP)) {
+        uint64_t vsyncCheckTime = static_cast<uint64_t>(vsyncCheckTime_);
         if (sumOfPendingVsync_) {
             uint64_t vsyncDelayTime = GetVsyncTaskDelayTime();
             uint64_t vsyncIntervalTime = vsyncCompleteTime_ +
                 VSYNC_TASK_INTERVAL_MS * MILLISECONDS_TO_NANOSECONDS_RATIO;
             uint64_t vsyncTime = vsyncDelayTime < vsyncIntervalTime ? vsyncIntervalTime : vsyncDelayTime;
             return time < vsyncTime ? time : vsyncTime;
-        } else if (vsyncCheckTime_ < now) {
-            return time < vsyncCheckTime_ ? time : vsyncCheckTime_;
+        } else if (vsyncCheckTime < now) {
+            return time < vsyncCheckTime ? time : vsyncCheckTime;
         }
     }
     return time;
