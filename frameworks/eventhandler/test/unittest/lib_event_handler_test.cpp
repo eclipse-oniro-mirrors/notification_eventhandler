@@ -26,7 +26,7 @@
 #include <dlfcn.h>
 #include <string>
 #include <unistd.h>
-
+#include "async_stack_adapter.h"
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -43,6 +43,7 @@ typedef bool (*FfrtPostSyncTask)(void* handler, const std::function<void()>& cal
     const std::string &name, EventQueue::Priority priority);
 typedef int (*AddFdListenerByFFRT)(void* handler, uint32_t fd, uint32_t event, void* data, ffrt_poller_cb cb);
 typedef int (*RemoveFdListenerByFFRT)(void* handler, uint32_t fd);
+typedef void (*EventSetAsyncStackFunc)(EventCollectAsyncStackFunc collectFunc, EventSetStackIdFunc setStackIdFunc);
 
 class LibEventHandlerTest : public testing::Test {
 public:
@@ -83,6 +84,28 @@ void ExecFfrtNoParam(char* func)
         (*ffrt)();
     }
     dlclose(handle);
+}
+
+uint64_t MockCollectFunc(uint64_t taskType)
+{
+    uint64_t temp = 10;
+    uint64_t result = taskType * temp;
+    if (result == temp) {
+        result += result;
+    } else {
+        result += 1;
+    }
+    return result;
+}
+
+void MockSetStackIdFunc(uint64_t stackId)
+{
+    uint64_t temp = 10;
+    if (stackId == 0) {
+        stackId += 1;
+    } else {
+        stackId = stackId * temp;
+    }
 }
 
 /*
@@ -375,4 +398,121 @@ HWTEST_F(LibEventHandlerTest, HasPendingHigherEvent_001, TestSize.Level1)
     runner->queue_->isBarrierMode_ = true;
     runner->queue_->isLazyMode_ = false;
     handler->HasPendingHigherEvent(static_cast<int32_t>(AppExecFwk::EventQueue::Priority::HIGH));
+}
+
+/*
+ * @tc.name: AsyncStack_001
+ * @tc.desc: AsyncStack_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, AsyncStack_001, TestSize.Level1)
+{
+    string str = "EventSetAsyncStackFunc";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        EventSetAsyncStackFunc func = reinterpret_cast<EventSetAsyncStackFunc>(temp);
+        EventCollectAsyncStackFunc collectFunc = MockCollectFunc;
+        EventSetStackIdFunc setStackIdFunc = MockSetStackIdFunc;
+        //check EventSetAsyncStackFunc
+        EXPECT_NE(nullptr, func);
+
+        //set MockCollectFunc and MockSetStackIdFunc
+        (*func)(collectFunc, setStackIdFunc);
+        uint64_t taskType = 5;
+        uint64_t stackId = collectFunc(taskType);
+        EXPECT_NE(taskType, stackId);
+        setStackIdFunc(stackId);
+
+        //execute MockSetStackIdFunc
+        AsyncStackAdapter::GetInstance().EventSetStackId(0);
+        //execute MockCollectFunc
+        AsyncStackAdapter::GetInstance().EventCollectAsyncStack(1);
+    }
+}
+
+/*
+ * @tc.name: AsyncStack_002
+ * @tc.desc: AsyncStack_002 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, AsyncStack_002, TestSize.Level1)
+{
+    string str = "EventSetAsyncStackFunc";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        EventSetAsyncStackFunc func = reinterpret_cast<EventSetAsyncStackFunc>(temp);
+        EventCollectAsyncStackFunc collectFunc = nullptr;
+        EventSetStackIdFunc setStackIdFunc = nullptr;
+        //check EventSetAsyncStackFunc
+        EXPECT_NE(nullptr, func);
+
+        //set MockCollectFunc and MockSetStackIdFunc
+        (*func)(collectFunc, setStackIdFunc);
+
+        //execute MockSetStackIdFunc
+        AsyncStackAdapter::GetInstance().EventSetStackId(0);
+        //execute MockCollectFunc
+        AsyncStackAdapter::GetInstance().EventCollectAsyncStack(1);
+    }
+}
+
+/*
+ * @tc.name: AsyncStack_003
+ * @tc.desc: AsyncStack_003 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, AsyncStack_003, TestSize.Level1)
+{
+    string str = "EventSetAsyncStackFunc";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        EventSetAsyncStackFunc func = reinterpret_cast<EventSetAsyncStackFunc>(temp);
+        EventCollectAsyncStackFunc collectFunc = nullptr;
+        EventSetStackIdFunc setStackIdFunc = MockSetStackIdFunc;
+        //check EventSetAsyncStackFunc
+        EXPECT_NE(nullptr, func);
+
+        //set MockCollectFunc and MockSetStackIdFunc
+        (*func)(collectFunc, setStackIdFunc);
+        uint64_t stackId = 1;
+        setStackIdFunc(stackId);
+
+        //execute MockSetStackIdFunc
+        AsyncStackAdapter::GetInstance().EventSetStackId(5);
+        //execute MockCollectFunc
+        AsyncStackAdapter::GetInstance().EventCollectAsyncStack(5);
+    }
+}
+
+/*
+ * @tc.name: AsyncStack_004
+ * @tc.desc: AsyncStack_004 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerTest, AsyncStack_004, TestSize.Level1)
+{
+    string str = "EventSetAsyncStackFunc";
+    void* handle = dlopen("/system/lib64/chipset-pub-sdk/libeventhandler.z.so", RTLD_LAZY);
+    void* temp = GetTemp(str.data(), handle);
+    if (temp) {
+        EventSetAsyncStackFunc func = reinterpret_cast<EventSetAsyncStackFunc>(temp);
+        EventCollectAsyncStackFunc collectFunc = MockCollectFunc;
+        EventSetStackIdFunc setStackIdFunc = nullptr;
+        //check EventSetAsyncStackFunc
+        EXPECT_NE(nullptr, func);
+
+        //set MockCollectFunc and MockSetStackIdFunc
+        (*func)(collectFunc, setStackIdFunc);
+        uint64_t taskType = 1;
+        uint64_t stackId = collectFunc(taskType);
+        EXPECT_NE(taskType, stackId);
+
+        //execute MockSetStackIdFunc
+        AsyncStackAdapter::GetInstance().EventSetStackId(0);
+        //execute MockCollectFunc
+        AsyncStackAdapter::GetInstance().EventCollectAsyncStack(1);
+    }
 }
