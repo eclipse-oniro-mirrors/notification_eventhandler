@@ -537,3 +537,99 @@ HWTEST_F(LibEventHandlerEventTest, EventRunnerNativeImplement004, TestSize.Level
     FileDescriptorCallbacks *fdCallbacks = &P1;
     eventRunnerNativeImplement->AddFileDescriptorListener(fileDescriptor, events, fdCallbacks);
 }
+
+/*
+ * @tc.name: HandlerEvent001
+ * @tc.desc: Execute event by eventhandler
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, HandlerEvent001, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    EXPECT_NE(runner, nullptr);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+    auto f1 = []() {; };
+    auto event = InnerEvent::Get(f1, "event");
+    /**
+     * @tc.steps: step1. send an event with delay time, then remove this event with event id,
+     *                   then check whether the task is executed after delay time.
+     * @tc.expected: step1. the task is not executed after delay time.
+     */
+    bool result = handler->SendEvent(event, 0, EventQueue::Priority::VIP);
+    EXPECT_EQ(result, true);
+
+    auto event1 = InnerEvent::Get(f1, "event");
+    bool result1 = handler->SendEvent(event1, 0, EventQueue::Priority::IMMEDIATE);
+    EXPECT_EQ(result1, true);
+
+    auto event2 = InnerEvent::Get(f1, "event");
+    bool result2 = handler->SendEvent(event2, 0, EventQueue::Priority::HIGH);
+    EXPECT_EQ(result2, true);
+
+    auto event3 = InnerEvent::Get(f1, "event");
+    bool result3 = handler->SendEvent(event3, 0, EventQueue::Priority::LOW);
+    EXPECT_EQ(result3, true);
+
+    auto f2 = []() {; };
+    auto event4 = InnerEvent::Get(f2, "event");
+    bool result4 = handler->SendSyncEvent(event4, EventQueue::Priority::LOW);
+    EXPECT_EQ(result4, true);
+}
+
+/*
+ * @tc.name: HandlerEvent002
+ * @tc.desc: Execute event by eventhandler
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, HandlerEvent002, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    EXPECT_NE(runner, nullptr);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+
+    auto f = []() {; };
+    auto event1 = InnerEvent::Get(f, "event");
+    bool result1 = handler->SendSyncEvent(event1, EventQueue::Priority::VIP);
+    EXPECT_EQ(result1, true);
+
+    auto event2 = InnerEvent::Get(f, "event");
+    bool result2 = handler->SendSyncEvent(event2, EventQueue::Priority::IMMEDIATE);
+    EXPECT_EQ(result2, true);
+
+    auto event3 = InnerEvent::Get(f, "event");
+    bool result3 = handler->SendSyncEvent(event3, EventQueue::Priority::HIGH);
+    EXPECT_EQ(result3, true);
+
+    auto event4 = InnerEvent::Get(f, "event");
+    bool result4 = handler->SendSyncEvent(event4, EventQueue::Priority::VIP);
+    EXPECT_EQ(result4, true);
+}
+
+/*
+ * @tc.name: HandlerEvent003
+ * @tc.desc: Execute event by eventhandler
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventTest, HandlerEvent003, TestSize.Level1)
+{
+    auto runner = EventRunner::Create("Runner");
+    EXPECT_NE(runner, nullptr);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+
+    /**
+     * @tc.steps: step1. HasInnerEvent process
+     *
+     * @tc.expected: step1. HasInnerEvent process fail.
+     */
+    uint32_t eventId = 100;
+    bool hasInnerEvent = handler->HasInnerEvent(eventId);
+    EXPECT_EQ(hasInnerEvent, false);
+
+    auto f = []() {; };
+    auto event = InnerEvent::Get(f, "event");
+    bool result = handler->SendSyncEvent(event, EventQueue::Priority::VIP);
+    EXPECT_EQ(result, true);
+}
