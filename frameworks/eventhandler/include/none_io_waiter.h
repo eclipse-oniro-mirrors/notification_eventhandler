@@ -32,7 +32,7 @@ public:
     ~NoneIoWaiter() final;
     DISALLOW_COPY_AND_MOVE(NoneIoWaiter);
 
-    LOCAL_API bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly = false) final;
+    LOCAL_API bool WaitFor(UniqueLockBase &lock, int64_t nanoseconds, bool vsyncOnly = false) final;
 
     LOCAL_API void NotifyOne() final;
     LOCAL_API void NotifyAll() final;
@@ -49,6 +49,7 @@ private:
     std::condition_variable condition_;
     uint32_t waitingCount_ {0};
     bool pred_ {false};
+    std::mutex waitLock_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

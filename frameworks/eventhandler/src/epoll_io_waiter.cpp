@@ -113,7 +113,7 @@ bool EpollIoWaiter::Init()
     return false;
 }
 
-bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly)
+bool EpollIoWaiter::WaitFor(UniqueLockBase &externLock, int64_t nanoseconds, bool vsyncOnly)
 {
     if (epollFd_ < 0) {
         HILOGE("MUST initialized before waiting");
@@ -122,7 +122,7 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
 
     // Increasment of waiting count MUST be done before unlock.
     ++waitingCount_;
-    lock.unlock();
+    externLock.unlock();
 
     // Block on epoll_wait outside of the lock.
     struct epoll_event epollEvents[MAX_EPOLL_EVENTS_SIZE];
@@ -173,7 +173,7 @@ bool EpollIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseco
         }
     }
 
-    lock.lock();
+    externLock.lock();
     return result;
 }
 
