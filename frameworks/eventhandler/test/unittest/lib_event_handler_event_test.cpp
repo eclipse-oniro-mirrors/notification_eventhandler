@@ -455,7 +455,7 @@ HWTEST_F(LibEventHandlerEventTest, Dump001, TestSize.Level1)
     std::string runnerInfo = "aa";
     auto runner = EventRunner::Create(true);
     runner->DumpRunnerInfo(runnerInfo);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.DumpQueueInfo(runnerInfo);
     auto event = InnerEvent::Get(eventId, eventParam);
     std::string result = event->Dump();

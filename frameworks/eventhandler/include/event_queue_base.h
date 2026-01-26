@@ -48,7 +48,9 @@ struct CurrentRunningEvent {
 
 class EventQueueBase : public EventQueue {
 public:
-
+    explicit EventQueueBase(EventLockType lockType = EventLockType::STANDARD);
+    explicit EventQueueBase(const std::shared_ptr<IoWaiter> &ioWaiter,
+        EventLockType lockType = EventLockType::STANDARD);
     EventQueueBase();
     explicit EventQueueBase(const std::shared_ptr<IoWaiter> &ioWaiter);
     ~EventQueueBase();

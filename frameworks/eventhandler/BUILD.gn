@@ -75,6 +75,10 @@ ohos_shared_library("libeventhandler") {
     external_deps += [ "ffrt:libffrt" ]
   }
 
+  if (eventhandler_feature_enable_main_runner_priority_lock) {
+    defines += [ "MAIN_RUNNER_PRIORITY_LOCK_ENABLE" ]
+  }
+
   install_images = [
     system_base_dir,
     updater_base_dir,

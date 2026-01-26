@@ -130,7 +130,7 @@ static void DelayTest(uint8_t delayTime)
         maxDelta = longDelta;
     }
 
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto event = InnerEvent::Get(eventId);
     auto now = InnerEvent::Clock::now();
@@ -161,7 +161,7 @@ static void InsertPriorityTest(const EventQueue::Priority priorities[], size_t p
 {
     std::list<uint32_t> eventIds;
     auto now = InnerEvent::Clock::now();
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     uint32_t eventId = 0;
 
@@ -410,7 +410,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, WakeAndBreak001, TestSize.Level1)
     /**
      * @tc.setup: get event and queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     uint32_t eventId = 0;
     auto event = InnerEvent::Get(eventId);
 
@@ -434,7 +434,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, WakeAndBreak002, TestSize.Level1)
     /**
      * @tc.setup: get event and queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     uint32_t eventId = 0;
     auto event = InnerEvent::Get(eventId);
 
@@ -458,7 +458,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, WakeAndBreak003, TestSize.Level1)
     /**
      * @tc.setup: get event and queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     uint32_t eventId = 0;
     auto event = InnerEvent::Get(eventId);
 
@@ -494,7 +494,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, WakeAndBreak004, TestSize.Level1)
     /**
      * @tc.setup: get event and queue.
      */
-    EventQueueBase myQueue;
+    EventQueueBase myQueue(EventLockType::STANDARD);
     uint32_t eventId = 0;
     auto event = InnerEvent::Get(eventId);
     InsertAndGet(myQueue, event);
@@ -588,7 +588,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent003, TestSize.Level1)
      * @tc.setup: prepare queue. and insert event into queue, insert event with the order int the array.
      */
     uint32_t eventId = 0;
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -615,7 +615,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent004, TestSize.Level1)
      * @tc.setup: prepare queue.
      */
     const uint32_t num = 3;
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -657,7 +657,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent005, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -708,7 +708,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent006, TestSize.Level1)
      */
     const uint32_t count = 5;
     const uint32_t highEventCount = 6;
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -783,7 +783,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, InsertEvent008, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     const std::string handlerId = "handlerId";
     queue.RemoveOrphanByHandlerId(handlerId);
     void* ffrt = queue.GetFfrtQueue();
@@ -797,7 +797,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_001, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_002, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto event = queue.GetEvent();
     EXPECT_EQ(nullptr, event);
     queue.PushHistoryQueueBeforeDistribute(event);
@@ -810,7 +810,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_002, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_003, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.PushHistoryQueueAfterDistribute();
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
@@ -823,7 +823,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_003, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     void* ffrt = queue.GetFfrtQueue();
     EXPECT_EQ(nullptr, ffrt);
 }
@@ -835,7 +835,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_004, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, EventQueue_005, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto event = queue.GetEvent();
     EXPECT_EQ(nullptr, event);
     queue.InsertSyncEvent(event);
@@ -1158,7 +1158,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddAndRemoveFileDescriptorListener001, T
     /**
      * @tc.setup: init queue and prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     int32_t fds[] = {-1, -1};
@@ -1193,7 +1193,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddAndRemoveFileDescriptorListener002, T
      */
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -1228,7 +1228,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener001, TestSize.L
      */
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     int32_t fds[] = {-1, -1};
@@ -1265,7 +1265,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener002, TestSize.L
      */
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -1299,7 +1299,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener003, TestSize.L
      */
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -1332,7 +1332,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener004, TestSize.L
      */
     auto runner = EventRunner::Create(false);
     auto handler = std::make_shared<EventHandler>(runner);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -1367,7 +1367,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener005, TestSize.L
     int32_t fds[] = {-1, -1};
     auto result = pipe(fds);
     EXPECT_GE(result, 0);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     int32_t readFileDescriptor = fds[0];
 
@@ -1842,7 +1842,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, IsQueueEmpty004, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, RemoveFileDescriptorListenerLocked001, TestSize.Level1)
 {
-    auto queue = std::make_shared<EventQueueBase>(nullptr);
+    auto queue = std::make_shared<EventQueueBase>(nullptr, EventLockType::STANDARD);
     EXPECT_NE(queue, nullptr);
     queue->RemoveOrphan();
 }
@@ -1854,7 +1854,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, RemoveFileDescriptorListenerLocked001, T
  */
 HWTEST_F(LibEventHandlerEventQueueTest, RemoveOrphan004, TestSize.Level1)
 {
-    auto queue = std::make_shared<EventQueueBase>();
+    auto queue = std::make_shared<EventQueueBase>(EventLockType::STANDARD);
     EXPECT_NE(queue, nullptr);
     queue->RemoveOrphan();
 }
@@ -1866,7 +1866,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, RemoveOrphan004, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, Remove001, TestSize.Level1)
 {
-    auto queue = std::make_shared<EventQueueBase>();
+    auto queue = std::make_shared<EventQueueBase>(EventLockType::STANDARD);
     EXPECT_NE(queue, nullptr);
     std::shared_ptr<EventHandler> owner = nullptr;
     queue->Remove(owner);
@@ -1886,7 +1886,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, Remove001, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, DumpCurrentQueuesize001, TestSize.Level1)
 {
-    auto queue = std::make_shared<EventQueueBase>();
+    auto queue = std::make_shared<EventQueueBase>(EventLockType::STANDARD);
     EXPECT_NE(queue, nullptr);
     std::string result = queue->DumpCurrentQueueSize();
     EXPECT_NE(result, "");
@@ -1899,7 +1899,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, DumpCurrentQueuesize001, TestSize.Level1
  */
 HWTEST_F(LibEventHandlerEventQueueTest, CheckFileDescriptorEvent001, TestSize.Level1)
 {
-    auto queue = std::make_shared<EventQueueBase>();
+    auto queue = std::make_shared<EventQueueBase>(EventLockType::STANDARD);
     EXPECT_NE(queue, nullptr);
     queue->CheckFileDescriptorEvent();
 }
@@ -1914,7 +1914,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasPreferEvent001, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -1948,7 +1948,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, HasPreferEvent002, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
 
     /**
@@ -2110,7 +2110,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_001, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2131,7 +2131,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_002, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     queue.AddObserver(Observer::ARKTS_GC, 1<<2, nullptr);
     auto now = InnerEvent::Clock::now();
@@ -2151,7 +2151,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_003, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2175,7 +2175,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_004, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2216,7 +2216,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_005, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     ObserverTest(queue);
 }
@@ -2231,7 +2231,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_006, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2254,7 +2254,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_007, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2280,7 +2280,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, ObserverGc_008, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     auto callback = [this]([[maybe_unused]]EventRunnerStage stage,
         [[maybe_unused]]const StageInfo* info) -> int {
@@ -2323,7 +2323,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueueRemove_001, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     RemoveTaskTest(queue);
 }
@@ -2350,7 +2350,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, EventQueueCheck_001, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     CheckFileTest(queue);
 }
@@ -2379,7 +2379,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SyncEventQueue_001, TestSize.Level1)
     /**
      * @tc.setup: prepare queue.
      */
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     InsertSyncEventTest(queue);
 }
@@ -2553,7 +2553,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_002, TestSize.Level1)
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_003, TestSize.Level1)
 {
     auto newIoWaiter = std::make_shared<NoneIoWaiter>();
-    EventQueueBase queue(newIoWaiter);
+    EventQueueBase queue(newIoWaiter, EventLockType::STANDARD);
     queue.Prepare();
     auto listener = std::make_shared<IoFileDescriptorListener>();
     listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
@@ -2578,7 +2578,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_003, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_004, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.Prepare();
     queue.SetVsyncPolicy(VsyncPolicy::DISABLE_VSYNC_FIRST);
     void* ffrt = queue.GetFfrtQueue();
@@ -2594,7 +2594,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicy_005, TestSize.Level1)
 {
     auto newIoWaiter = std::make_shared<EpollIoWaiter>();
     newIoWaiter->Init();
-    EventQueueBase queue(newIoWaiter);
+    EventQueueBase queue(newIoWaiter, EventLockType::STANDARD);
     queue.Prepare();
     auto listener = std::make_shared<IoFileDescriptorListener>();
     listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
@@ -2750,7 +2750,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_001, TestSize.
     auto newIoWaiter = std::make_shared<EpollIoWaiter>();
     newIoWaiter->Init();
     newIoWaiter->Init();
-    EventQueueBase queue(newIoWaiter);
+    EventQueueBase queue(newIoWaiter, EventLockType::STANDARD);
     queue.Prepare();
     auto listener = std::make_shared<IoFileDescriptorListener>();
     newIoWaiter->AddFileDescriptor(-1, 1, "task", listener, EventQueue::Priority::VIP);
@@ -2790,7 +2790,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_003, TestSize.
 {
     auto newIoWaiter = std::make_shared<EpollIoWaiter>();
     newIoWaiter->Init();
-    EventQueueBase queue(newIoWaiter);
+    EventQueueBase queue(newIoWaiter, EventLockType::STANDARD);
     queue.Prepare();
     auto listener = std::make_shared<IoFileDescriptorListener>();
     listener->SetType(IoFileDescriptorListener::ListenerType::LTYPE_VSYNC);
@@ -2814,7 +2814,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_003, TestSize.
  */
 HWTEST_F(LibEventHandlerEventQueueTest, QueryPendingTaskInfo_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto runner = EventRunner::GetMainEventRunner();
     auto handler = std::make_shared<EventHandler>(runner);
     auto f = []() {; };
@@ -2840,7 +2840,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, QueryPendingTaskInfo_001, TestSize.Level
  */
 HWTEST_F(LibEventHandlerEventQueueTest, HasVipTask_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto f = []() {; };
     auto event = InnerEvent::Get(f, "task");
     event->SetEventPriority(static_cast<int32_t>(EventQueue::Priority::HIGH));
@@ -2884,7 +2884,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_001, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_002, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.SetUsable(false);
     queue.RemoveOrphan();
     queue.RemoveAll();
@@ -2901,7 +2901,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetUsableTest_002, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncLazyModeTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.vsyncPolicy_ = VsyncPolicy::DISABLE_VSYNC_FIRST;
     queue.SetVsyncLazyMode(false);
     EXPECT_TRUE(queue.isLazyMode_.load());
@@ -2917,7 +2917,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncLazyModeTest_001, TestSize.Level
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicyTest_006, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.isLazyMode_.store(false);
     queue.SetVsyncPolicy(VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER);
     EXPECT_FALSE(queue.isLazyMode_.load());
@@ -2932,9 +2932,9 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicyTest_006, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, TryEpollFdTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto now = InnerEvent::Clock::now();
-    std::unique_lock<std::mutex> lock(queue.queueLock_);
+    UniqueLockBase lock(*(queue.queueLock_));
     queue.sumOfPendingVsync_ = 1;
     queue.TryEpollFd(now, lock);
     queue.sumOfPendingVsync_ = 0;
@@ -2956,7 +2956,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, TryEpollFdTest_001, TestSize.Level1)
  */
 HWTEST_F(LibEventHandlerEventQueueTest, HandleFileDescriptorEventTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto runner = EventRunner::GetMainEventRunner();
     auto handler = std::make_shared<EventHandler>(runner);
     auto listener = std::make_shared<IoFileDescriptorListener>();
@@ -2978,7 +2978,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, HandleFileDescriptorEventTest_001, TestS
  */
 HWTEST_F(LibEventHandlerEventQueueTest, MarkBarrierTaskIfNeedTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     auto f = []() {; };
     auto event = InnerEvent::Get(f, "task");
     EXPECT_NE(nullptr, event);
@@ -3008,7 +3008,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetQueueFirstEventHandleTimeTest_001, Te
 {
     uint64_t now = 10;
     int32_t intVip = static_cast<int32_t>(EventQueue::Priority::VIP);
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
     queue.isBarrierMode_ = false;
     queue.isLazyMode_ = true;
@@ -3053,7 +3053,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, GetQueueFirstEventHandleTimeTest_001, Te
  */
 HWTEST_F(LibEventHandlerEventQueueTest, CheckBarrierModeTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     queue.isLazyMode_ = false;
     queue.isBarrierMode_ = false;
     queue.sumOfPendingVsync_ = 0;
@@ -3101,7 +3101,7 @@ HWTEST_F(LibEventHandlerEventQueueTest, CheckBarrierModeTest_001, TestSize.Level
  */
 HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncFirstForceEnableTimeTest_001, TestSize.Level1)
 {
-    EventQueueBase queue;
+    EventQueueBase queue(EventLockType::STANDARD);
     uint64_t timeout = 50000;
     queue.SetVsyncFirstForceEnableTime(true, timeout);
     EXPECT_EQ(queue.vsyncPolicy_, VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER);

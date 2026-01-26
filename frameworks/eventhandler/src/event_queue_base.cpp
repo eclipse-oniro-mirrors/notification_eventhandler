@@ -143,20 +143,21 @@ inline InnerEvent::Pointer PopFrontBarrierEventFromListWithTimeLocked(std::list<
 }
 }  // unnamed namespace
 
-EventQueueBase::EventQueueBase() : EventQueue(), historyEvents_(std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
+EventQueueBase::EventQueueBase(EventLockType lockType)
+    : EventQueue(lockType), historyEvents_(std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
 {
     HILOGD("enter");
 }
 
-EventQueueBase::EventQueueBase(const std::shared_ptr<IoWaiter> &ioWaiter)
-    : EventQueue(ioWaiter), historyEvents_(std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
+EventQueueBase::EventQueueBase(const std::shared_ptr<IoWaiter> &ioWaiter, EventLockType lockType)
+    : EventQueue(ioWaiter, lockType), historyEvents_(std::vector<HistoryEvent>(HISTORY_EVENT_NUM_POWER))
 {
     HILOGD("enter");
 }
 
 EventQueueBase::~EventQueueBase()
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     usable_.store(false);
     ioWaiter_ = nullptr;
     ClearObserver();
@@ -190,7 +191,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
     }
     HILOGD("Insert task: %{public}s %{public}d.", (event->GetEventUniqueId()).c_str(), insertType);
     MarkBarrierTaskIfNeed(event, option, vsyncPolicy_);
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return false;
@@ -251,7 +252,7 @@ void EventQueueBase::RemoveOrphan()
 
     RemoveOrphan(filter);
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("RemoveOrphan EventQueueBase is unavailable.");
         return;
@@ -263,7 +264,7 @@ void EventQueueBase::RemoveOrphan()
 void EventQueueBase::RemoveAll()
 {
     HILOGD("enter");
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("RemoveAll EventQueueBase is unavailable.");
         return;
@@ -345,7 +346,7 @@ bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const st
 void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_sanitize("cfi")))
 {
     HILOGD("Remove filter enter");
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");
         return;
@@ -372,7 +373,7 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
     std::list<InnerEvent::Pointer> releaseIdleEvents;
     std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> releaseEventsQueue;
     {
-        std::lock_guard<std::mutex> lock(queueLock_);
+        LockGuardBase lock(*queueLock_);
         if (!usable_.load()) {
             HILOGW("EventQueueBase is unavailable.");
             return;
@@ -425,7 +426,7 @@ bool EventQueueBase::HasInnerEvent(const std::shared_ptr<EventHandler> &owner, i
 
 bool EventQueueBase::HasInnerEvent(const HasFilter &filter)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");
         return false;
@@ -590,7 +591,7 @@ void EventQueueBase::CheckBarrierMode()
 
 InnerEvent::Pointer EventQueueBase::GetEvent()
 {
-    std::unique_lock<std::mutex> lock(queueLock_);
+    UniqueLockBase lock(*queueLock_);
     while (!finished_) {
         CheckBarrierMode();
         InnerEvent::TimePoint nextWakeUpTime = InnerEvent::TimePoint::max();
@@ -698,7 +699,7 @@ void EventQueueBase::ClearObserver()
 
 InnerEvent::Pointer EventQueueBase::GetExpiredEvent(InnerEvent::TimePoint &nextExpiredTime)
 {
-    std::unique_lock<std::mutex> lock(queueLock_);
+    UniqueLockBase lock(*queueLock_);
     return GetExpiredEventLocked(nextExpiredTime);
 }
 
@@ -775,7 +776,7 @@ void EventQueueBase::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
  
 void EventQueueBase::Dump(Dumper &dumper)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     HILOGD("EventQueue start dump.");
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");
@@ -797,7 +798,7 @@ void EventQueueBase::Dump(Dumper &dumper)
  
 void EventQueueBase::DumpQueueInfo(std::string& queueInfo)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");
         return;
@@ -835,7 +836,7 @@ bool EventQueueBase::IsIdle()
  
 bool EventQueueBase::IsQueueEmpty()
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueueBase is unavailable.");
         return false;
@@ -949,7 +950,7 @@ PendingTaskInfo EventQueueBase::QueryPendingTaskInfo(int32_t fileDescriptor)
         return pendingTaskInfo;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("QueryPendingTaskInfo event queue is unavailable.");
         return pendingTaskInfo;
@@ -1010,7 +1011,7 @@ ErrCode EventQueueBase::AddFileDescriptorListener(int32_t fileDescriptor, uint32
         return EVENT_HANDLER_ERR_INVALID_PARAM;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     return AddFileDescriptorListenerBase(fileDescriptor, events, listener, taskName, priority);
 }
 
@@ -1022,7 +1023,7 @@ void EventQueueBase::RemoveFileDescriptorListener(const std::shared_ptr<EventHan
         return;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     RemoveListenerByOwner(owner);
 }
 
@@ -1034,21 +1035,21 @@ void EventQueueBase::RemoveFileDescriptorListener(int32_t fileDescriptor)
         return;
     }
 
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     RemoveListenerByFd(fileDescriptor);
 }
 
 void EventQueueBase::Prepare()
 {
     HILOGD("enter");
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     PrepareBase();
 }
 
 void EventQueueBase::Finish()
 {
     HILOGD("enter");
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     FinishBase();
 }
 

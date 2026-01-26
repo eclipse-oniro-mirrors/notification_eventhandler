@@ -58,7 +58,8 @@ public:
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(bool inNewThread = true, Mode mode = Mode::DEFAULT);
+    static std::shared_ptr<EventRunner> Create(bool inNewThread = true, Mode mode = Mode::DEFAULT,
+        EventLockType lockType = EventLockType::STANDARD);
 
     /**
      * Create new 'EventRunner'.
@@ -67,7 +68,8 @@ public:
      * @param threadMode thread mode, use ffrt or new thread, for inNewThread = true.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(bool inNewThread, ThreadMode threadMode);
+    static std::shared_ptr<EventRunner> Create(bool inNewThread, ThreadMode threadMode,
+ 	    EventLockType lockType = EventLockType::STANDARD);
 
     /**
      * Create new 'EventRunner' and start to run in a new thread.
@@ -76,9 +78,10 @@ public:
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT)
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode = Mode::DEFAULT,
+        EventLockType lockType = EventLockType::STANDARD)
     {
-        return Create(threadName, mode, ThreadMode::NEW_THREAD);
+        return Create(threadName, mode, ThreadMode::NEW_THREAD, lockType);
     }
 
     /**
@@ -88,9 +91,10 @@ public:
      * @param threadMode thread mode, use ffrt or new thread.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName, ThreadMode threadMode)
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, ThreadMode threadMode,
+ 	    EventLockType lockType = EventLockType::STANDARD)
     {
-        return Create(threadName, Mode::DEFAULT, threadMode);
+        return Create(threadName, Mode::DEFAULT, threadMode, lockType);
     }
 
     /**
@@ -101,9 +105,11 @@ public:
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static inline std::shared_ptr<EventRunner> Create(const char *threadName, Mode mode = Mode::DEFAULT)
+    static inline std::shared_ptr<EventRunner> Create(const char *threadName, Mode mode = Mode::DEFAULT,
+ 	    EventLockType lockType = EventLockType::STANDARD)
     {
-        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode, ThreadMode::NEW_THREAD);
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), mode,
+            ThreadMode::NEW_THREAD, lockType);
     }
 
     /**
@@ -114,9 +120,11 @@ public:
      * @param threadMode thread mode, use ffrt or new thread.
      * @return Returns shared pointer of the new 'EventRunner'.
      */
-    static inline std::shared_ptr<EventRunner> Create(const char *threadName, ThreadMode threadMode)
+    static inline std::shared_ptr<EventRunner> Create(const char *threadName, ThreadMode threadMode,
+ 	    EventLockType lockType = EventLockType::STANDARD)
     {
-        return Create((threadName != nullptr) ? std::string(threadName) : std::string(), Mode::DEFAULT, threadMode);
+        return Create((threadName != nullptr) ? std::string(threadName) : std::string(),
+            Mode::DEFAULT, threadMode, lockType);
     }
 
     /**
@@ -306,7 +314,8 @@ private:
 
     friend class EventHandler;
 
-    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode, ThreadMode threadMode);
+    static std::shared_ptr<EventRunner> Create(const std::string &threadName, Mode mode,
+        ThreadMode threadMode, EventLockType lockType);
 
     /**
      * Check whether this event runner is running.
