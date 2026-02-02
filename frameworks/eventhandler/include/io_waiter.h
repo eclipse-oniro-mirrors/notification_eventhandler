@@ -59,7 +59,7 @@ public:
      * @param vsyncOnly wait for vsync fd event only.
      * @return True if succeeded.
      */
-    LOCAL_API virtual bool WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly = false) = 0;
+    LOCAL_API virtual bool WaitFor(UniqueLockBase &lock, int64_t nanoseconds, bool vsyncOnly = false) = 0;
 
     /**
      * Unblocks one of the waiting threads.

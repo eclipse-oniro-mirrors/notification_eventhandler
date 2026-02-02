@@ -43,4 +43,5 @@ if (defined(global_parts_info) &&
 declare_args() {
   eventhandler_feature_enable_pgo = false
   eventhandler_feature_pgo_path = ""
+  eventhandler_feature_enable_main_runner_priority_lock = false
 }

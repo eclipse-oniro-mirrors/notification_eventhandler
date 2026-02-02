@@ -34,8 +34,11 @@ NoneIoWaiter::~NoneIoWaiter()
     HILOGD("enter");
 }
 
-bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanoseconds, bool vsyncOnly)
+bool NoneIoWaiter::WaitFor(UniqueLockBase &externLock, int64_t nanoseconds, bool vsyncOnly)
 {
+    externLock.unlock();
+
+    std::unique_lock<std::mutex> lock(waitLock_);
     ++waitingCount_;
     if (nanoseconds < 0) {
         condition_.wait(lock, [this] { return this->pred_; });
@@ -50,12 +53,16 @@ bool NoneIoWaiter::WaitFor(std::unique_lock<std::mutex> &lock, int64_t nanosecon
         (void)condition_.wait_for(lock, (duration > oneYear) ? oneYear : duration, [this] { return this->pred_; });
     }
     --waitingCount_;
+    lock.unlock();
+
+    externLock.lock();
     pred_ = false;
     return true;
 }
 
 void NoneIoWaiter::NotifyOne()
 {
+    std::lock_guard<std::mutex> lock(waitLock_);
     if (waitingCount_ > 0) {
         pred_ = true;
         condition_.notify_one();
@@ -64,6 +71,7 @@ void NoneIoWaiter::NotifyOne()
 
 void NoneIoWaiter::NotifyAll()
 {
+    std::lock_guard<std::mutex> lock(waitLock_);
     if (waitingCount_ > 0) {
         pred_ = true;
         condition_.notify_all();

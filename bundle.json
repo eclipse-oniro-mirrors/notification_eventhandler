@@ -15,7 +15,8 @@
         ],
         "features": [
             "eventhandler_feature_enable_pgo",
-            "eventhandler_feature_pgo_path"
+            "eventhandler_feature_pgo_path",
+            "eventhandler_feature_enable_main_runner_priority_lock"
         ],
         "adapted_system_type": [
             "standard"
@@ -62,7 +63,8 @@
                             "event_runner.h",
                             "inner_event.h",
                             "file_descriptor_listener.h",
-                            "native_implement_eventhandler.h"
+                            "native_implement_eventhandler.h",
+                            "lock_base.h"
                         ]
                     },
                     "name": "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler"

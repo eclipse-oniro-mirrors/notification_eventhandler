@@ -26,7 +26,7 @@ namespace {
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter, AppExecFwk::EventLockType::STANDARD);
     uint32_t innerEventId = *data;
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
     eventQueue.HasInnerEvent(myHandler, innerEventId);
