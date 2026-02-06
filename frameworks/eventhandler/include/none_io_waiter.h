@@ -47,7 +47,6 @@ public:
 
 private:
     std::condition_variable condition_;
-    uint32_t waitingCount_ {0};
     bool pred_ {false};
     std::mutex waitLock_;
 };

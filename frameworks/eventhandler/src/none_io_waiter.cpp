@@ -39,7 +39,6 @@ bool NoneIoWaiter::WaitFor(UniqueLockBase &externLock, int64_t nanoseconds, bool
     externLock.unlock();
 
     std::unique_lock<std::mutex> lock(waitLock_);
-    ++waitingCount_;
     if (nanoseconds < 0) {
         condition_.wait(lock, [this] { return this->pred_; });
     } else {
@@ -52,7 +51,6 @@ bool NoneIoWaiter::WaitFor(UniqueLockBase &externLock, int64_t nanoseconds, bool
         auto duration = std::chrono::nanoseconds(nanoseconds);
         (void)condition_.wait_for(lock, (duration > oneYear) ? oneYear : duration, [this] { return this->pred_; });
     }
-    --waitingCount_;
     lock.unlock();
 
     externLock.lock();
@@ -63,19 +61,15 @@ bool NoneIoWaiter::WaitFor(UniqueLockBase &externLock, int64_t nanoseconds, bool
 void NoneIoWaiter::NotifyOne()
 {
     std::lock_guard<std::mutex> lock(waitLock_);
-    if (waitingCount_ > 0) {
-        pred_ = true;
-        condition_.notify_one();
-    }
+    pred_ = true;
+    condition_.notify_one();
 }
 
 void NoneIoWaiter::NotifyAll()
 {
     std::lock_guard<std::mutex> lock(waitLock_);
-    if (waitingCount_ > 0) {
-        pred_ = true;
-        condition_.notify_all();
-    }
+    pred_ = true;
+    condition_.notify_all();
 }
 
 bool NoneIoWaiter::SupportListeningFileDescriptor() const
