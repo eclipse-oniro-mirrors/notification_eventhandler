@@ -48,12 +48,12 @@ EpollIoWaiter::~EpollIoWaiter()
     HILOGD("enter");
     // Close all valid file descriptors.
     if (epollFd_ >= 0) {
-        close(epollFd_);
+        fdsan_close_with_tag(epollFd_, EH_LOG_DOMAIN);
         epollFd_ = -1;
     }
 
     if (awakenFd_ >= 0) {
-        close(awakenFd_);
+        fdsan_close_with_tag(awakenFd_, EH_LOG_DOMAIN);
         awakenFd_ = -1;
     }
 }
@@ -77,6 +77,7 @@ bool EpollIoWaiter::Init()
             HILOGE("Failed to create epoll, %{public}s", errmsg);
             break;
         }
+        fdsan_exchange_owner_tag(epollFd, 0, EH_LOG_DOMAIN);
 
         awakenFd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
         if (awakenFd < 0) {
@@ -85,6 +86,7 @@ bool EpollIoWaiter::Init()
             HILOGE("Failed to create event fd, %{public}s", errmsg);
             break;
         }
+        fdsan_exchange_owner_tag(awakenFd, 0, EH_LOG_DOMAIN);
 
         // Add readable file descriptor of pipe, used to wake up blocked thread.
         if (EpollCtrl(epollFd, EPOLL_CTL_ADD, awakenFd, EPOLLIN | EPOLLET) < 0) {
@@ -103,11 +105,11 @@ bool EpollIoWaiter::Init()
 
     // If any error happened, close all valid file descriptors.
     if (epollFd >= 0) {
-        close(epollFd);
+        fdsan_close_with_tag(epollFd, EH_LOG_DOMAIN);
     }
 
     if (awakenFd >= 0) {
-        close(awakenFd);
+        fdsan_close_with_tag(awakenFd, EH_LOG_DOMAIN);
     }
 
     return false;
