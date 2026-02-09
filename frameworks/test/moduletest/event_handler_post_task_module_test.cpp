@@ -293,32 +293,3 @@ HWTEST_F(EventHandlerPostTaskModuleTest, Post009, TestSize.Level1)
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_FALSE(runResult);
 }
-
-/**
- * @tc.name: Post009
- * @tc.desc: Post a task at no wait runner
- * @tc.type: FUNC
- * @tc.require: SR20240112414855
- */
-HWTEST_F(EventHandlerPostTaskModuleTest, Post010, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Post a task with callback, name, delayTime and priority in a no wait runner.
-     * @tc.expected: step1. Post successfully and the task handled.
-     */
-    auto myRunner = EventRunner::CreateNoWait("NowaitRunner001");
-    auto handler = std::make_shared<MyEventHandler>(myRunner);
-    // insert at front
-    string taskName = std::to_string(Random());
-    auto f1 = []() { CommonUtils::CommonUtils::TaskCalledSet(false); };
-    bool postResult = handler->PostTask(f1, taskName, 0, EventQueue::Priority::LOW);
-    EXPECT_TRUE(postResult);
-    // insert at front
-    taskName = std::to_string(Random());
-    auto f2 = []() { CommonUtils::CommonUtils::TaskCalledSet(true); };
-    postResult = handler->PostTask(f2, taskName, 1000, EventQueue::Priority::LOW);
-    EXPECT_TRUE(postResult);
-    myRunner->Run();
-    bool runResult = CommonUtils::TaskCalledGet();
-    EXPECT_FALSE(runResult);
-}

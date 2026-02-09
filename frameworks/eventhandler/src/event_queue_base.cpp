@@ -566,7 +566,7 @@ inline int64_t EventQueueBase::GetVsyncTaskDelayTime()
 void EventQueueBase::CheckBarrierMode()
 {
     int64_t now = NOW_NS;
-    if (vsyncFirstForceEnableEndTime_ > NOW_NS) {
+    if (vsyncFirstForceEnableEndTime_ > now) {
         vsyncPolicy_ = VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER;
         isLazyMode_.store(false);
     } else {
@@ -738,17 +738,18 @@ std::string EventQueueBase::DumpCurrentRunning()
         }
         content.append(" }");
     }
-
+ 
     return content;
 }
-
+ 
 void EventQueueBase::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
 {
     std::string priority[] = {"VIP", "Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t n = 0;
-        dumper.Dump(dumper.GetTag() + " " + priority[i] + " priority event queue information:" + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " " + priority[i] + " priority event queue information:" +
+            std::string(LINE_SEPARATOR));
         for (auto it = subEventQueues_[i].queue.begin(); it != subEventQueues_[i].queue.end(); ++it) {
             ++n;
             if (total < dumpMaxSize) {
@@ -756,10 +757,10 @@ void EventQueueBase::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
             }
             ++total;
         }
-        dumper.Dump(
-            dumper.GetTag() + " Total size of " + priority[i] + " events : " + std::to_string(n) + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " Total size of " + priority[i] + " events : " + std::to_string(n) +
+            std::string(LINE_SEPARATOR));
     }
-    dumper.Dump(dumper.GetTag() + " Idle priority event queue information:" + LINE_SEPARATOR);
+    dumper.Dump(dumper.GetTag() + " Idle priority event queue information:" + std::string(LINE_SEPARATOR));
     int n = 0;
     for (auto it = idleEvents_.begin(); it != idleEvents_.end(); ++it) {
         ++n;
@@ -768,20 +769,20 @@ void EventQueueBase::DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize)
         }
         ++total;
     }
-    dumper.Dump(dumper.GetTag() + " Total size of Idle events : " + std::to_string(n) + LINE_SEPARATOR);
-    dumper.Dump(dumper.GetTag() + " Total event size : " + std::to_string(total) + LINE_SEPARATOR);
+    dumper.Dump(dumper.GetTag() + " Total size of Idle events : " + std::to_string(n) + std::string(LINE_SEPARATOR));
+    dumper.Dump(dumper.GetTag() + " Total event size : " + std::to_string(total) + std::string(LINE_SEPARATOR));
 }
-
+ 
 void EventQueueBase::Dump(Dumper &dumper)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     HILOGD("EventQueue start dump.");
     if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
+        HILOGW("EventQueueBase is unavailable.");
         return;
     }
-    dumper.Dump(dumper.GetTag() + " Current Running: " + DumpCurrentRunning() + LINE_SEPARATOR);
-    dumper.Dump(dumper.GetTag() + " History event queue information:" + LINE_SEPARATOR);
+    dumper.Dump(dumper.GetTag() + " Current Running: " + DumpCurrentRunning() + std::string(LINE_SEPARATOR));
+    dumper.Dump(dumper.GetTag() + " History event queue information:" + std::string(LINE_SEPARATOR));
     uint32_t dumpMaxSize = MAX_DUMP_SIZE;
     for (uint8_t i = 0; i < HISTORY_EVENT_NUM_POWER; i++) {
         std::lock_guard<std::mutex> lock(historyLock_);
@@ -793,49 +794,50 @@ void EventQueueBase::Dump(Dumper &dumper)
     }
     DumpCurentQueueInfo(dumper, dumpMaxSize);
 }
-
+ 
 void EventQueueBase::DumpQueueInfo(std::string& queueInfo)
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
+        HILOGW("EventQueueBase is unavailable.");
         return;
     }
     std::string priority[] = {"VIP", "Immediate", "High", "Low"};
     uint32_t total = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t n = 0;
-        queueInfo +=  "            " + priority[i] + " priority event queue:" + LINE_SEPARATOR;
+        queueInfo +=  "            " + priority[i] + " priority event queue:" +  std::string(LINE_SEPARATOR);
         for (auto it = subEventQueues_[i].queue.begin(); it != subEventQueues_[i].queue.end(); ++it) {
             ++n;
             queueInfo +=  "            No." + std::to_string(n) + " : " + (*it)->Dump();
             ++total;
         }
-        queueInfo +=  "              Total size of " + priority[i] + " events : " + std::to_string(n) + LINE_SEPARATOR;
+        queueInfo +=  "              Total size of " + priority[i] + " events : " + std::to_string(n) +
+            std::string(LINE_SEPARATOR);
     }
-
-    queueInfo += "            Idle priority event queue:" + LINE_SEPARATOR;
-
+ 
+    queueInfo += "            Idle priority event queue:" + std::string(LINE_SEPARATOR);
+ 
     int n = 0;
     for (auto it = idleEvents_.begin(); it != idleEvents_.end(); ++it) {
         ++n;
         queueInfo += "            No." + std::to_string(n) + " : " + (*it)->Dump();
         ++total;
     }
-    queueInfo += "              Total size of Idle events : " + std::to_string(n) + LINE_SEPARATOR;
+    queueInfo += "              Total size of Idle events : " + std::to_string(n) + std::string(LINE_SEPARATOR);
     queueInfo += "            Total event size : " + std::to_string(total);
 }
-
+ 
 bool EventQueueBase::IsIdle()
 {
     return isIdle_;
 }
-
+ 
 bool EventQueueBase::IsQueueEmpty()
 {
     std::lock_guard<std::mutex> lock(queueLock_);
     if (!usable_.load()) {
-        HILOGW("EventQueue is unavailable.");
+        HILOGW("EventQueueBase is unavailable.");
         return false;
     }
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
@@ -844,10 +846,10 @@ bool EventQueueBase::IsQueueEmpty()
             return false;
         }
     }
-
+ 
     return idleEvents_.size() == 0;
 }
-
+ 
 void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer &event)
 {
     if (event == nullptr) {
@@ -871,7 +873,7 @@ void EventQueueBase::PushHistoryQueueBeforeDistribute(const InnerEvent::Pointer 
         historyEvents_[historyEventIndex_].innerEventId = event->GetInnerEventIdEx();
     }
 }
-
+ 
 void EventQueueBase::PushHistoryQueueAfterDistribute()
 {
     std::lock_guard<std::mutex> lock(historyLock_);
@@ -879,16 +881,18 @@ void EventQueueBase::PushHistoryQueueAfterDistribute()
     historyEventIndex_++;
     historyEventIndex_ = historyEventIndex_ & (HISTORY_EVENT_NUM_POWER - 1);
 }
-
+ 
 std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
 {
     std::string content;
-    std::vector<std::string> prioritys = {"VIP", "Immediate", "High", "Low"};
+    std::vector<std::string> prioritys = {"VIP", "Immediate", "High", "Low", "IDEL"};
+
     content.append("Event { ");
     content.append("send thread = " + std::to_string(historyEvent.senderKernelThreadId));
     content.append(", send time = " + InnerEvent::DumpTimeToString(historyEvent.sendTime));
     content.append(", handle time = " + InnerEvent::DumpTimeToString(historyEvent.handleTime));
     content.append(", trigger time = " + InnerEvent::DumpTimeToString(historyEvent.triggerTime));
+
     if (historyEvent.completeTime == InnerEvent::TimePoint::max()) {
         content.append(", completeTime time = ");
     } else {
@@ -906,14 +910,15 @@ std::string EventQueueBase::HistoryQueueDump(const HistoryEvent &historyEvent)
         DumpCurrentRunningEventId(historyEvent.innerEventId, content);
     }
     content.append(", caller = " + historyEvent.callerInfo_);
-    content.append(" }" + LINE_SEPARATOR);
+    content.append(" }" + std::string(LINE_SEPARATOR));
 
     return content;
 }
-
+ 
 std::string EventQueueBase::DumpCurrentQueueSize()
 {
-    return "Current queue size: IMMEDIATE = " +
+    return "Current queue size: VIP = " +
+    std::to_string(subEventQueues_[static_cast<int>(Priority::VIP)].queue.size()) + ", IMMEDIATE = " +
     std::to_string(subEventQueues_[static_cast<int>(Priority::IMMEDIATE)].queue.size()) + ", HIGH = " +
     std::to_string(subEventQueues_[static_cast<int>(Priority::HIGH)].queue.size()) + ", LOW = " +
     std::to_string(subEventQueues_[static_cast<int>(Priority::LOW)].queue.size()) + ", IDLE = " +

@@ -37,7 +37,7 @@ using HiTraceId = OHOS::HiviewDFX::HiTraceId;
 
 class EventHandler;
 
-const std::string LINE_SEPARATOR = "\n";
+constexpr const char* LINE_SEPARATOR = "\n";
 
 struct Caller {
     std::string file_ {""};
