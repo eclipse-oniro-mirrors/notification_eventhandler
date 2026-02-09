@@ -28,6 +28,7 @@
 #include "none_io_waiter.h"
 #include "parameters.h"
 
+
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
@@ -374,7 +375,7 @@ void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<
     } else {
         if (vsyncPeriod_ < MAX_CHECK_VSYNC_PERIOD_NS) {
             vsyncCheckTime_ += vsyncPeriod_;
-            vsyncPeriod_ <<= 1;
+            vsyncPeriod_ *= 2;
         } else {
             vsyncCheckTime_ = INT64_MAX;
         }

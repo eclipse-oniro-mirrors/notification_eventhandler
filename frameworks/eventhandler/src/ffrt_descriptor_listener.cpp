@@ -41,21 +41,21 @@ void FfrtDescriptorListener::OnWritable(int32_t fileDescriptor)
 
 void FfrtDescriptorListener::OnShutdown(int32_t fileDescriptor)
 {
-    if (fileDescriptor < 0 && (events_ & EPOLLHUP)) {
+    if (fileDescriptor < 0) {
         HILOGW("OnShutdown bad fd");
         return;
     }
-
+    HILOGW("OnShutdown bad fd %{public}d", fileDescriptor);
     InvokePollCb(EPOLLHUP);
 }
 
 void FfrtDescriptorListener::OnException(int32_t fileDescriptor)
 {
-    if (fileDescriptor < 0 && (events_ & EPOLLERR)) {
+    if (fileDescriptor < 0) {
         HILOGW("OnException bad fd");
         return;
     }
-
+    HILOGW("OnException bad fd %{public}d", fileDescriptor);
     InvokePollCb(EPOLLERR);
 }
 

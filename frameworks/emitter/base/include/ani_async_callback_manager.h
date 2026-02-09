@@ -25,9 +25,7 @@
 #include <condition_variable>
 
 #include "ani.h"
-
 #include "concurrency_helpers.h"
-#include "ani.h"
 #include "composite_event.h"
 #include "inner_event.h"
 #include "serialize.h"
