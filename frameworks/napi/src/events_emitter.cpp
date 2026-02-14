@@ -872,6 +872,7 @@ namespace {
             return nullptr;
         }
         compositeId.emitterId = emitterId;
+        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
         auto callbackInfo = SearchCallbackInfo(env, compositeId, argv[1]);
         if (callbackInfo != nullptr) {
             UpdateOnceFlag(callbackInfo, once);
