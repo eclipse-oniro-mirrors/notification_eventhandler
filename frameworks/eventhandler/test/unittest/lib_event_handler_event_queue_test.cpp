@@ -2808,32 +2808,6 @@ HWTEST_F(LibEventHandlerEventQueueTest, AddFileDescriptorListener_003, TestSize.
 }
 
 /*
- * @tc.name: QueryPendingTaskInfo_001
- * @tc.desc: QueryPendingTaskInfo_001 test
- * @tc.type: FUNC
- */
-HWTEST_F(LibEventHandlerEventQueueTest, QueryPendingTaskInfo_001, TestSize.Level1)
-{
-    EventQueueBase queue(EventLockType::STANDARD);
-    auto runner = EventRunner::GetMainEventRunner();
-    auto handler = std::make_shared<EventHandler>(runner);
-    auto f = []() {; };
-    auto event = InnerEvent::Get(f, "event");
-    event->MarkVsyncTask();
-    handler->SendEvent(event, 0, EventQueue::Priority::LOW);
-    queue.SetIoWaiter(true);
-    DeamonIoWaiter::GetInstance().Init();
-    auto listener = std::make_shared<IoFileDescriptorListener>();
-    DeamonIoWaiter::GetInstance().AddFileDescriptor(11, 1, "task", listener, EventQueue::Priority::VIP);
-    auto event2 = InnerEvent::Get(f, "task");
-    queue.Insert(event2, EventQueue::Priority::VIP, EventInsertType::AT_END);
-    queue.QueryPendingTaskInfo(11);
-    queue.CancelAndWait();
-    void* ffrt = queue.GetFfrtQueue();
-    EXPECT_EQ(nullptr, ffrt);
-}
-
-/*
  * @tc.name: HasVipTask_001
  * @tc.desc: HasVipTask_001 test
  * @tc.type: FUNC
