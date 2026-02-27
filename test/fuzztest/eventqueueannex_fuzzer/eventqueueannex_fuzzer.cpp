@@ -52,7 +52,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
     std::string stringData(data);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter, AppExecFwk::EventLockType::STANDARD);
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
     uint32_t innerEventId = *data;
     int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(data));

@@ -27,6 +27,7 @@
 #include "event_handler_errors.h"
 #include "file_descriptor_listener.h"
 #include "dumper.h"
+#include "lock_base.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -147,6 +148,8 @@ public:
 
     EventQueue();
     explicit EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter);
+    explicit EventQueue(EventLockType lockType);
+    explicit EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter, EventLockType lockType);
     virtual ~EventQueue();
     DISALLOW_COPY_AND_MOVE(EventQueue);
 
@@ -531,14 +534,14 @@ protected:
 
     void FinishBase();
 
-    void WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock, bool vsyncOnly = false);
+    void WaitUntilLocked(const InnerEvent::TimePoint &when, UniqueLockBase &lock, bool vsyncOnly = false);
 
     /**
      * Try epoll fds according to the vsync info.
      */
-    void TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock);
+    void TryEpollFd(const InnerEvent::TimePoint &when, UniqueLockBase &lock);
 
-    std::mutex queueLock_;
+    std::unique_ptr<LockBase> queueLock_;
 
     std::atomic_bool usable_ {true};
 
@@ -574,6 +577,8 @@ protected:
 
 private:
     std::shared_ptr<FileDescriptorListener> GetListenerByfd(int32_t fileDescriptor);
+
+    void InitializeLocks(EventLockType lockType);
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS

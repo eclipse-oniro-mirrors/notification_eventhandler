@@ -27,6 +27,8 @@
 #include "frame_report_sched.h"
 #include "none_io_waiter.h"
 #include "parameters.h"
+#include "priority_inheritance_lock.h"
+#include "std_lock.h"
 
 
 namespace OHOS {
@@ -58,15 +60,49 @@ void RemoveFileDescriptorListenerLocked(std::map<int32_t, std::shared_ptr<FileDe
 }
 }  // unnamed namespace
 
+void EventQueue::InitializeLocks(EventLockType lockType)
+{
+    switch (lockType) {
+        case EventLockType::PRIORITY_INHERIT:
+            queueLock_ = std::make_unique<PriorityInheritanceLock>();
+            break;
+        case EventLockType::STANDARD:
+        default:
+            queueLock_ = std::make_unique<StdLock>();
+            break;
+    }
+}
+
 EventQueue::EventQueue() : ioWaiter_(std::make_shared<NoneIoWaiter>())
 {
     HILOGD("enter");
+    InitializeLocks(EventLockType::STANDARD);
 }
 
 EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter)
     : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>())
 {
     HILOGD("enter");
+    InitializeLocks(EventLockType::STANDARD);
+    if (ioWaiter_->SupportListeningFileDescriptor()) {
+        // Set callback to handle events from file descriptors.
+        ioWaiter_->SetFileDescriptorEventCallback(
+            std::bind(&EventQueue::HandleFileDescriptorEvent, this, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3, std::placeholders::_4));
+    }
+}
+
+EventQueue::EventQueue(EventLockType lockType) : ioWaiter_(std::make_shared<NoneIoWaiter>())
+{
+    HILOGD("enter");
+    InitializeLocks(lockType);
+}
+
+EventQueue::EventQueue(const std::shared_ptr<IoWaiter> &ioWaiter, EventLockType lockType)
+    : ioWaiter_(ioWaiter ? ioWaiter : std::make_shared<NoneIoWaiter>())
+{
+    HILOGD("enter");
+    InitializeLocks(lockType);
     if (ioWaiter_->SupportListeningFileDescriptor()) {
         // Set callback to handle events from file descriptors.
         ioWaiter_->SetFileDescriptorEventCallback(
@@ -90,7 +126,7 @@ InnerEvent::Pointer EventQueue::GetExpiredEvent(InnerEvent::TimePoint &nextExpir
     return InnerEvent::Pointer(nullptr, nullptr);
 }
 
-void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock, bool vsyncOnly)
+void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, UniqueLockBase &lock, bool vsyncOnly)
 {
     // Get a temp reference of IO waiter, otherwise it maybe released while waiting.
     auto ioWaiterHolder = ioWaiter_;
@@ -104,7 +140,7 @@ void EventQueue::WaitUntilLocked(const InnerEvent::TimePoint &when, std::unique_
 void EventQueue::CheckFileDescriptorEvent()
 {
     InnerEvent::TimePoint now = InnerEvent::Clock::now();
-    std::unique_lock<std::mutex> lock(queueLock_);
+    UniqueLockBase lock(*queueLock_);
     WaitUntilLocked(now, lock);
 }
 
@@ -206,7 +242,7 @@ static void PostTaskForVsync(const InnerEvent::Callback &cb, const std::string &
 
 std::shared_ptr<FileDescriptorListener> EventQueue::GetListenerByfd(int32_t fileDescriptor)
 {
-    std::lock_guard<std::mutex> lock(queueLock_);
+    LockGuardBase lock(*queueLock_);
     if (!usable_.load()) {
         HILOGW("EventQueue is unavailable.");
         return nullptr;
@@ -361,7 +397,7 @@ void EventQueue::SetVsyncPolicy(VsyncPolicy vsyncPolicy)
     }
 }
 
-void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, std::unique_lock<std::mutex> &lock)
+void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, UniqueLockBase &lock)
 {
     bool need = needEpoll_;
 

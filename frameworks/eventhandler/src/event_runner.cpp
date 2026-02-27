@@ -291,10 +291,11 @@ extern "C" void SetThreadInfoCallback(ThreadInfoCallback func) __attribute__((we
 
 class EventRunnerImpl final : public EventInnerRunner {
 public:
-    explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner) : EventInnerRunner(runner)
+    explicit EventRunnerImpl(const std::shared_ptr<EventRunner> &runner, EventLockType lockType)
+        : EventInnerRunner(runner)
     {
         HILOGD("enter");
-        queue_ = std::make_shared<EventQueueBase>();
+        queue_ = std::make_shared<EventQueueBase>(lockType);
     }
 
     ~EventRunnerImpl() final
@@ -541,12 +542,12 @@ EventRunner::DistributeBeginTime EventRunner::distributeBegin_ = nullptr;
 EventRunner::DistributeEndTime EventRunner::distributeEnd_ = nullptr;
 EventRunner::CallbackTime EventRunner::distributeCallback_ = nullptr;
 
-std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode, EventLockType lockType)
 {
     HILOGD("inNewThread is %{public}d", inNewThread);
     if (inNewThread) {
         HILOGD("EventRunner created");
-        return Create(std::string(), mode, ThreadMode::NEW_THREAD);
+        return Create(std::string(), mode, ThreadMode::NEW_THREAD, lockType);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
@@ -555,8 +556,8 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
         HILOGI("Failed to create EventRunner Instance");
         return nullptr;
     }
-    auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
-    innerRunner->SetRunningMode(mode);
+    auto innerRunner = std::make_shared<EventRunnerImpl>(sp, lockType);
+ 	innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     sp->threadMode_ = ThreadMode::NEW_THREAD;
@@ -564,12 +565,12 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode)
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode threadMode)
+std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode threadMode, EventLockType lockType)
 {
     HILOGD("inNewThread is %{public}d %{public}d", inNewThread, threadMode);
     if (inNewThread) {
         HILOGD("EventRunner created");
-        return Create(std::string(), Mode::DEFAULT, threadMode);
+        return Create(std::string(), Mode::DEFAULT, threadMode, lockType);
     }
 
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
@@ -578,7 +579,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode th
         HILOGW("Failed to create EventRunner Instance");
         return nullptr;
     }
-    auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    auto innerRunner = std::make_shared<EventRunnerImpl>(sp, lockType);
     innerRunner->SetRunningMode(Mode::DEFAULT);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
@@ -587,12 +588,13 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, ThreadMode th
     return sp;
 }
 
-std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode, ThreadMode threadMode)
+std::shared_ptr<EventRunner> EventRunner::Create(const std::string &threadName, Mode mode,
+    ThreadMode threadMode, EventLockType lockType)
 {
-    HILOGD("threadName is %{public}s %{public}d %{public}d", threadName.c_str(), mode, threadMode);
+    HILOGD("threadName is %{public}s %{public}d %{public}d %{public}d", threadName.c_str(), mode, threadMode, lockType);
     // Constructor of 'EventRunner' is private, could not use 'std::make_shared' to construct it.
     std::shared_ptr<EventRunner> sp(new EventRunner(true, mode));
-    auto innerRunner = std::make_shared<EventRunnerImpl>(sp);
+    auto innerRunner = std::make_shared<EventRunnerImpl>(sp, lockType);
     innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     innerRunner->SetThreadName(threadName);
@@ -833,7 +835,11 @@ bool EventRunner::IsCurrentRunnerThread()
 std::shared_ptr<EventRunner> EventRunner::GetMainEventRunner()
 {
     if (!mainRunner_) {
-        mainRunner_ = Create(false);
+#ifdef MAIN_RUNNER_PRIORITY_LOCK_ENABLE
+ 	    mainRunner_ = Create(false, Mode::DEFAULT, EventLockType::PRIORITY_INHERIT);
+#else
+ 	    mainRunner_ = Create(false, Mode::DEFAULT, EventLockType::STANDARD);
+#endif
         if (!mainRunner_) {
             HILOGE("mainRunner_ create fail");
         }

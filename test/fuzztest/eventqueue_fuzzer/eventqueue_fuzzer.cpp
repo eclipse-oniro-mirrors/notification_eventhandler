@@ -42,7 +42,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     DumperTest dumper;
     std::string stringData(data);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
-    AppExecFwk::EventQueueBase eventQueue(ioWaiter);
+    AppExecFwk::EventQueueBase eventQueue(ioWaiter, AppExecFwk::EventLockType::STANDARD);
     eventQueue.GetExpiredEvent(nextExpiredTime);
     eventQueue.Dump(dumper);
     eventQueue.DumpQueueInfo(stringData);
