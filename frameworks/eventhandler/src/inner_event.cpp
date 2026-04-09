@@ -23,6 +23,7 @@
 #include "event_handler_utils.h"
 #include "event_logger.h"
 #include "singleton.h"
+#include "async_stack_adapter.h"
 
 namespace OHOS {
 namespace AppExecFwk {
@@ -187,6 +188,7 @@ void InnerEvent::ClearEvent()
 
     // Clear owner
     owner_.reset();
+    ReleaseStackId();
 }
 
 void InnerEvent::WarnSmartPtrCastMismatch()
@@ -312,5 +314,9 @@ void InnerEvent::SetEventUniqueId()
     eventId = std::to_string(nowTime);
 }
 
+void InnerEvent::ReleaseStackId()
+{
+    AsyncStackAdapter::GetInstance().EventReleaseStackId(stackId_);
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS
