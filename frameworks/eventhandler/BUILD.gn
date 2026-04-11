@@ -104,7 +104,11 @@ ohos_shared_library("libeventhandler") {
       ]
     }
 
-    ldflags = [ "-Wl,-Bsymbolic" ]
+    ldflags = [
+      "-Wl,-Bsymbolic",
+      "-Wl,-z,now",
+      "-Wl,-z,noexecstack",
+    ]
     if (eventhandler_feature_enable_pgo && target_cpu == "arm64" &&
         enable_enhanced_opt) {
       ldflags += [ "-Wl,--aarch64-inline-plt" ]
