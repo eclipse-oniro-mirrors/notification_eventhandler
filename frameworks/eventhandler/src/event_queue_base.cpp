@@ -284,7 +284,7 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner)
         return;
     }
 
-    auto filter = [&owner](const InnerEvent::Pointer &p) { return (p->GetOwner() == owner); };
+    auto filter = [&owner](const InnerEvent::Pointer &p) { return (p->GetOwnerId() == owner->GetHandlerId()); };
 
     Remove(filter);
 }
@@ -297,7 +297,7 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
         return;
     }
     auto filter = [&owner, innerEventId](const InnerEvent::Pointer &p) {
-        return (!p->HasTask()) && (p->GetOwner() == owner) && (p->GetInnerEventId() == innerEventId);
+        return (!p->HasTask()) && (p->GetOwnerId() == owner->GetHandlerId()) && (p->GetInnerEventId() == innerEventId);
     };
 
     Remove(filter);
@@ -312,8 +312,8 @@ void EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, uint32_t
     }
 
     auto filter = [&owner, innerEventId, param](const InnerEvent::Pointer &p) {
-        return (!p->HasTask()) && (p->GetOwner() == owner) && (p->GetInnerEventId() == innerEventId) &&
-               (p->GetParam() == param);
+        return (!p->HasTask()) && (p->GetOwnerId() == owner->GetHandlerId()) && (p->GetInnerEventId() == innerEventId)
+        && (p->GetParam() == param);
     };
 
     Remove(filter);
@@ -332,7 +332,7 @@ bool EventQueueBase::Remove(const std::shared_ptr<EventHandler> &owner, const st
         if (p == nullptr) {
             return false;
         }
-        bool ret = (p->HasTask()) && (p->GetOwner() == owner) && (p->GetTaskName() == name);
+        bool ret = (p->HasTask()) && (p->GetOwnerId() == owner->GetHandlerId()) && (p->GetTaskName() == name);
         if (!removed) {
             removed = ret;
         }

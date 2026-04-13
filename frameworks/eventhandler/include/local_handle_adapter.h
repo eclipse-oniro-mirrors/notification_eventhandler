@@ -27,6 +27,12 @@ using EventCloseLocalHandleFunc = void(*)(void* napi_value, void* handle);
 class LocalHandleAdapter final {
 public:
     static LocalHandleAdapter& GetInstance();
+    /**
+     * set EventOpenLocalHandleFunc and EventCloseLocalHandleFunc
+     *
+     * @param openFunc eventOpenLocalHandleFunc
+     * @param closeFunc eventCloseLocalHandleFunc
+     */
     void SetLocalHandleFunc(EventOpenLocalHandleFunc openFunc, EventCloseLocalHandleFunc closeFunc);
     
     EventOpenLocalHandleFunc openLocalHandleFunc = nullptr;
