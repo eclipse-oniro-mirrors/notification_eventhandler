@@ -55,6 +55,19 @@ void AsyncStackAdapter::EventSetStackId(uint64_t stackId)
     }
 }
 
+void AsyncStackAdapter::SetReleaseStackIdFunc(EventReleaseStackIdFunc func)
+{
+    releaseStackIdFunc = func;
+}
+
+void AsyncStackAdapter::EventReleaseStackId(uint64_t stackId)
+{
+    auto func = releaseStackIdFunc;
+    if (func != nullptr) {
+        return releaseStackIdFunc(stackId);
+    }
+}
+
 AsyncStackAdapter::AsyncStackAdapter()
 {
     HILOGD("create AsyncStackAdapter");
@@ -64,6 +77,7 @@ AsyncStackAdapter::~AsyncStackAdapter()
 {
     asyncStackFunc = nullptr;
     stackIdFunc = nullptr;
+    releaseStackIdFunc = nullptr;
 }
 }  // namespace AppExecFwk
 }  // namespace OHOS

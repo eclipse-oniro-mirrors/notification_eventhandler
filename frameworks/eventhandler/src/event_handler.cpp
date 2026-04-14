@@ -811,5 +811,10 @@ extern "C" void EventSetAsyncStackFunc(EventCollectAsyncStackFunc collectFunc, E
     AsyncStackAdapter::GetInstance().SetAsyncStackFunc(collectFunc);
     AsyncStackAdapter::GetInstance().SetStackIdFunc(setStackIdFunc);
 }
+
+extern "C" void EventSetReleaseAsyncStackFunc(EventReleaseStackIdFunc func)
+{
+    AsyncStackAdapter::GetInstance().SetReleaseStackIdFunc(func);
+}
 }  // namespace AppExecFwk
 }  // namespace OHOS

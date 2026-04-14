@@ -683,6 +683,11 @@ public:
     std::string TraceInfo();
 
     /**
+     * Release stack id.
+     */
+    void ReleaseStackId();
+
+    /**
      * Set uniqueId in event.
      */
     void SetEventUniqueId();
@@ -807,6 +812,7 @@ public:
 
     inline void SetStackId(uint64_t stackId)
     {
+        ReleaseStackId();
         stackId_ = stackId;
     }
 

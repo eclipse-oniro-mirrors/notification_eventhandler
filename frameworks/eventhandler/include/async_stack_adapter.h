@@ -24,20 +24,24 @@ namespace AppExecFwk {
 
 using EventSetStackIdFunc = void(*)(uint64_t stackId);
 using EventCollectAsyncStackFunc = uint64_t(*)(uint64_t taskType);
+using EventReleaseStackIdFunc = void(*)(uint64_t stackId);
 
 class AsyncStackAdapter final {
 public:
     static AsyncStackAdapter& GetInstance();
     void SetAsyncStackFunc(EventCollectAsyncStackFunc func);
     void SetStackIdFunc(EventSetStackIdFunc func);
+    void SetReleaseStackIdFunc(EventReleaseStackIdFunc func);
     uint64_t EventCollectAsyncStack(uint64_t type);
     void EventSetStackId(uint64_t stackId);
+    void EventReleaseStackId(uint64_t stackId);
 
 private:
     AsyncStackAdapter();
     ~AsyncStackAdapter();
     EventCollectAsyncStackFunc asyncStackFunc = nullptr;
     EventSetStackIdFunc stackIdFunc = nullptr;
+    EventReleaseStackIdFunc releaseStackIdFunc = nullptr;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
