@@ -34,7 +34,8 @@
                 "init",
                 "ipc",
                 "resource_schedule_service",
-                "runtime_core"
+                "runtime_core",
+                "bounds_checking_function"
             ]
         },
         "build": {
