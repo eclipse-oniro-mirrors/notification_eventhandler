@@ -24,6 +24,12 @@
 #define __has_builtin(x) 0
 #endif
 
+#if defined(__GNUC__) && __GNUC__ >= 4
+    #define EVENTHANDLER_HIDDEN __attribute__((visibility("hidden")))
+#else
+    #define EVENTHANDLER_HIDDEN
+#endif
+
 namespace OHOS {
 namespace AppExecFwk {
 enum class EventType {
@@ -1193,8 +1199,8 @@ private:
     std::shared_ptr<EventRunner> eventRunner_;
     CallbackTimeout deliveryTimeoutCallback_;
     CallbackTimeout distributeTimeoutCallback_;
-    static thread_local std::weak_ptr<EventHandler> currentEventHandler;
-    static thread_local int32_t currentEventPriority;
+    EVENTHANDLER_HIDDEN static thread_local std::weak_ptr<EventHandler> currentEventHandler;
+    EVENTHANDLER_HIDDEN static thread_local int32_t currentEventPriority;
 };
 }  // namespace AppExecFwk
 namespace EventHandling = AppExecFwk;

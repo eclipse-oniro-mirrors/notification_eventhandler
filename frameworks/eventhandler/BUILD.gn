@@ -104,6 +104,8 @@ ohos_shared_library("libeventhandler") {
       ]
     }
 
+    version_script = "libeventhandler.versionscript"
+
     ldflags = [
       "-Wl,-Bsymbolic",
       "-Wl,-z,now",
