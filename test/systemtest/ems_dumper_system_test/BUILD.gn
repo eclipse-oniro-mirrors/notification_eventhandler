@@ -22,9 +22,10 @@ ohos_systemtest("EmsDumperSystemTest") {
 
   external_deps = [
     "c_utils:utils",
-    "eventhandler:libeventhandler",
     "googletest:gtest_main",
   ]
+  
+  deps = [ "//base/notification/eventhandler/frameworks/eventhandler:libeventhandler" ]
 }
 
 group("systemtest") {
