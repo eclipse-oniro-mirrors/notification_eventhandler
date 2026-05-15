@@ -41,6 +41,9 @@
         _ZN4ffrt21exec_function_wrapperIRKNSt3__h8functionIFvvEEEEEvPv;
         _ZN4ffrt24destroy_function_wrapperINSt3__h8functionIFvvEEEEEvPv;
         _ZN4ffrt24destroy_function_wrapperIRKNSt3__h8functionIFvvEEEEEvPv;
+        _ZNSt3__h27__tree_balance_after_insertIPNS_16__tree_node_baseIPvEEEEvT_S5_;
+        _ZNSt3__h13__tree_removeIPNS_16__tree_node_baseIPvEEEEvT_S5_;
+        _ZNSt3__h8functionIFvvEEaSERKS2_;
  
         __emutls_get_address;
 };
