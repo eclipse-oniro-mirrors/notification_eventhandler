@@ -16,14 +16,8 @@
 #ifndef TEST_FUZZTEST_EVENTHANDLER_FUZZER_EVENTHANDLER_FUZZER_H
 #define TEST_FUZZTEST_EVENTHANDLER_FUZZER_EVENTHANDLER_FUZZER_H
 
+#include <fuzzer/FuzzedDataProvider.h>
+
 #define FUZZ_PROJECT_NAME "eventhandler_fuzzer"
-
-#include <cstdint>
-
-uint32_t U32_AT(const uint8_t *ptr)
-{
-    // convert fuzz input data to an integer
-    return (ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3];
-}
 
 #endif // TEST_FUZZTEST_EVENTHANDLER_FUZZER_EVENTHANDLER_FUZZER_H

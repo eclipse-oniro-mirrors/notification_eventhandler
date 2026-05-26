@@ -30,8 +30,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     uint32_t innerEventId = *data;
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
     eventQueue.HasInnerEvent(myHandler, innerEventId);
-    std::list<AppExecFwk::InnerEvent::Pointer> events;
-    AppExecFwk::InnerEvent::Pointer event = std::move(events.front());
+    AppExecFwk::InnerEvent::Pointer event = AppExecFwk::InnerEvent::Get(innerEventId);
     AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::LOW;
     eventQueue.Insert(event, priority);
     return true;

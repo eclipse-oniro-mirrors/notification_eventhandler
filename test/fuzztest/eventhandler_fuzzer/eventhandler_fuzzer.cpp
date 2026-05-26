@@ -24,9 +24,6 @@
 #include "deamon_io_waiter.h"
 
 namespace OHOS {
-namespace {
-    constexpr size_t U32_AT_SIZE = 4;
-}
 
 class DumperTest : public AppExecFwk::Dumper {
 public:
@@ -66,16 +63,15 @@ public:
     MyFileDescriptorListener &operator=(MyFileDescriptorListener &&) = delete;
 };
 
-bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
+bool DoSomethingInterestingWithMyAPI(FuzzedDataProvider *fdp)
 {
     std::shared_ptr<AppExecFwk::EventRunner> runner = nullptr;
     AppExecFwk::EventHandler eventHandler(runner);
-    uint32_t innerEventId = *data;
-    std::list<AppExecFwk::InnerEvent::Pointer> events;
-    AppExecFwk::InnerEvent::Pointer event = std::move(events.front());
-    int64_t taskTime = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    uint32_t innerEventId = fdp->ConsumeIntegral<uint32_t>();
+    AppExecFwk::InnerEvent::Pointer event = AppExecFwk::InnerEvent::Get(innerEventId);
+    int64_t taskTime = fdp->ConsumeIntegral<int64_t>();
     AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::LOW;
-    int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    int32_t fileDescriptor = fdp->ConsumeIntegral<int32_t>();
     DumperTest dumper;
     eventHandler.Dump(dumper);
     eventHandler.GetEventName(event);
@@ -88,7 +84,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventHandler.RemoveAllEvents();
     eventHandler.RemoveEvent(innerEventId, taskTime);
     eventHandler.RemoveEvent(innerEventId);
-    std::string stringData(data);
+    std::string stringData = fdp->ConsumeRandomLengthString();
     eventHandler.RemoveTask(stringData);
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     eventHandler.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener,
@@ -111,28 +107,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     /* Run your code on data */
-    if (data == nullptr) {
-        return 0;
-    }
-
-    if (size < OHOS::U32_AT_SIZE) {
-        return 0;
-    }
-
-    char* ch = reinterpret_cast<char *>(malloc(size + 1));
-    if (ch == nullptr) {
-        return 0;
-    }
-
-    (void)memset_s(ch, size + 1, 0x00, size + 1);
-    if (memcpy_s(ch, size, data, size) != EOK) {
-        free(ch);
-        ch = nullptr;
-        return 0;
-    }
-
-    OHOS::DoSomethingInterestingWithMyAPI(ch, size);
-    free(ch);
-    ch = nullptr;
+    FuzzedDataProvider fdp(data, size);
+    OHOS::DoSomethingInterestingWithMyAPI(&fdp);
     return 0;
 }
