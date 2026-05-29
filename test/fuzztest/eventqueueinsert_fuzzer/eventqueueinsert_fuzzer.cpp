@@ -19,15 +19,12 @@
 #include "securec.h"
 
 namespace OHOS {
-namespace {
-    constexpr size_t U32_AT_SIZE = 4;
-}
 
-bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
+bool DoSomethingInterestingWithMyAPI(FuzzedDataProvider *fdp)
 {
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
     AppExecFwk::EventQueueBase eventQueue(ioWaiter, AppExecFwk::EventLockType::STANDARD);
-    uint32_t innerEventId = *data;
+    uint32_t innerEventId = fdp->ConsumeIntegral<uint32_t>();
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
     eventQueue.HasInnerEvent(myHandler, innerEventId);
     AppExecFwk::InnerEvent::Pointer event = AppExecFwk::InnerEvent::Get(innerEventId);
@@ -41,28 +38,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     /* Run your code on data */
-    if (data == nullptr) {
-        return 0;
-    }
-
-    if (size < OHOS::U32_AT_SIZE) {
-        return 0;
-    }
-
-    char* ch = (char *)malloc(size + 1);
-    if (ch == nullptr) {
-        return 0;
-    }
-
-    (void)memset_s(ch, size + 1, 0x00, size + 1);
-    if (memcpy_s(ch, size, data, size) != EOK) {
-        free(ch);
-        ch = nullptr;
-        return 0;
-    }
-
-    OHOS::DoSomethingInterestingWithMyAPI(ch, size);
-    free(ch);
-    ch = nullptr;
+    FuzzedDataProvider fdp(data, size);
+    OHOS::DoSomethingInterestingWithMyAPI(&fdp);
     return 0;
 }
