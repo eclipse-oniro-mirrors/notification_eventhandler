@@ -39,6 +39,7 @@ ohos_shared_library("cj_emitter_ffi") {
     external_deps += [
       "hilog:libhilog",
       "napi:cj_bind_native",
+      "c_utils:utils",
     ]
     deps = [ "${frameworks_path}/eventhandler:libeventhandler" ]
 
