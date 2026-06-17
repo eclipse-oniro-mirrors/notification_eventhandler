@@ -50,18 +50,31 @@ public:
 
 bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
 {
-    std::string stringData(data);
+    if (size == 0 || size > SIZE_MAX - 1) {
+        return false;
+    }
+    char* localData = (char*)malloc(size + 1);
+    if (localData == nullptr) {
+        return false;
+    }
+    (void)memset_s(localData, size + 1, 0x00, size + 1);
+    if (memcpy_s(localData, size + 1, data, size) != EOK) {
+        free(localData);
+        return false;
+    }
+
+    std::string stringData(localData);
     std::shared_ptr<AppExecFwk::IoWaiter> ioWaiter = nullptr;
     AppExecFwk::EventQueueBase eventQueue(ioWaiter, AppExecFwk::EventLockType::STANDARD);
     std::shared_ptr<AppExecFwk::EventHandler> myHandler;
-    uint32_t innerEventId = *data;
-    int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    uint32_t innerEventId = *localData;
+    int64_t param = U32_AT(reinterpret_cast<const uint8_t*>(localData));
     eventQueue.HasInnerEvent(myHandler, innerEventId);
     eventQueue.Remove(myHandler);
     eventQueue.Remove(myHandler, innerEventId);
     eventQueue.Remove(myHandler, innerEventId, param);
     eventQueue.Remove(myHandler, stringData);
-    int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(data));
+    int32_t fileDescriptor = U32_AT(reinterpret_cast<const uint8_t*>(localData));
     auto fileDescriptorListener = std::make_shared<MyFileDescriptorListener>();
     eventQueue.AddFileDescriptorListener(fileDescriptor, innerEventId, fileDescriptorListener,
         "DoSomethingInterestingWithMyAPI");
@@ -72,6 +85,7 @@ bool DoSomethingInterestingWithMyAPI(const char* data, size_t size)
     eventQueue.IsIdle();
     eventQueue.Prepare();
     eventQueue.Finish();
+    free(localData);
     return true;
 }
 }
