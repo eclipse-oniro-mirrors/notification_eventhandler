@@ -399,37 +399,6 @@ HWTEST_F(EventHandlerFdListenerModuleTest, TriggerException001, TestSize.Level1)
     EXPECT_EQ("OnException", g_testMsg);
 }
 
-/**
- * @tc.name: NowaitForFd001
- * @tc.desc: no wait mode for fd event
- * @tc.type: FUNC
- * @tc.require: SR20240112414855
- */
-HWTEST_F(EventHandlerFdListenerModuleTest, NowaitForFd001, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Add fd listener of write, and then run the no wait runner.
-     * @tc.expected: step1. fd handle right.
-     */
-    int32_t fds[] = {-1, -1};
-    int32_t pipe = pipe2(fds, O_NONBLOCK);
-    EXPECT_GE(pipe, 0);
-
-    auto listener = std::make_shared<MyFileDescriptorListener>();
-    auto myRunner = EventRunner::CreateNoWait("NowaitRunner001");
-    auto handler = std::make_shared<MyEventHandler>(myRunner);
-    auto inResult = handler->AddFileDescriptorListener(fds[0], FILE_DESCRIPTOR_INPUT_EVENT, listener, "NowaitForFd001");
-    EXPECT_EQ(inResult, ERR_OK);
-    auto outResult = handler->AddFileDescriptorListener(fds[1], FILE_DESCRIPTOR_OUTPUT_EVENT, listener,
-        "NowaitForFd001");
-    EXPECT_EQ(outResult, ERR_OK);
-
-    myRunner->Run();
-    bool runResult = CommonUtils::TaskCalledGet();
-    EXPECT_FALSE(runResult);
-}
-
-
 void AddFileDescriptorHelper()
 {
     HILOGI("AddFileDescriptorHelper start");

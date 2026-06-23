@@ -612,9 +612,9 @@ void EventHandler::Dump(Dumper &dumper)
     HILOGI("EventHandler start dumper!");
     auto now = std::chrono::system_clock::now();
     dumper.Dump(dumper.GetTag() + " EventHandler dump begin curTime: " +
-        InnerEvent::DumpTimeToString(now) + LINE_SEPARATOR);
+        InnerEvent::DumpTimeToString(now) + std::string(LINE_SEPARATOR));
     if (eventRunner_ == nullptr) {
-        dumper.Dump(dumper.GetTag() + " event runner uninitialized!" + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " event runner uninitialized!" + std::string(LINE_SEPARATOR));
     } else {
         eventRunner_->Dump(dumper);
     }

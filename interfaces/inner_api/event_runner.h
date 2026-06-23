@@ -55,7 +55,6 @@ public:
     /**
      * Create new 'EventRunner'.
      *
-     * @deprecated This function is deprecated, use 'Create(const std::string &threadName, ThreadMode threadMode)'.
      * @param inNewThread True if create new thread to start the 'EventRunner' automatically.
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
@@ -76,7 +75,6 @@ public:
     /**
      * Create new 'EventRunner' and start to run in a new thread.
      *
-     * @deprecated This function is deprecated, use 'Create(const std::string &threadName, ThreadMode threadMode)'.
      * @param threadName Thread name of the new created thread.
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
@@ -104,7 +102,6 @@ public:
      * Create new 'EventRunner' and start to run in a new thread.
      * Eliminate ambiguity, while calling like 'EventRunner::Create("threadName")'.
      *
-     * @deprecated This function is deprecated, use 'Create(const char *threadName, ThreadMode threadMode)'.
      * @param threadName Thread name of the new created thread.
      * @param mode default The EventRunner's running mode.
      * @return Returns shared pointer of the new 'EventRunner'.
@@ -129,17 +126,6 @@ public:
     {
         return Create((threadName != nullptr) ? std::string(threadName) : std::string(),
             Mode::DEFAULT, threadMode, lockType);
-    }
-
-    /**
-     * Create new 'EventRunner' for nowait mode.
-     *
-     * @param threadName Thread name of the new created thread.
-     * @return Returns shared pointer of the new 'EventRunner'.
-     */
-    static std::shared_ptr<EventRunner> CreateNoWait(const std::string &threadName)
-    {
-        return Create(threadName, Mode::NO_WAIT, ThreadMode::NEW_THREAD, EventLockType::STANDARD);
     }
 
     /**

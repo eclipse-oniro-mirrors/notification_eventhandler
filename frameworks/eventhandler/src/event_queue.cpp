@@ -30,6 +30,7 @@
 #include "priority_inheritance_lock.h"
 #include "std_lock.h"
 
+
 namespace OHOS {
 namespace AppExecFwk {
 namespace {
@@ -410,7 +411,7 @@ void EventQueue::TryEpollFd(const InnerEvent::TimePoint &when, UniqueLockBase &l
     } else {
         if (vsyncPeriod_ < MAX_CHECK_VSYNC_PERIOD_NS) {
             vsyncCheckTime_ += vsyncPeriod_;
-            vsyncPeriod_ <<= 1;
+            vsyncPeriod_ *= 2;
         } else {
             vsyncCheckTime_ = INT64_MAX;
         }
