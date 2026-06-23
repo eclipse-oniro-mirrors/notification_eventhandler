@@ -533,7 +533,7 @@ bool EventQueueFFRT::SubmitEventAtFront(InnerEvent::Pointer &event, Priority pri
         HILOGW("SubmitEventAtFront is unavailable.");
         return false;
     }
-    ffrt_function_header_t* header = ffrt::create_function_wrapper((task));
+    ffrt_function_header_t* header = ffrt::create_function_wrapper(task, ffrt_function_kind_queue);
     if (syncWait) {
         ffrt::task_handle handle = ffrt_queue_submit_head_h(*queue, header, &attribute);
         lock.unlock();

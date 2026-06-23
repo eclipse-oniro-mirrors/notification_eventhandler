@@ -572,7 +572,7 @@ std::shared_ptr<EventRunner> EventRunner::Create(bool inNewThread, Mode mode, Ev
         return nullptr;
     }
     auto innerRunner = std::make_shared<EventRunnerImpl>(sp, lockType);
- 	innerRunner->SetRunningMode(mode);
+    innerRunner->SetRunningMode(mode);
     sp->innerRunner_ = innerRunner;
     sp->queue_ = innerRunner->GetEventQueue();
     sp->threadMode_ = ThreadMode::NEW_THREAD;
@@ -752,28 +752,28 @@ ErrCode EventRunner::Stop()
 void EventRunner::Dump(Dumper &dumper)
 {
     if (!IsRunning()) {
-        dumper.Dump(dumper.GetTag() + " Event runner is not running" + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " Event runner is not running" + std::string(LINE_SEPARATOR));
         return;
     }
 
     if (queue_ == nullptr) {
-        dumper.Dump(dumper.GetTag() + " Queue is nullLINE_SEPARATOR" + LINE_SEPARATOR);
+        dumper.Dump(dumper.GetTag() + " Queue is nullLINE_SEPARATOR" + std::string(LINE_SEPARATOR));
         return;
     }
 
     dumper.Dump(dumper.GetTag() + " Event runner (" + "Thread name = " + innerRunner_->GetThreadName() +
-                ", Thread ID = " + std::to_string(GetKernelThreadId()) + ") is running" + LINE_SEPARATOR);
+                ", Thread ID = " + std::to_string(GetKernelThreadId()) + ") is running" + std::string(LINE_SEPARATOR));
     queue_->Dump(dumper);
 }
 
 void EventRunner::DumpRunnerInfo(std::string& runnerInfo)
 {
     if (!IsRunning()) {
-        runnerInfo = "        Event runner is not running" + LINE_SEPARATOR;
+        runnerInfo = "        Event runner is not running" + std::string(LINE_SEPARATOR);
     }
 
     if (queue_ == nullptr) {
-        runnerInfo = "        Queue is null" + LINE_SEPARATOR;
+        runnerInfo = "        Queue is null" + std::string(LINE_SEPARATOR);
         return;
     }
 
