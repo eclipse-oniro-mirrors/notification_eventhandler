@@ -24,14 +24,12 @@
 #include "event_handler_impl.h"
 #include "cj_fn_invoker.h"
 #include "emitter.h"
-#include "parameter.h"
 
 using InnerEvent = OHOS::AppExecFwk::InnerEvent;
 using Priority = OHOS::AppExecFwk::EventQueue::Priority;
 
 namespace OHOS::EventsEmitter {
     const int32_t SUCCESS = 0;
-    const int32_t API_VERSION_24 = 24;
     static std::mutex g_emitterInsMutex;
     static std::map<InnerEvent::EventId, std::unordered_set<std::shared_ptr<CallbackInfo>>> g_emitterImpls;
     std::function<void(uint32_t, CEventData)> Emitter::u32Callback = nullptr;
@@ -51,18 +49,31 @@ namespace OHOS::EventsEmitter {
 
     bool IsExistValidCallback(const InnerEvent::EventId &eventId)
     {
-        std::lock_guard<std::mutex> lock(g_emitterInsMutex);
-        auto subscribe = g_emitterImpls.find(eventId);
-        if (subscribe == g_emitterImpls.end()) {
-            LOGW("emit has no callback");
-            return false;
+        {
+            std::lock_guard<std::mutex> lock(g_emitterInsMutex);
+            if (g_emitterImpls.find(eventId) != g_emitterImpls.end()) {
+                return true;
+            }
         }
-        return true;
+        {
+            std::lock_guard<std::mutex> lock(Emitter::u32Mutex);
+            if (Emitter::u32Callback != nullptr) {
+                return true;
+            }
+        }
+        {
+            std::lock_guard<std::mutex> lock(Emitter::stringMutex);
+            if (Emitter::stringCallback != nullptr) {
+                return true;
+            }
+        }
+        LOGW("emit has no callback");
+        return false;
     }
 
     void EmitWithEventData(InnerEvent::EventId eventId, uint32_t priority, CEventData data)
     {
-        if (GetSdkApiVersion() < API_VERSION_24 && !IsExistValidCallback(eventId)) {
+        if (!IsExistValidCallback(eventId)) {
             LOGE("Invalid callback");
             return;
         }
@@ -300,32 +311,28 @@ namespace OHOS::EventsEmitter {
         } else {
             LOGE("Failed to get event data.")
         }
-        if (GetSdkApiVersion() < API_VERSION_24) {
-            auto callbackInfos = GetEventCallbacks(eventId);
-            if (callbackInfos.size() <= 0) {
-                return;
-            }
-            LOGD("size = %{public}zu", callbackInfos.size());
-            ProcessCallback(eventData, callbackInfos);
+        auto callbackInfos = GetEventCallbacks(eventId);
+        if (callbackInfos.size() <= 0) {
             return;
         }
-        if (auto u32Event = std::get_if<uint32_t>(&eventId)) {
-            std::function<void(uint32_t, CEventData)> callbackCopy;
+        LOGD("size = %{public}zu", callbackInfos.size());
+        ProcessCallback(eventData, callbackInfos);
+        auto safeCall = [&eventData](auto& mutex, auto& callback, auto... args) {
+            std::decay_t<decltype(callback)> cb;
             {
-                std::lock_guard<std::mutex> lock(Emitter::u32Mutex);
-                callbackCopy = Emitter::u32Callback;
+                std::lock_guard<std::mutex> lock(mutex);
+                cb = callback;
             }
-            callbackCopy(*u32Event, eventData);
-            return;
+            if (cb) {
+                cb(args..., eventData);
+            }
+        };
+
+        if (auto u32Event = std::get_if<uint32_t>(&eventId)) {
+            safeCall(Emitter::u32Mutex, Emitter::u32Callback, *u32Event);
         }
         if (auto stringEvent = std::get_if<std::string>(&eventId)) {
-            std::function<void(const char*, CEventData)> callbackCopy;
-            {
-                std::lock_guard<std::mutex> lock(Emitter::stringMutex);
-                callbackCopy = Emitter::stringCallback;
-            }
-            callbackCopy((*stringEvent).c_str(), eventData);
-            return;
+            safeCall(Emitter::stringMutex, Emitter::stringCallback, (*stringEvent).c_str());
         }
     }
 

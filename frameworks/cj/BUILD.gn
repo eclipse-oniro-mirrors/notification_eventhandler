@@ -32,7 +32,6 @@ ohos_shared_library("cj_emitter_ffi") {
 
   external_deps = [
     "napi:cj_bind_ffi",
-    "init:libbegetutil",
   ]
 
   if (!ohos_indep_compiler_enable && !build_ohos_sdk) {
