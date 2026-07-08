@@ -57,7 +57,6 @@ if (is_arkui_x) {
     external_deps = [
       "c_utils:utils",
       "napi:ace_napi",
-      "node:node_header_notice",
     ]
 
     relative_install_dir = "module/events"
@@ -96,7 +95,6 @@ if (is_arkui_x) {
       "c_utils:utils",
       "hilog:libhilog",
       "napi:ace_napi",
-      "node:node_header_notice",
     ]
 
     subsystem_name = "notification"
