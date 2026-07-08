@@ -53,6 +53,7 @@ ohos_shared_library("eventEmitter") {
     "c_utils:utils",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
   ]
