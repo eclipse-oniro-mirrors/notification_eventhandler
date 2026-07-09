@@ -29,6 +29,7 @@
                 "hilog",
                 "hichecker",
                 "napi",
+                "node",
                 "ffrt",
                 "c_utils",
                 "init",
