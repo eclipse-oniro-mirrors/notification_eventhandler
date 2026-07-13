@@ -36,7 +36,8 @@
                 "ipc",
                 "resource_schedule_service",
                 "runtime_core",
-                "bounds_checking_function"
+                "bounds_checking_function",
+                "libuv"
             ]
         },
         "build": {

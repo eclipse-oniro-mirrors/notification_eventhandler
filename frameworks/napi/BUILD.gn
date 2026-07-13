@@ -97,6 +97,7 @@ if (is_arkui_x) {
       "hilog:libhilog",
       "napi:ace_napi",
       "node:node_header_notice",
+      "libuv:uv"
     ]
 
     subsystem_name = "notification"
