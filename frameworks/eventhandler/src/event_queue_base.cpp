@@ -608,6 +608,12 @@ InnerEvent::Pointer EventQueueBase::GetEvent()
             if (event) {
                 return event;
             }
+            // Avoid busy loop when the pending count is inconsistent with the VIP queue.
+            HILOGE("sumOfPendingVsync_=%{public}d but no vsync task, reset",
+                static_cast<int32_t>(sumOfPendingVsync_));
+            sumOfPendingVsync_ = 0;
+            SetBarrierMode(false);
+            continue;
         }
         TryExecuteObserverCallback(nextWakeUpTime, EventRunnerStage::STAGE_BEFORE_WAITING);
         WaitUntilLocked(nextWakeUpTime, lock);
