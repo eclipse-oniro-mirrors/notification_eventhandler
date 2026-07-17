@@ -91,6 +91,7 @@ std::shared_ptr<SerializeData> EventsEmitter::GetSharedSerializeData(ani_env *en
     auto status = env->GetVM(&vm);
     if (vm == nullptr) {
         HILOGE("Get vm failed. status: %{public}d", status);
+        delete serializeDataPtr;
         return nullptr;
     }
     std::shared_ptr<SerializeData> serializeData(serializeDataPtr, [vm](SerializeData* data) {
