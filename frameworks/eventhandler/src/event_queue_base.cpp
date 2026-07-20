@@ -164,6 +164,12 @@ EventQueueBase::~EventQueueBase()
     HILOGD("EventQueueBase is unavailable hence");
 }
 
+static inline bool IsOwnerMainRunner(const InnerEvent::Pointer &event)
+{
+    auto owner = event->GetOwner();
+    return owner != nullptr && EventRunner::GetMainEventRunner() == owner->GetEventRunner();
+}
+
 static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event, VsyncBarrierOption option, VsyncPolicy vsyncPolicy)
 {
     bool needMarkBarrier = false;
@@ -172,10 +178,10 @@ static inline void MarkBarrierTaskIfNeed(InnerEvent::Pointer &event, VsyncBarrie
             event->GetEventPriority() == static_cast<int32_t>(EventQueue::Priority::VIP) ||
             (__builtin_expect(option == VsyncBarrierOption::NEED_BARRIER, 0) &&
             EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()))) && !event->IsVsyncTask();
+            IsOwnerMainRunner(event))) && !event->IsVsyncTask();
     } else if (vsyncPolicy == VsyncPolicy::VSYNC_FIRST_WITH_DEFAULT_BARRIER) {
         needMarkBarrier = EventRunner::IsAppMainThread() && (event->GetHandleTime() == event->GetSendTime()) &&
-            (EventRunner::GetMainEventRunner() == event->GetOwner()->GetEventRunner()) && !event->IsVsyncTask();
+            IsOwnerMainRunner(event) && !event->IsVsyncTask();
     }
     if (needMarkBarrier) {
         event->MarkBarrierTask();
