@@ -58,6 +58,7 @@ ohos_shared_library("libeventhandler") {
   if (resource_schedule_usage) {
     external_deps += [ "ipc:ipc_single" ]
     external_deps += [ "resource_schedule_service:ressched_client" ]
+    external_deps += [ "json:nlohmann_json_static" ]
     defines += [ "RES_SCHED_ENABLE" ]
   }
 
