@@ -52,6 +52,7 @@ ohos_shared_library("libeventhandler") {
     "hilog:libhilog",
     "hitrace:libhitracechain",
     "init:libbegetutil",
+    "bounds_checking_function:libsec_shared"
   ]
 
   defines = []
