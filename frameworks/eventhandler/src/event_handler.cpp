@@ -238,8 +238,7 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 
     bool result = true;
 #ifdef FFRT_USAGE_ENABLE
-    if ((ffrt_this_task_get_id() && eventRunner_->threadMode_ == ThreadMode::FFRT) ||
-        eventRunner_ == EventRunner::Current()) {
+    if (eventRunner_ == EventRunner::Current()) {
         DistributeEvent(event);
         return true;
     }
