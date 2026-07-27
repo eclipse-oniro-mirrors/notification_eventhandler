@@ -2900,6 +2900,41 @@ HWTEST_F(LibEventHandlerEventQueueTest, SetVsyncPolicyTest_006, TestSize.Level1)
 }
 
 /*
+ * @tc.name: GetEventNoVsyncTaskTest
+ * @tc.desc: GetEvent resets pending vsync state when no vsync task exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventQueueTest, GetEventNoVsyncTaskTest_001, TestSize.Level1)
+{
+    constexpr uint32_t eventId = 1;
+    EventQueueBase queue(EventLockType::STANDARD);
+    queue.Prepare();
+    queue.SetVsyncPolicy(VsyncPolicy::VSYNC_FIRST_WITHOUT_DEFAULT_BARRIER);
+    queue.SetVsyncLazyMode(false);
+
+    auto event = InnerEvent::Get(eventId);
+    auto now = InnerEvent::Clock::now();
+    event->SetSendTime(now);
+    event->SetHandleTime(now + std::chrono::milliseconds(DELAY_TIME));
+    ASSERT_TRUE(queue.Insert(event, EventQueue::Priority::LOW, EventInsertType::AT_END,
+        VsyncBarrierOption::FORCE_BARRIER));
+
+    queue.SetBarrierMode(true);
+    queue.DispatchVsyncTaskNotify();
+    // Simulate epoll completion while the pending count has no matching task.
+    queue.needEpoll_ = false;
+    ASSERT_FALSE(queue.HasVipTask());
+    auto result = queue.GetEvent();
+
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(eventId, result->GetInnerEventId());
+    EXPECT_EQ(0, queue.sumOfPendingVsync_);
+    EXPECT_FALSE(queue.IsBarrierMode());
+    EXPECT_EQ(queue.GetQueueFirstEventHandleTime(static_cast<uint64_t>(NOW_NS),
+        static_cast<int32_t>(EventQueue::Priority::VIP)), UINT64_MAX);
+}
+
+/*
  * @tc.name: TryEpollFdTest
  * @tc.desc: TryEpollFdTest_001 test
  * @tc.type: FUNC
