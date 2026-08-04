@@ -30,6 +30,7 @@ if (is_arkui_x) {
     ]
     include_dirs += emitter_include
     defines = ["CROSS_PLATFORM"]
+    branch_protector_ret = "pac_ret"
     sources = [
       "src/events_emitter.cpp",
       "src/init.cpp",
