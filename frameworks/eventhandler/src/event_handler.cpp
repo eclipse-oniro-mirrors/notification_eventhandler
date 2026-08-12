@@ -226,6 +226,11 @@ bool EventHandler::SendTimingEvent(InnerEvent::Pointer &event, int64_t taskTime,
 
 bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 {
+    return SendSyncEvent(event, priority, false);
+}
+
+bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority, bool sameRunnerOnly)
+{
     if ((!event) || (priority == Priority::IDLE)) {
         HILOGE("Could not send an invalid event or idle event");
         return false;
@@ -238,9 +243,17 @@ bool EventHandler::SendSyncEvent(InnerEvent::Pointer &event, Priority priority)
 
     bool result = true;
 #ifdef FFRT_USAGE_ENABLE
-    if (eventRunner_ == EventRunner::Current()) {
-        DistributeEvent(event);
-        return true;
+    if (sameRunnerOnly) {
+        if (eventRunner_ == EventRunner::Current()) {
+            DistributeEvent(event);
+            return true;
+        }
+    } else {
+        if ((ffrt_this_task_get_id() && eventRunner_->threadMode_ == ThreadMode::FFRT) ||
+            eventRunner_ == EventRunner::Current()) {
+            DistributeEvent(event);
+            return true;
+        }
     }
 
     if (eventRunner_->threadMode_ == ThreadMode::FFRT) {

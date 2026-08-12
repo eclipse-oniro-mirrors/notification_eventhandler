@@ -598,16 +598,38 @@ public:
     bool SendSyncEvent(InnerEvent::Pointer &event, Priority priority = Priority::LOW);
 
     /**
+     * Send an event, and wait until this event has been handled.
+     *
+     * @param event Event which should be handled.
+     * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param sameRunnerOnly Whether to only allow direct execution within the same runner in FFRT mode.
+     * @return Returns true if event has been sent successfully. If returns false, event should be released manually.
+     */
+    bool SendSyncEvent(InnerEvent::Pointer &event, Priority priority, bool sameRunnerOnly);
+
+    /**
      * Send an event.
      *
      * @param event Event which should be handled.
-     * @param priority Priority of the event queue for this event.
      * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
      * @return Returns true if event has been sent successfully.
      */
     inline bool SendSyncEvent(InnerEvent::Pointer &&event, Priority priority = Priority::LOW)
     {
         return SendSyncEvent(event, priority);
+    }
+
+    /**
+     * Send an event.
+     *
+     * @param event Event which should be handled.
+     * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param sameRunnerOnly Whether to only allow direct execution within the same runner in FFRT mode.
+     * @return Returns true if event has been sent successfully.
+     */
+    inline bool SendSyncEvent(InnerEvent::Pointer &&event, Priority priority, bool sameRunnerOnly)
+    {
+        return SendSyncEvent(event, priority, sameRunnerOnly);
     }
 
     /**
@@ -729,6 +751,22 @@ public:
                              const Caller &caller = {})
     {
         return PostSyncTask(callback, std::string(), priority, caller);
+    }
+
+    /**
+     * Post a task, and wait until this task has been handled.
+     *
+     * @param callback Task callback.
+     * @param name Name of the task.
+     * @param priority Priority of the event queue for this event, IDLE is not permitted for sync event.
+     * @param caller Caller info of the event, default is caller's file, func and line.
+     * @param sameRunnerOnly Whether to only allow direct execution within the same runner in FFRT mode.
+     * @return Returns true if task has been sent successfully.
+     */
+    inline bool PostSyncTask(const Callback &callback, const std::string &name,
+                             Priority priority, const Caller &caller, bool sameRunnerOnly)
+    {
+        return SendSyncEvent(InnerEvent::Get(callback, name, caller), priority, sameRunnerOnly);
     }
 
     /**
