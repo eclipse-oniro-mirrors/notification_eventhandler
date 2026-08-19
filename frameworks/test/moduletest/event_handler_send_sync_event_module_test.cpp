@@ -15,7 +15,9 @@
 
 #include "event_handler_test_common.h"
 
+#include <atomic>
 #include <gtest/gtest.h>
+#include <thread>
 
 using namespace testing::ext;
 using namespace OHOS::AppExecFwk;
@@ -23,6 +25,25 @@ using namespace OHOS::AppExecFwk;
 namespace {
 const uint32_t MAX_RETRY_COUNT = 1000;
 const uint32_t SLEEP_TIME = 1000;
+
+std::atomic<EventRunner *> g_processRunner;
+
+class TestSyncEventHandler : public EventHandler {
+public:
+    explicit TestSyncEventHandler(const std::shared_ptr<EventRunner> &runner) : EventHandler(runner) {}
+    ~TestSyncEventHandler() {}
+    void ProcessEvent(const InnerEvent::Pointer &event) override
+    {
+        auto eventId = event->GetInnerEventId();
+        if (eventId == STOP_EVENT_ID) {
+            GetEventRunner()->Stop();
+        }
+        if (eventId == RUN_EVENT_ID) {
+            g_processRunner.store(EventRunner::Current().get());
+            CommonUtils::EventRunSet(true);
+        }
+    }
+};
 
 /**
  * Function: Waiting for task run, the most waiting time is 1s.
@@ -388,4 +409,100 @@ HWTEST_F(EventHandlerSendSyncEventModuleTest, SendSync012, TestSize.Level1)
 
     bool runResult = CommonUtils::TaskCalledGet();
     EXPECT_TRUE(runResult);
+}
+
+/**
+ * @tc.name: SendSyncSameRunnerFFRT
+ * @tc.desc: Send sync event in same FFRT runner with sameRunnerOnly=true
+ * @tc.type: FUNC
+ */
+HWTEST_F(EventHandlerSendSyncEventModuleTest, SendSyncSameRunnerFFRTPlanA, TestSize.Level1)
+{
+    g_processRunner.store(nullptr);
+    auto runner = EventRunner::Create("RunnerFFRT", ThreadMode::FFRT);
+    auto handler = std::make_shared<TestSyncEventHandler>(runner);
+    auto event = InnerEvent::Get(RUN_EVENT_ID);
+
+    auto f = [&handler, &event]() {
+        bool result = handler->SendSyncEvent(event, EventQueue::Priority::IMMEDIATE, true);
+        EXPECT_TRUE(result);
+    };
+    WaitTaskCalled(f, handler);
+
+    EXPECT_TRUE(CommonUtils::EventRunGet());
+    EXPECT_EQ(runner.get(), g_processRunner.load());
+}
+
+/**
+ * @tc.name: SendSyncSameRunnerFFRTOriginal
+ * @tc.desc: Send sync event in same FFRT runner with sameRunnerOnly=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(EventHandlerSendSyncEventModuleTest, SendSyncSameRunnerFFRTOriginal, TestSize.Level1)
+{
+    g_processRunner.store(nullptr);
+    auto runner = EventRunner::Create("RunnerFFRT", ThreadMode::FFRT);
+    auto handler = std::make_shared<TestSyncEventHandler>(runner);
+    auto event = InnerEvent::Get(RUN_EVENT_ID);
+
+    auto f = [&handler, &event]() {
+        bool result = handler->SendSyncEvent(event, EventQueue::Priority::IMMEDIATE, false);
+        EXPECT_TRUE(result);
+    };
+    WaitTaskCalled(f, handler);
+
+    EXPECT_TRUE(CommonUtils::EventRunGet());
+    EXPECT_EQ(runner.get(), g_processRunner.load());
+}
+
+/**
+ * @tc.name: SendSyncCrossRunnerFFRT
+ * @tc.desc: Send sync event across FFRT runners with sameRunnerOnly=true
+ * @tc.type: FUNC
+ */
+HWTEST_F(EventHandlerSendSyncEventModuleTest, SendSyncCrossRunnerFFRTPlanA, TestSize.Level1)
+{
+    g_processRunner.store(nullptr);
+    auto runnerA = EventRunner::Create("RunnerFFRT_A", ThreadMode::FFRT);
+    auto runnerB = EventRunner::Create("RunnerFFRT_B", ThreadMode::FFRT);
+    auto handlerA = std::make_shared<TestSyncEventHandler>(runnerA);
+    auto handlerB = std::make_shared<TestSyncEventHandler>(runnerB);
+    auto event = InnerEvent::Get(RUN_EVENT_ID);
+
+    auto f = [&handlerA, &event]() {
+        bool result = handlerA->SendSyncEvent(event, EventQueue::Priority::IMMEDIATE, true);
+        EXPECT_TRUE(result);
+    };
+    WaitTaskCalled(f, handlerB);
+
+    EXPECT_TRUE(CommonUtils::EventRunGet());
+    EXPECT_NE(runnerB.get(), g_processRunner.load());
+}
+
+/**
+ * @tc.name: SendSyncCrossRunnerFFRTOriginal
+ * @tc.desc: Send sync event across FFRT runners with sameRunnerOnly=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(EventHandlerSendSyncEventModuleTest, SendSyncCrossRunnerFFRTOriginal, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Send sync event from runnerB to runnerA with sameRunnerOnly=false.
+     * @tc.expected: step1. Event should be processed directly on the calling runner's context.
+     */
+    g_processRunner.store(nullptr);
+    auto runnerA = EventRunner::Create("RunnerFFRT_A", ThreadMode::FFRT);
+    auto runnerB = EventRunner::Create("RunnerFFRT_B", ThreadMode::FFRT);
+    auto handlerA = std::make_shared<TestSyncEventHandler>(runnerA);
+    auto handlerB = std::make_shared<TestSyncEventHandler>(runnerB);
+    auto event = InnerEvent::Get(RUN_EVENT_ID);
+
+    auto f = [&handlerA, &event]() {
+        bool result = handlerA->SendSyncEvent(event, EventQueue::Priority::IMMEDIATE, false);
+        EXPECT_TRUE(result);
+    };
+    WaitTaskCalled(f, handlerB);
+
+    EXPECT_TRUE(CommonUtils::EventRunGet());
+    EXPECT_EQ(runnerB.get(), g_processRunner.load());
 }
