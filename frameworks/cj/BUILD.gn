@@ -51,6 +51,8 @@ ohos_shared_library("cj_emitter_ffi") {
     sources = [ "src/emitter_mock.cpp" ]
   }
 
+  version_script = "libcj_emitter_ffi.map"
+
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "notification"
   part_name = "eventhandler"
