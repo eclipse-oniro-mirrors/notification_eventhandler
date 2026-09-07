@@ -215,9 +215,11 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
                 DispatchVsyncTaskNotify();
             }
             InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
-            subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
-                static_cast<uint64_t>((*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
-                    ->GetHandleTime().time_since_epoch().count());
+            if (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin() != nullptr) {
+                subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
+                    static_cast<uint64_t>((*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
+                        ->GetHandleTime().time_since_epoch().count());
+            }
             break;
         }
         case Priority::IDLE: {
@@ -362,9 +364,12 @@ void EventQueueBase::Remove(const RemoveFilter &filter) __attribute__((no_saniti
 #endif
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         subEventQueues_[i].queue.remove_if(filter);
-        subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
-            static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
-            ->GetHandleTime().time_since_epoch().count()) : UINT64_MAX);
+        if (subEventQueues_[i].queue.empty()) {
+            subEventQueues_[i].frontEventHandleTime = UINT64_MAX;
+        } else if (*subEventQueues_[i].queue.begin() != nullptr) {
+            subEventQueues_[i].frontEventHandleTime = static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
+                ->GetHandleTime().time_since_epoch().count());
+        }
     }
     idleEvents_.remove_if(filter);
 #ifdef NOTIFICATIONG_SMART_GC
@@ -391,9 +396,12 @@ void EventQueueBase::RemoveOrphan(const RemoveFilter &filter)
             auto it = std::stable_partition(subEventQueues_[i].queue.begin(), subEventQueues_[i].queue.end(), filter);
             std::move(subEventQueues_[i].queue.begin(), it, std::back_inserter(releaseEventsQueue[i].queue));
             subEventQueues_[i].queue.erase(subEventQueues_[i].queue.begin(), it);
-            subEventQueues_[i].frontEventHandleTime = (subEventQueues_[i].queue.size() ?
-            static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
-            ->GetHandleTime().time_since_epoch().count()) : UINT64_MAX);
+            if (subEventQueues_[i].queue.empty()) {
+                subEventQueues_[i].frontEventHandleTime = UINT64_MAX;
+            } else if (*subEventQueues_[i].queue.begin() != nullptr) {
+                subEventQueues_[i].frontEventHandleTime = static_cast<uint64_t>((*subEventQueues_[i].queue.begin())
+                    ->GetHandleTime().time_since_epoch().count());
+            }
         }
         auto idleEventIt = std::stable_partition(idleEvents_.begin(), idleEvents_.end(), filter);
         std::move(idleEvents_.begin(), idleEventIt, std::back_inserter(releaseIdleEvents));
@@ -524,8 +532,12 @@ InnerEvent::Pointer EventQueueBase::GetExpiredEventLocked(InnerEvent::TimePoint 
     InnerEvent::Pointer event = PickEventLocked(now, wakeUpTime_);
     if (event) {
         int32_t prio = event->GetEventPriority();
-        subEventQueues_[prio].frontEventHandleTime = subEventQueues_[prio].queue.empty() ? UINT64_MAX :
-            static_cast<uint64_t>((*subEventQueues_[prio].queue.begin())->GetHandleTime().time_since_epoch().count());
+        if (subEventQueues_[prio].queue.empty()) {
+            subEventQueues_[prio].frontEventHandleTime = UINT64_MAX;
+        } else if (*subEventQueues_[prio].queue.begin() != nullptr) {
+            subEventQueues_[prio].frontEventHandleTime = static_cast<uint64_t>((*subEventQueues_[prio].queue.begin())
+                ->GetHandleTime().time_since_epoch().count());
+        }
         // Exit idle mode, if found an event to distribute.
         isIdle_ = false;
         currentRunningEvent_ = CurrentRunningEvent(now, event);
