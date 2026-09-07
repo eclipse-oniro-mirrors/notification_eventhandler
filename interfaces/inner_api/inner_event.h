@@ -929,7 +929,7 @@ private:
     friend class EventHandler;
 
     std::weak_ptr<EventHandler> owner_;
-    TimePoint handleTime_;
+    uint64_t stackId_ = 0;
     TimePoint sendTime_;
     uint64_t senderKernelThreadId_{0};
 
@@ -974,7 +974,7 @@ private:
 
     bool isEnhanced_ = false;
 
-    uint64_t stackId_ = 0;
+    TimePoint handleTime_;
 };
 }  // namespace AppExecFwk
 }  // namespace OHOS
