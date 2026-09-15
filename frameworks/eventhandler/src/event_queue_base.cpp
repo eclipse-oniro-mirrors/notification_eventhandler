@@ -209,13 +209,19 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
         case Priority::IMMEDIATE:
         case Priority::HIGH:
         case Priority::LOW: {
-            needNotify = (event->GetHandleTime() < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
+            auto handleTime = event->GetHandleTime();
+            needNotify = (handleTime < wakeUpTime_) || (wakeUpTime_ < InnerEvent::Clock::now());
             if (event->IsVsyncTask()) {
                 needNotify = true;
                 DispatchVsyncTaskNotify();
             }
-            InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
-            if (*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin() != nullptr) {
+            if (subEventQueues_[static_cast<uint32_t>(priority)].queue.empty()
+                || insertType == EventInsertType::AT_FRONT) {
+                InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
+                subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
+                    static_cast<uint64_t>(handleTime.time_since_epoch().count());
+            } else {
+                InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
                 subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
                     static_cast<uint64_t>((*subEventQueues_[static_cast<uint32_t>(priority)].queue.begin())
                         ->GetHandleTime().time_since_epoch().count());
