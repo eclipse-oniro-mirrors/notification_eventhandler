@@ -26,6 +26,7 @@ ohos_shared_library("eventEmitter") {
     debug = false
   }
   branch_protector_ret = "pac_ret"
+  version_script = "libeventEmitter.map"
 
   include_dirs = [
     "${frameworks_path}/emitter/ani/include",
