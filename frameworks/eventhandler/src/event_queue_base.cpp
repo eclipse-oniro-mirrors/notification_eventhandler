@@ -215,8 +215,7 @@ bool EventQueueBase::Insert(InnerEvent::Pointer &event, Priority priority, Event
                 needNotify = true;
                 DispatchVsyncTaskNotify();
             }
-            if (subEventQueues_[static_cast<uint32_t>(priority)].queue.empty()
-                || insertType == EventInsertType::AT_FRONT) {
+            if (subEventQueues_[static_cast<uint32_t>(priority)].queue.empty()) {
                 InsertEventsLocked(subEventQueues_[static_cast<uint32_t>(priority)].queue, event, insertType);
                 subEventQueues_[static_cast<uint32_t>(priority)].frontEventHandleTime =
                     static_cast<uint64_t>(handleTime.time_since_epoch().count());
