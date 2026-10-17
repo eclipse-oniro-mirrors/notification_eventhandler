@@ -38,7 +38,8 @@
                 "runtime_core",
                 "bounds_checking_function",
                 "libuv",
-                "json"
+                "json",
+                "samgr"
             ]
         },
         "build": {
