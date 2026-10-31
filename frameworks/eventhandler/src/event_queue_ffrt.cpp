@@ -332,6 +332,12 @@ void EventQueueFFRT::DumpQueueInfo(std::string& queueInfo)
     }
 }
 
+std::string EventQueueFFRT::DumpStr(int32_t dumpMaxSize)
+{
+    (void)dumpMaxSize;
+    return "";
+}
+
 bool EventQueueFFRT::IsIdle()
 {
     std::lock_guard<ffrt::mutex> lock(ffrtLock_);

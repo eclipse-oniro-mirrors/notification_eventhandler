@@ -766,6 +766,23 @@ void EventRunner::Dump(Dumper &dumper)
     queue_->Dump(dumper);
 }
 
+std::string EventRunner::DumpStr(int32_t dumpMaxSize)
+{
+    if (!IsRunning()) {
+        return "";
+    }
+
+    if (queue_ == nullptr) {
+        return "";
+    }
+
+    std::string content;
+    content.append("Event runner (Thread name = " + innerRunner_->GetThreadName() +
+        ", Thread ID = " + std::to_string(GetKernelThreadId()) + ") is running" + std::string(LINE_SEPARATOR));
+    content.append(queue_->DumpStr(dumpMaxSize));
+    return content;
+}
+
 void EventRunner::DumpRunnerInfo(std::string& runnerInfo)
 {
     if (!IsRunning()) {
