@@ -150,6 +150,15 @@ public:
     void DumpQueueInfo(std::string& queueInfo) override;
 
     /**
+     * Dump the internal information about the event queue into a string,
+     * helping you diagnose internal errors of the object.
+     *
+     * @param dumpMaxSize Max size of events to dump, clamped between 50 and 1000.
+     * @return Returns the dump info string, returns empty string on failure.
+     */
+    std::string DumpStr(int32_t dumpMaxSize) override;
+
+    /**
      * Checks whether the current EventHandler is idle.
      *
      * @return Returns true if all events have been processed; returns false otherwise.
@@ -337,6 +346,7 @@ private:
     LOCAL_API std::string DumpCurrentRunning();
     LOCAL_API void DumpCurrentRunningEventId(const InnerEvent::EventId &innerEventId, std::string &content);
     LOCAL_API void DumpCurentQueueInfo(Dumper &dumper, uint32_t dumpMaxSize);
+    LOCAL_API std::string DumpCurrentQueueInfoStr(uint32_t dumpMaxSize);
 
     // Sub event queues for different priority.
     std::array<SubEventQueue, SUB_EVENT_QUEUE_NUM> subEventQueues_;

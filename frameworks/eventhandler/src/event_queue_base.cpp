@@ -38,6 +38,8 @@ namespace {
 DEFINE_EH_HILOG_LABEL("EventQueueBase");
 constexpr uint32_t MAX_DUMP_SIZE = 500;
 constexpr int64_t GC_TIME_OUT = 300;
+constexpr int32_t MIN_DUMP_STR_SIZE = 50;
+constexpr int32_t MAX_DUMP_STR_SIZE = 1000;
 constexpr std::string_view STAGE_BEFORE_WAITING = "BEFORE_WAITING";
 constexpr std::string_view STAGE_AFTER_WAITING = "AFTER_WAITING";
 constexpr std::string_view STAGE_VIP_EXISTED = "STAGE_VIP_EXISTED";
@@ -824,7 +826,72 @@ void EventQueueBase::Dump(Dumper &dumper)
     }
     DumpCurentQueueInfo(dumper, dumpMaxSize);
 }
- 
+
+std::string EventQueueBase::DumpCurrentQueueInfoStr(uint32_t dumpMaxSize)
+{
+    std::string content;
+    std::string priority[] = {"VIP", "Immediate", "High", "Low"};
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
+        uint32_t queueSize = static_cast<uint32_t>(subEventQueues_[i].queue.size());
+        total += queueSize;
+        content.append(priority[i] + " priority event queue information:" + std::string(LINE_SEPARATOR));
+        uint32_t n = 0;
+        for (auto it = subEventQueues_[i].queue.begin();
+            it != subEventQueues_[i].queue.end() && n < dumpMaxSize; ++it) {
+            ++n;
+            content.append("No." + std::to_string(n) + " : " + (*it)->Dump());
+        }
+        content.append("Total size of " + priority[i] + " events : " + std::to_string(queueSize) +
+            std::string(LINE_SEPARATOR));
+        if (n < queueSize) {
+            dumpMaxSize = 0; // quota exhausted, stop dumping details of remaining queues
+        }
+    }
+    content.append("Idle priority event queue information:" + std::string(LINE_SEPARATOR));
+    uint32_t idleSize = static_cast<uint32_t>(idleEvents_.size());
+    total += idleSize;
+    uint32_t n = 0;
+    for (auto it = idleEvents_.begin(); it != idleEvents_.end() && n < dumpMaxSize; ++it) {
+        ++n;
+        content.append("No." + std::to_string(n) + " : " + (*it)->Dump());
+    }
+    content.append("Total size of Idle events : " + std::to_string(idleSize) + std::string(LINE_SEPARATOR));
+    content.append("Total event size : " + std::to_string(total) + std::string(LINE_SEPARATOR));
+    return content;
+}
+
+std::string EventQueueBase::DumpStr(int32_t dumpMaxSize)
+{
+    if (dumpMaxSize < MIN_DUMP_STR_SIZE) {
+        dumpMaxSize = MIN_DUMP_STR_SIZE;
+    } else if (dumpMaxSize > MAX_DUMP_STR_SIZE) {
+        dumpMaxSize = MAX_DUMP_STR_SIZE;
+    }
+    uint32_t dumpSize = static_cast<uint32_t>(dumpMaxSize);
+
+    LockGuardBase lock(*queueLock_);
+    HILOGD("EventQueue start dump str.");
+    if (!usable_.load()) {
+        HILOGW("EventQueueBase is unavailable.");
+        return "";
+    }
+
+    std::string content;
+    content.append("Current Running: " + DumpCurrentRunning() + std::string(LINE_SEPARATOR));
+    content.append("History event queue information:" + std::string(LINE_SEPARATOR));
+    for (uint8_t i = 0; i < HISTORY_EVENT_NUM_POWER; i++) {
+        std::lock_guard<std::mutex> lock(historyLock_);
+        if (historyEvents_[i].senderKernelThreadId == 0) {
+            continue;
+        }
+        --dumpSize;
+        content.append("No. " + std::to_string(i) + " : " + HistoryQueueDump(historyEvents_[i]));
+    }
+    content.append(DumpCurrentQueueInfoStr(dumpSize));
+    return content;
+}
+
 void EventQueueBase::DumpQueueInfo(std::string& queueInfo)
 {
     LockGuardBase lock(*queueLock_);

@@ -19,6 +19,7 @@
 
 #include <sys/prctl.h>
 
+#include "event_queue_base.h"
 #include "event_handler.h"
 #include "event_runner.h"
 
@@ -398,4 +399,185 @@ HWTEST_F(LibEventHandlerEventRunnerTest, SetTimeOut001, TestSize.Level1)
     int64_t reTimeout = runner->GetTimeout();
     EXPECT_EQ(reTimeout, timeout);
     EXPECT_EQ(nullptr, EventRunner::distributeCallback_);
+}
+
+/*
+ * @tc.name: DumpStr001
+ * @tc.desc: check DumpStr returns empty string when runner is not running
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr001, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a runner which is not deposit and not running.
+     */
+    auto runner = EventRunner::Create(false);
+    EXPECT_NE(runner, nullptr);
+
+    /**
+     * @tc.steps: step1. call DumpStr on the runner which is not running.
+     * @tc.expected: step1. empty string is returned.
+     */
+    runner->DumpStr(100);
+}
+
+/*
+ * @tc.name: DumpStr002
+ * @tc.desc: check DumpStr with running runner and empty queue
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr002, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a running runner with an empty queue.
+     */
+    auto runner = EventRunner::Create(true);
+    EXPECT_NE(runner, nullptr);
+    /**
+     * @tc.steps: step1. call DumpStr with dumpMaxSize in valid range.
+     * @tc.expected: step1. header and queue info are returned, no event detail is printed.
+     */
+    runner->DumpStr(100);
+}
+
+/*
+ * @tc.name: DumpStr003
+ * @tc.desc: check DumpStr when dumpMaxSize is less than the minimum limit
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr003, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a running runner and send 60 delayed low priority events.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+    for (uint32_t i = 0; i < 60; ++i) {
+        handler->SendEvent(i, i, 100);
+    }
+
+    /**
+     * @tc.steps: step1. call DumpStr with dumpMaxSize(10) less than the minimum limit(50).
+     * @tc.expected: step1. dumpMaxSize is clamped to 50, only 50 event details are printed.
+     */
+    runner->DumpStr(10);
+}
+
+/*
+ * @tc.name: DumpStr004
+ * @tc.desc: check DumpStr when dumpMaxSize is greater than the maximum limit
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr004, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a running runner and send 60 delayed low priority events.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+    for (uint32_t i = 0; i < 60; ++i) {
+        handler->SendEvent(i, i, 100);
+    }
+
+    /**
+     * @tc.steps: step1. call DumpStr with dumpMaxSize(2000) greater than the maximum limit(1000).
+     * @tc.expected: step1. dumpMaxSize is clamped to 1000, all 60 events are printed.
+     */
+    runner->DumpStr(2000);
+}
+
+/*
+ * @tc.name: DumpStr005
+ * @tc.desc: check DumpStr with dumpMaxSize in valid range and idle events in queue
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr005, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a running runner, send 60 delayed low priority events and 10 delayed idle events.
+     */
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(handler, nullptr);
+    for (uint32_t i = 0; i < 60; ++i) {
+        handler->SendEvent(i, i, 100);
+    }
+    for (uint32_t i = 0; i < 10; ++i) {
+        auto event = InnerEvent::Get(i);
+        handler->SendEvent(event, 100, EventQueue::Priority::IDLE);
+    }
+
+    /**
+     * @tc.steps: step1. call DumpStr with dumpMaxSize(100) in valid range.
+     * @tc.expected: step1. all events are printed including idle events.
+     */
+    runner->DumpStr(100);
+}
+
+/*
+ * @tc.name: DumpStr006
+ * @tc.desc: check DumpStr when event queue is unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr006, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a running runner and set its queue unavailable.
+     */
+    auto runner = EventRunner::Create(true);
+    EXPECT_NE(runner, nullptr);
+    auto queue = std::static_pointer_cast<EventQueueBase>(runner->GetEventQueue());
+    ASSERT_NE(nullptr, queue);
+    queue->SetUsable(false);
+
+    /**
+     * @tc.steps: step1. call DumpStr while the queue is unavailable.
+     * @tc.expected: step1. only runner header is returned, queue info is empty.
+     */
+    runner->DumpStr(100);
+}
+
+/*
+ * @tc.name: DumpStr007
+ * @tc.desc: check DumpStr when runner works in ffrt thread mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr007, TestSize.Level1)
+{
+    /**
+     * @tc.setup: init a ffrt mode runner.
+     */
+    auto runner = EventRunner::Create(true, ThreadMode::FFRT);
+    EXPECT_NE(runner, nullptr);
+
+    /**
+     * @tc.steps: step1. call DumpStr on the ffrt mode runner.
+     * @tc.expected: step1. only runner header is returned, ffrt queue dumps nothing.
+     */
+    runner->DumpStr(100);
+}
+
+/*
+ * @tc.name: DumpStr008
+ * @tc.desc: PostAndDumpTest_001 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr008, TestSize.Level1)
+{
+    auto runner = EventRunner::Create(true);
+    auto handler = std::make_shared<EventHandler>(runner);
+    EXPECT_NE(nullptr, handler);
+    auto f = []() {; };
+    for (int32_t i = 0 ; i < 32; i++) {
+        handler->PostTask(f, "VIP task", 0, EventQueue::Priority::VIP);
+    }
+    usleep(500);
+    auto f1 = []() {usleep(20000);};
+    handler->PostTask(f1, "HIGH task", 0, EventQueue::Priority::HIGH);
+    for (int32_t i = 0 ; i < 500; i++) {
+        handler->PostTask(f, "LOW task", 0, EventQueue::Priority::LOW);
+    }
+    runner->DumpStr(250);
 }

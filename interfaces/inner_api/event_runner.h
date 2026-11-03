@@ -185,6 +185,15 @@ public:
     void Dump(Dumper &dumper);
 
     /**
+     * Dump the internal information about an object into a string,
+     * helping you diagnose internal errors of the object.
+     *
+     * @param dumpMaxSize Max size of events to dump, clamped between 50 and 1000.
+     * @return Returns the dump info string, returns empty string on failure.
+     */
+    std::string DumpStr(int32_t dumpMaxSize);
+
+    /**
      * Print out the internal information about an object in the specified format,
      * helping you diagnose internal errors of the object.
      *
