@@ -573,7 +573,7 @@ HWTEST_F(LibEventHandlerEventRunnerTest, DumpStr008, TestSize.Level1)
     for (int32_t i = 0 ; i < 32; i++) {
         handler->PostTask(f, "VIP task", 0, EventQueue::Priority::VIP);
     }
-    usleep(500);
+    usleep(800);
     auto f1 = []() {usleep(20000);};
     handler->PostTask(f1, "HIGH task", 0, EventQueue::Priority::HIGH);
     for (int32_t i = 0 ; i < 500; i++) {

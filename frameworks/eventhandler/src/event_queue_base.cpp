@@ -832,29 +832,29 @@ std::string EventQueueBase::DumpCurrentQueueInfoStr(uint32_t dumpMaxSize)
     std::string content;
     std::string priority[] = {"VIP", "Immediate", "High", "Low"};
     uint32_t total = 0;
+    uint32_t dumpSize = 0;
     for (uint32_t i = 0; i < SUB_EVENT_QUEUE_NUM; ++i) {
         uint32_t queueSize = static_cast<uint32_t>(subEventQueues_[i].queue.size());
         total += queueSize;
         content.append(priority[i] + " priority event queue information:" + std::string(LINE_SEPARATOR));
-        uint32_t n = 0;
+        uint32_t number = 0;
         for (auto it = subEventQueues_[i].queue.begin();
-            it != subEventQueues_[i].queue.end() && n < dumpMaxSize; ++it) {
-            ++n;
-            content.append("No." + std::to_string(n) + " : " + (*it)->Dump());
+            it != subEventQueues_[i].queue.end() && dumpSize < dumpMaxSize; ++it) {
+            ++dumpSize;
+            ++number;
+            content.append("No." + std::to_string(number) + " : " + (*it)->Dump());
         }
         content.append("Total size of " + priority[i] + " events : " + std::to_string(queueSize) +
             std::string(LINE_SEPARATOR));
-        if (n < queueSize) {
-            dumpMaxSize = 0; // quota exhausted, stop dumping details of remaining queues
-        }
     }
     content.append("Idle priority event queue information:" + std::string(LINE_SEPARATOR));
     uint32_t idleSize = static_cast<uint32_t>(idleEvents_.size());
     total += idleSize;
-    uint32_t n = 0;
-    for (auto it = idleEvents_.begin(); it != idleEvents_.end() && n < dumpMaxSize; ++it) {
-        ++n;
-        content.append("No." + std::to_string(n) + " : " + (*it)->Dump());
+    uint32_t number = 0;
+    for (auto it = idleEvents_.begin(); it != idleEvents_.end() && dumpSize < dumpMaxSize; ++it) {
+        ++dumpSize;
+        ++number;
+        content.append("No." + std::to_string(number) + " : " + (*it)->Dump());
     }
     content.append("Total size of Idle events : " + std::to_string(idleSize) + std::string(LINE_SEPARATOR));
     content.append("Total event size : " + std::to_string(total) + std::string(LINE_SEPARATOR));
