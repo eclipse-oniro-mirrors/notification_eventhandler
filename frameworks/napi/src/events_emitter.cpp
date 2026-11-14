@@ -856,8 +856,9 @@ namespace {
             HILOGD("requires 2 parameter");
             return nullptr;
         }
-        uint32_t emitterId = 0;
-        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        uintptr_t emitterIdPtr = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+        uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
         napi_valuetype eventValueType = GetNapiType(env, argv[0]);
         if (eventValueType != napi_string) {
             return nullptr;
@@ -927,8 +928,9 @@ namespace {
             return nullptr;
         }
 
-        uint32_t emitterId = 0;
-        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        uintptr_t emitterIdPtr = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+        uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
         if (eventValueType != napi_string) {
@@ -979,8 +981,9 @@ namespace {
             return nullptr;
         }
 
-        uint32_t emitterId = 0;
-        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        uintptr_t emitterIdPtr = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+        uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
         return EmitWithEventIdString(env, argc, argv, emitterId);
     }
 
@@ -1000,8 +1003,9 @@ namespace {
             return CreateJsUndefined(env);
         }
 
-        uint32_t emitterId = 0;
-        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        uintptr_t emitterIdPtr = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+        uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
 
         napi_valuetype eventValueType;
         napi_typeof(env, argv[0], &eventValueType);
