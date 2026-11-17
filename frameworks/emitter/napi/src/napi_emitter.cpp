@@ -278,8 +278,9 @@ napi_value JS_EmitterOff(napi_env env, napi_callback_info cbinfo)
         return nullptr;
     }
 
-    uint32_t emitterId = 0;
-    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+    uintptr_t emitterIdPtr = 0;
+    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+    uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
 
     napi_valuetype eventValueType;
     napi_typeof(env, argv[0], &eventValueType);
@@ -325,8 +326,9 @@ napi_value JS_EmitterEmit(napi_env env, napi_callback_info cbinfo)
         return nullptr;
     }
 
-    uint32_t emitterId = 0;
-    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+    uintptr_t emitterIdPtr = 0;
+    napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+    uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
     return EmitWithEventIdString(env, argc, argv, emitterId);
 }
 
@@ -372,8 +374,9 @@ napi_value JS_GetListenerCount(napi_env env, napi_callback_info cbinfo)
     CompositeEventId compositeId;
     compositeId.eventId = eventId;
     if (thisArg != nullptr) {
-        uint32_t emitterId = 0;
-        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterId));
+        uintptr_t emitterIdPtr = 0;
+        napi_unwrap(env, thisArg, reinterpret_cast<void**>(&emitterIdPtr));
+        uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
         compositeId.emitterId = emitterId;
     }
     uint32_t cnt = AsyncCallbackManager::GetInstance().GetListenerCountByEventId(compositeId);

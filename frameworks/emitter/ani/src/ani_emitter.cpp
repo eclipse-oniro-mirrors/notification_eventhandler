@@ -507,8 +507,9 @@ static ani_ref EmitterTransferToDynamic(ani_env *env, ani_object input)
         HILOGE("EmitterTransferToStatic is nullptr");
         return undefinedRef;
     }
+    uintptr_t idPtr = static_cast<uintptr_t>(id);
     napi_wrap(
-        jsEnv, object, reinterpret_cast<void*>(id), [](napi_env env, void* data, void* hint) {}, nullptr, nullptr);
+        jsEnv, object, reinterpret_cast<void*>(idPtr), [](napi_env env, void* data, void* hint) {}, nullptr, nullptr);
     ani_ref result {};
     arkts_napi_scope_close_n(jsEnv, 1, &object, &result);
     return result;
@@ -518,8 +519,9 @@ static ani_ref EmitterTransferToStatic(ani_env *env, ani_object input)
 {
     ani_ref undefinedRef {};
     env->GetUndefined(&undefinedRef);
-    uint32_t emitterId = 0;
-    arkts_esvalue_unwrap(env, input, reinterpret_cast<void**>(&emitterId));
+    uintptr_t emitterIdPtr = 0;
+    arkts_esvalue_unwrap(env, input, reinterpret_cast<void**>(&emitterIdPtr));
+    uint32_t emitterId = static_cast<uint32_t>(emitterIdPtr);
     if (emitterId == 0) {
         HILOGE("Failed to get emitterId");
         return undefinedRef;
