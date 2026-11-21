@@ -36,7 +36,7 @@ FrameReport& FrameReport::GetInstance()
 FrameReport::FrameReport()
 {
     LoadLibrary();
-    uid_ = getuid();
+    uid_ = getappuid();
 }
  
 FrameReport::~FrameReport()
