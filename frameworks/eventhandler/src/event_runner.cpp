@@ -889,7 +889,7 @@ bool EventRunner::IsAppMainThread()
         pid = getpid();
     }
     if (uid == -1) {
-        uid = getuid();
+        uid = getappuid();
     }
     if (pid == gettid() && uid >= MIN_APP_UID) {
         return true;
